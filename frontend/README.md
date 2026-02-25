@@ -1,73 +1,103 @@
-# React + TypeScript + Vite
+# FoodSaver
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación fullstack para gestionar y guardar recetas de comida.
 
-Currently, two official plugins are available:
+## 📁 Estructura del Proyecto
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+FoodSaver/
+├── backend/           # API Express.js
+│   └── src/
+│       └── server.js  # Punto de entrada del servidor
+└── frontend/          # Aplicación React + TypeScript + Vite
+    └── src/
+        ├── App.tsx
+        ├── main.tsx
+        └── assets/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## ⚙️ Requisitos Previos
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Instalen Node:
+- **Node.js** (versión 16 o superior)
+- **npm** (viene con Node.js)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Verifiquen las versiones:
+```bash
+node --version
+npm --version
 ```
+
+## 🚀 Instalación
+
+### 1. Clonar o descargar el repositorio
+
+```bash
+cd FoodSaver
+```
+
+### 2. Instalar dependencias del backend
+
+```bash
+cd backend
+npm install
+```
+
+### 3. Instalar dependencias del frontend
+
+```bash
+cd ../frontend
+npm install
+```
+
+## ▶️ Ejecutar el Proyecto
+
+El backend y frontend se ejecutan en terminales **separadas**.
+
+### Terminal 1: Ejecutar el Backend
+
+```bash
+cd backend
+npm start
+```
+
+El servidor se iniciará en `http://localhost:3000` 
+
+### Terminal 2: Ejecutar el Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+La aplicación se abrirá en `http://localhost:5173` (puerto por defecto de Vite)
+
+## 📚 Comandos Disponibles
+
+### Backend
+- `npm start` - Inicia el servidor
+
+### Frontend
+- `npm run dev` - Inicia el servidor de desarrollo
+- `npm run build` - Compila el proyecto para producción
+- `npm run lint` - Ejecuta el linter para revisar código
+- `npm run preview` - Visualiza la compilación de producción
+
+## 💡 Consejos
+
+1. **Abre dos terminales**: Una para el backend y otra para el frontend
+2. **Verifica los puertos**: Asegúrate de que los puertos 3000 y 5173 estén disponibles
+3. **Recarga la página**: Si hay cambios en el frontend, actualiza el navegador (Ctrl+R o Cmd+R)
+4. **Errores comunes**: Si npm install falla, intenta:
+   ```bash
+   npm cache clean --force
+   npm install
+   ```
+
+## 📝 Notas
+
+- El frontend usa **Tailwind CSS** para estilos y **Lucide** para los iconos
+- Se utiliza **TypeScript** para mayor seguridad de tipos
+- El backend usa **Express.js** como framework
+
+¡Listo! Si hay dudas, revisen los `package.json` en cada carpeta o contacta o me comentan.
