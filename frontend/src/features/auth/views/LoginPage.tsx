@@ -33,7 +33,7 @@ export const LoginPage = () => {
         </span>
       </Link>
 
-      <div className="w-full max-w-md bg-brand-card border border-brand-border rounded-[2rem] p-10 relative overflow-hidden shadow-2xl">
+      <div className="w-full max-w-md bg-brand-card border border-brand-border rounded-4xl p-10 relative overflow-hidden shadow-2xl">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-semibold text-brand-text font-jakarta mb-2">
             Bienvenido
