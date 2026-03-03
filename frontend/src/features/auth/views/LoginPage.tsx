@@ -1,24 +1,46 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Leaf, Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
+import axios from "axios";
 
 export const LoginPage = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    if (!username || !password) {
-      setError("Por favor, ingresa tu usuario y contraseña.");
+    if (!email || !password) {
+      setError("Por favor, ingresa tu correo y contraseña.");
       return;
     }
 
-    // La llamada al backend para validar y recibir el JWT va aquí
-    console.log("Intentando iniciar sesión con:", { username, password });
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/login",
+        {
+          email,
+          password,
+        },
+      );
+
+      localStorage.setItem("token", response.data.token);
+
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+
+      navigate("/dashboard");
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Error al conectar con el servidor. Intenta de nuevo.");
+      }
+    }
   };
 
   return (
@@ -43,7 +65,7 @@ export const LoginPage = () => {
 
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center gap-3 text-red-500">
-            <AlertCircle size={20} />
+            <AlertCircle size={20} className="shrink-0" />
             <p className="text-sm font-medium">{error}</p>
           </div>
         )}
@@ -51,18 +73,18 @@ export const LoginPage = () => {
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <label
-              htmlFor="username"
+              htmlFor="email"
               className="text-sm font-medium text-brand-muted ml-1"
             >
-              Usuario
+              Correo electrónico
             </label>
             <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-              placeholder="Ingresa tu usuario"
+              placeholder="correo@proveedor.com"
             />
           </div>
 
