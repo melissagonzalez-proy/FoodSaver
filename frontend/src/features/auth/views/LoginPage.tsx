@@ -1,7 +1,7 @@
-import axios from "axios";
-import { AlertCircle, ArrowRight, Eye, EyeOff, Leaf } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Leaf, Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
+import axios from "axios";
 
 export const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -130,7 +130,7 @@ export const LoginPage = () => {
           <p className="text-sm text-brand-muted">
             ¿No tienes una cuenta?{" "}
             <Link
-              to="/selection"
+              to="/register"
               className="text-brand-accent hover:text-brand-accent-light font-medium transition-colors"
             >
               Regístrate aquí

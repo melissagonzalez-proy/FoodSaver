@@ -1,5 +1,5 @@
-import { Leaf } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Leaf } from "lucide-react";
 
 export const Navbar = () => {
   return (
@@ -19,7 +19,7 @@ export const Navbar = () => {
           Iniciar Sesión
         </Link>
         <Link
-          to="/selection"
+          to="/register"
           className="px-5 py-2 text-sm font-medium bg-brand-text text-brand-background rounded-full hover:bg-brand-muted transition-colors"
         >
           Crear Cuenta
