@@ -1,6 +1,6 @@
-import { ArrowRight, Clock, HeartHandshake, ShieldCheck } from "lucide-react";
-import { Link } from "react-router-dom";
 import { Navbar } from "../components/NavBar";
+import { ArrowRight, HeartHandshake, ShieldCheck, Clock } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const LandingPage = () => {
   return (
@@ -19,7 +19,7 @@ export const LandingPage = () => {
             los necesitan. Únete a nuestra red de economía colaborativa.
           </p>
           <Link
-            to="/selection"
+            to="/register"
             className="flex items-center gap-2 px-8 py-4 text-lg font-medium bg-brand-accent text-white rounded-full hover:bg-brand-accent-light transition-all shadow-[0_0_40px_rgba(255,0,85,0.2)]"
           >
             Quiero ser parte <ArrowRight size={20} />
