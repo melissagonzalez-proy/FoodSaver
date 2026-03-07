@@ -1,18 +1,19 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
-  Leaf,
   AlertCircle,
   ArrowRight,
+  CheckCircle,
   Eye,
   EyeOff,
-  CheckCircle,
+  Leaf,
 } from "lucide-react";
-import axios from "axios";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-export const RegisterPage = () => {
+export const RegisterBenefiaryPage = () => {
   const [formData, setFormData] = useState({
-    cedula: "",
+    tipoDocumento: "",
+    numeroDocumento: "",
     nombres: "",
     apellidos: "",
     departamento: "",
@@ -21,6 +22,8 @@ export const RegisterPage = () => {
     email: "",
     celular: "",
     password: "",
+    documentoIdentidad: null,
+  sisben: null
   });
 
   const [error, setError] = useState("");
@@ -29,19 +32,86 @@ export const RegisterPage = () => {
   const [isConfirming, setIsConfirming] = useState(false);
   const navigate = useNavigate();
 
+  const documentTypes = [
+    "Registro Civil",
+    "Tarjeta de Identidad",
+    "Cédula de Ciudadanía",
+    "Cédula de extranjería",
+    "DNI (País de origen)",
+    "DNI (Pasaporte)",
+    "Salvoconducto para refugiado",
+    "Permiso Especial de Permanencia",
+    "Permiso por Protección Temporal",
+  ];
+
+  const validateDocument = (tipo: string, numero: string) => {
+    const onlyNumbers = /^[0-9]+$/;
+
+    switch (tipo) {
+      case "Registro Civil":
+        return onlyNumbers.test(numero) && numero.length >= 10;
+
+      case "Tarjeta de Identidad":
+        return onlyNumbers.test(numero) && numero.length >= 10;
+
+      case "Cédula de Ciudadanía":
+        return (
+          onlyNumbers.test(numero) && numero.length >= 6 && numero.length <= 10
+        );
+
+      case "Cédula de extranjería":
+        return (
+          onlyNumbers.test(numero) && numero.length >= 6 && numero.length <= 12
+        );
+
+      case "DNI (País de origen)":
+        return numero.length >= 5;
+
+      case "DNI (Pasaporte)":
+        return /^[A-Za-z0-9]+$/.test(numero);
+
+      case "Salvoconducto para refugiado":
+        return numero.length >= 6;
+
+      case "Permiso Especial de Permanencia":
+        return onlyNumbers.test(numero) && numero.length === 15;
+
+      case "Permiso por Protección Temporal":
+        return onlyNumbers.test(numero) && numero.length === 15;
+
+      default:
+        return false;
+    }
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleInitialSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleInitialSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
     if (formData.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+
+    const isValidDocument = validateDocument(
+      formData.tipoDocumento,
+      formData.numeroDocumento,
+    );
+
+    if (!isValidDocument) {
       setError(
-        "Verifica que todos los campos cumplan con los formatos requeridos.",
+        "El número de documento no es válido para el tipo seleccionado.",
       );
       return;
     }
@@ -51,11 +121,13 @@ export const RegisterPage = () => {
 
   const handleFinalSubmit = async () => {
     setError("");
+
     try {
       const response = await axios.post(
         "http://localhost:5000/api/auth/register",
         formData,
       );
+
       setSuccess(response.data.message);
 
       setTimeout(() => {
@@ -72,6 +144,24 @@ export const RegisterPage = () => {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const { name, files } = e.target;
+
+  if (!files || files.length === 0) return;
+
+  const file = files[0];
+
+  if (file.size > 5 * 1024 * 1024) {
+    setError("El archivo no puede superar los 5MB");
+    return;
+  }
+
+  setFormData((prev) => ({
+    ...prev,
+    [name]: file
+  }));
+};
   return (
     <div className="min-h-screen bg-brand-background flex flex-col items-center justify-center p-6 font-sans">
       <Link
@@ -90,7 +180,7 @@ export const RegisterPage = () => {
             Crear Cuenta
           </h1>
           <p className="text-brand-muted">
-            Únete a la red de intercambio de alimentos
+            Únete a FoodSaver para recibir beneficios de alimentación.
           </p>
         </div>
 
@@ -151,26 +241,40 @@ export const RegisterPage = () => {
                 />
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="cedula"
-                  className="text-sm font-medium text-brand-muted ml-1"
-                >
-                  Cédula
+              <div className="grid grid-cols-1 gap-2">
+                <label className="text-sm font-medium text-brand-muted ml-1">
+                  Documento de identidad
                 </label>
-                <input
-                  id="cedula"
-                  name="cedula"
-                  type="text"
-                  value={formData.cedula}
-                  onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-                  placeholder="9 o 10 dígitos"
-                  required
-                />
+
+                <div className=" flex flex-col-2 gap-2">
+                  <select
+                    name="tipoDocumento"
+                    value={formData.tipoDocumento}
+                    onChange={handleChange}
+                    className="bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
+                    required
+                  >
+                    <option value="">Seleccionar</option>
+
+                    {documentTypes.map((doc) => (
+                      <option key={doc} value={doc}>
+                        {doc}
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    name="numeroDocumento"
+                    type="text"
+                    value={formData.numeroDocumento}
+                    onChange={handleChange}
+                    placeholder="Número de documento"
+                    className="bg-brand-background border border-brand-border rounded-xl px-8 py-3 text-brand-text flex flex-col"
+                  />
+                </div>
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="col-span-2 flex flex-col gap-2">
                 <label
                   htmlFor="celular"
                   className="text-sm font-medium text-brand-muted ml-1"
@@ -208,8 +312,6 @@ export const RegisterPage = () => {
                     Selecciona un departamento
                   </option>
                   <option value="Antioquia">Antioquia</option>
-                  <option value="Cundinamarca">Cundinamarca</option>
-                  <option value="Valle del Cauca">Valle del Cauca</option>
                 </select>
               </div>
 
@@ -231,10 +333,10 @@ export const RegisterPage = () => {
                   <option value="" disabled>
                     Selecciona una ciudad
                   </option>
+                  <option value="Giraldo">Apartadó</option>
                   <option value="Giraldo">Giraldo</option>
                   <option value="Medellín">Medellín</option>
-                  <option value="Bogotá">Bogotá</option>
-                  <option value="Cali">Cali</option>
+                  <option value="Medellín">Yarumal</option>
                 </select>
               </div>
 
@@ -305,6 +407,60 @@ export const RegisterPage = () => {
               </div>
             </div>
 
+            <div className="col-span-2 flex flex-col gap-6 mt-4">
+
+  <h3 className="text-lg font-semibold text-brand-text">
+    Documentación requerida
+  </h3>
+
+  {/* Documento de identidad */}
+  <label className="cursor-pointer border-2 border-dashed border-brand-border rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:border-brand-accent transition">
+
+    <input
+      type="file"
+      name="documentoIdentidad"
+      accept=".pdf,.jpg,.jpeg,.png"
+      onChange={handleFileChange}
+      className="hidden"
+    />
+
+    <div className="text-brand-accent text-3xl mb-2">📎</div>
+
+    <p className="text-brand-text font-medium">
+      Adjuntar documento de identidad
+    </p>
+
+    <p className="text-sm text-brand-muted">
+      PDF, JPG o PNG (Max. 5MB)
+    </p>
+
+  </label>
+
+
+  {/* Documento SISBEN */}
+  <label className="cursor-pointer border-2 border-dashed border-brand-border rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:border-brand-accent transition">
+
+    <input
+      type="file"
+      name="sisben"
+      accept=".pdf,.jpg,.jpeg,.png"
+      onChange={handleFileChange}
+      className="hidden"
+    />
+
+    <div className="text-brand-accent text-3xl mb-2">📄</div>
+
+    <p className="text-brand-text font-medium">
+      Adjuntar SISBEN
+    </p>
+
+    <p className="text-sm text-brand-muted">
+      PDF, JPG o PNG (Max. 5MB)
+    </p>
+
+  </label>
+
+</div>
             <button
               type="submit"
               className="w-full mt-4 flex items-center justify-center gap-2 py-4 text-lg font-medium bg-brand-text text-brand-background rounded-xl hover:bg-brand-muted transition-all group"
