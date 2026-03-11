@@ -1,6 +1,6 @@
+import { Leaf, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Leaf, Menu, X } from "lucide-react";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,7 +22,7 @@ export const Navbar = () => {
           Iniciar Sesión
         </Link>
         <Link
-          to="/register"
+          to="/selection"
           className="px-5 py-2 text-sm font-medium bg-brand-text text-brand-background rounded-full hover:bg-brand-muted transition-colors"
         >
           Crear Cuenta
