@@ -185,7 +185,7 @@ export function CommunitySection() {
 
           <div className="flex flex-col sm:flex-row gap-4">
             <Link
-              to="/register"
+              to="/selection"
               className="flex items-center justify-center gap-2 px-8 py-4 text-lg font-medium bg-brand-accent text-white rounded-full hover:bg-brand-accent-light transition-all shadow-[0_0_40px_rgba(255,0,85,0.2)]"
             >
               Registrar mi negocio <ArrowRight size={20} />

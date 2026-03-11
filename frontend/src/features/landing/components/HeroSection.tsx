@@ -73,7 +73,7 @@ export function HeroSection() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
             <Link
-              to="/register"
+              to="/selection"
               className="flex items-center justify-center gap-2 px-6 lg:px-8 py-3.5 lg:py-4 text-base lg:text-lg font-medium bg-brand-accent text-white rounded-full hover:bg-brand-accent-light transition-all shadow-[0_0_40px_rgba(255,0,85,0.2)]"
             >
               Unirme a la red <ArrowRight size={20} />

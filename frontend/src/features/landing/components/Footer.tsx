@@ -160,7 +160,7 @@ export function Footer() {
               </p>
             </div>
             <Link
-              to="/register"
+              to="/selection"
               className="flex items-center gap-2 h-12 px-8 bg-brand-accent text-white rounded-full font-medium hover:bg-brand-accent-light transition-colors whitespace-nowrap shadow-[0_0_20px_rgba(255,0,85,0.15)] group"
             >
               Crear cuenta{" "}
