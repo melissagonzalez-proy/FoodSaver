@@ -6,11 +6,12 @@ import {
   Eye,
   EyeOff,
   Leaf,
+  FileCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-export const RegisterBenefiaryPage = () => {
+export const RegisterBeneficiaryPage = () => {
   const [formData, setFormData] = useState({
     tipoDocumento: "",
     numeroDocumento: "",
@@ -22,9 +23,12 @@ export const RegisterBenefiaryPage = () => {
     email: "",
     celular: "",
     password: "",
-    documentoIdentidad: null,
-  sisben: null
+    documentoIdentidad: null as File | null,
+    sisben: null as File | null,
   });
+
+  const [docName, setDocName] = useState("");
+  const [sisbenName, setSisbenName] = useState("");
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -46,39 +50,27 @@ export const RegisterBenefiaryPage = () => {
 
   const validateDocument = (tipo: string, numero: string) => {
     const onlyNumbers = /^[0-9]+$/;
-
     switch (tipo) {
       case "Registro Civil":
-        return onlyNumbers.test(numero) && numero.length >= 10;
-
       case "Tarjeta de Identidad":
         return onlyNumbers.test(numero) && numero.length >= 10;
-
       case "Cédula de Ciudadanía":
         return (
           onlyNumbers.test(numero) && numero.length >= 6 && numero.length <= 10
         );
-
       case "Cédula de extranjería":
         return (
           onlyNumbers.test(numero) && numero.length >= 6 && numero.length <= 12
         );
-
       case "DNI (País de origen)":
         return numero.length >= 5;
-
       case "DNI (Pasaporte)":
         return /^[A-Za-z0-9]+$/.test(numero);
-
       case "Salvoconducto para refugiado":
         return numero.length >= 6;
-
       case "Permiso Especial de Permanencia":
-        return onlyNumbers.test(numero) && numero.length === 15;
-
       case "Permiso por Protección Temporal":
         return onlyNumbers.test(numero) && numero.length === 15;
-
       default:
         return false;
     }
@@ -87,12 +79,24 @@ export const RegisterBenefiaryPage = () => {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    const { name, value } = e.target;
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("El archivo no puede superar los 5MB");
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: file }));
+
+    if (name === "documentoIdentidad") setDocName(file.name);
+    if (name === "sisben") setSisbenName(file.name);
   };
 
   const handleInitialSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -104,12 +108,7 @@ export const RegisterBenefiaryPage = () => {
       return;
     }
 
-    const isValidDocument = validateDocument(
-      formData.tipoDocumento,
-      formData.numeroDocumento,
-    );
-
-    if (!isValidDocument) {
+    if (!validateDocument(formData.tipoDocumento, formData.numeroDocumento)) {
       setError(
         "El número de documento no es válido para el tipo seleccionado.",
       );
@@ -123,19 +122,27 @@ export const RegisterBenefiaryPage = () => {
     setError("");
 
     try {
+      const data = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null) {
+          data.append(key, value);
+        }
+      });
+      data.append("role", "beneficiary");
+
       const response = await axios.post(
-        "http://localhost:5000/api/auth/register",
-        formData,
+        "http://localhost:5000/api/auth/register-beneficiary",
+        data,
+        { headers: { "Content-Type": "multipart/form-data" } },
       );
 
-      setSuccess(response.data.message);
+      setSuccess(response.data.message || "Cuenta creada con éxito");
 
       setTimeout(() => {
         navigate("/login");
       }, 2500);
     } catch (err) {
       setIsConfirming(false);
-
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         setError(err.response.data.message);
       } else {
@@ -144,24 +151,6 @@ export const RegisterBenefiaryPage = () => {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-
-  const { name, files } = e.target;
-
-  if (!files || files.length === 0) return;
-
-  const file = files[0];
-
-  if (file.size > 5 * 1024 * 1024) {
-    setError("El archivo no puede superar los 5MB");
-    return;
-  }
-
-  setFormData((prev) => ({
-    ...prev,
-    [name]: file
-  }));
-};
   return (
     <div className="min-h-screen bg-brand-background flex flex-col items-center justify-center p-6 font-sans">
       <Link
@@ -177,10 +166,10 @@ export const RegisterBenefiaryPage = () => {
       <div className="w-full max-w-2xl bg-brand-card border border-brand-border rounded-4xl p-10 relative shadow-2xl">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-semibold text-brand-text font-jakarta mb-2">
-            Crear Cuenta
+            Registro de Beneficiario
           </h1>
           <p className="text-brand-muted">
-            Únete a FoodSaver para recibir beneficios de alimentación.
+            Únete a FoodSaver para solicitar donaciones de alimentos.
           </p>
         </div>
 
@@ -241,35 +230,35 @@ export const RegisterBenefiaryPage = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-2">
+              <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="text-sm font-medium text-brand-muted ml-1">
                   Documento de identidad
                 </label>
-
-                <div className=" flex flex-col-2 gap-2">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <select
                     name="tipoDocumento"
                     value={formData.tipoDocumento}
                     onChange={handleChange}
-                    className="bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
+                    className="bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text sm:w-1/3 appearance-none"
                     required
                   >
-                    <option value="">Seleccionar</option>
-
+                    <option value="" disabled>
+                      Seleccionar
+                    </option>
                     {documentTypes.map((doc) => (
                       <option key={doc} value={doc}>
                         {doc}
                       </option>
                     ))}
                   </select>
-
                   <input
                     name="numeroDocumento"
                     type="text"
                     value={formData.numeroDocumento}
                     onChange={handleChange}
                     placeholder="Número de documento"
-                    className="bg-brand-background border border-brand-border rounded-xl px-8 py-3 text-brand-text flex flex-col"
+                    className="bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text flex-1"
+                    required
                   />
                 </div>
               </div>
@@ -333,10 +322,10 @@ export const RegisterBenefiaryPage = () => {
                   <option value="" disabled>
                     Selecciona una ciudad
                   </option>
-                  <option value="Giraldo">Apartadó</option>
+                  <option value="Apartadó">Apartadó</option>
                   <option value="Giraldo">Giraldo</option>
                   <option value="Medellín">Medellín</option>
-                  <option value="Medellín">Yarumal</option>
+                  <option value="Yarumal">Yarumal</option>
                 </select>
               </div>
 
@@ -345,7 +334,7 @@ export const RegisterBenefiaryPage = () => {
                   htmlFor="direccion"
                   className="text-sm font-medium text-brand-muted ml-1"
                 >
-                  Dirección
+                  Dirección de residencia
                 </label>
                 <input
                   id="direccion"
@@ -373,7 +362,7 @@ export const RegisterBenefiaryPage = () => {
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-                  placeholder="correo@proveedor.com"
+                  placeholder="correo@ejemplo.com"
                   required
                 />
               </div>
@@ -393,7 +382,7 @@ export const RegisterBenefiaryPage = () => {
                     value={formData.password}
                     onChange={handleChange}
                     className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors pr-12"
-                    placeholder="Al menos 1 decimal y 1 carácter especial"
+                    placeholder="Mínimo 6 caracteres"
                     required
                   />
                   <button
@@ -407,63 +396,63 @@ export const RegisterBenefiaryPage = () => {
               </div>
             </div>
 
-            <div className="col-span-2 flex flex-col gap-6 mt-4">
+            <div className="col-span-2 flex flex-col gap-4 mt-4">
+              <h3 className="text-lg font-semibold text-brand-text">
+                Documentación requerida
+              </h3>
 
-  <h3 className="text-lg font-semibold text-brand-text">
-    Documentación requerida
-  </h3>
+              {/* Documento de identidad */}
+              <label
+                className={`cursor-pointer border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-colors ${docName ? "border-brand-accent bg-brand-accent/5" : "border-brand-border hover:border-brand-accent"}`}
+              >
+                <input
+                  type="file"
+                  name="documentoIdentidad"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <div className="text-brand-accent text-3xl mb-2">
+                  {docName ? <FileCheck size={32} /> : "📎"}
+                </div>
+                <p className="text-brand-text font-medium">
+                  {docName ? docName : "Adjuntar documento de identidad"}
+                </p>
+                {!docName && (
+                  <p className="text-sm text-brand-muted mt-1">
+                    PDF, JPG o PNG (Max. 5MB)
+                  </p>
+                )}
+              </label>
 
-  {/* Documento de identidad */}
-  <label className="cursor-pointer border-2 border-dashed border-brand-border rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:border-brand-accent transition">
+              {/* Documento SISBEN */}
+              <label
+                className={`cursor-pointer border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-colors ${sisbenName ? "border-brand-accent bg-brand-accent/5" : "border-brand-border hover:border-brand-accent"}`}
+              >
+                <input
+                  type="file"
+                  name="sisben"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <div className="text-brand-accent text-3xl mb-2">
+                  {sisbenName ? <FileCheck size={32} /> : "📄"}
+                </div>
+                <p className="text-brand-text font-medium">
+                  {sisbenName ? sisbenName : "Adjuntar SISBEN"}
+                </p>
+                {!sisbenName && (
+                  <p className="text-sm text-brand-muted mt-1">
+                    PDF, JPG o PNG (Max. 5MB)
+                  </p>
+                )}
+              </label>
+            </div>
 
-    <input
-      type="file"
-      name="documentoIdentidad"
-      accept=".pdf,.jpg,.jpeg,.png"
-      onChange={handleFileChange}
-      className="hidden"
-    />
-
-    <div className="text-brand-accent text-3xl mb-2">📎</div>
-
-    <p className="text-brand-text font-medium">
-      Adjuntar documento de identidad
-    </p>
-
-    <p className="text-sm text-brand-muted">
-      PDF, JPG o PNG (Max. 5MB)
-    </p>
-
-  </label>
-
-
-  {/* Documento SISBEN */}
-  <label className="cursor-pointer border-2 border-dashed border-brand-border rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:border-brand-accent transition">
-
-    <input
-      type="file"
-      name="sisben"
-      accept=".pdf,.jpg,.jpeg,.png"
-      onChange={handleFileChange}
-      className="hidden"
-    />
-
-    <div className="text-brand-accent text-3xl mb-2">📄</div>
-
-    <p className="text-brand-text font-medium">
-      Adjuntar SISBEN
-    </p>
-
-    <p className="text-sm text-brand-muted">
-      PDF, JPG o PNG (Max. 5MB)
-    </p>
-
-  </label>
-
-</div>
             <button
               type="submit"
-              className="w-full mt-4 flex items-center justify-center gap-2 py-4 text-lg font-medium bg-brand-text text-brand-background rounded-xl hover:bg-brand-muted transition-all group"
+              className="w-full mt-4 flex items-center justify-center gap-2 py-4 text-lg font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all shadow-[0_0_20px_rgba(255,0,85,0.15)] group"
             >
               Revisar Datos
               <ArrowRight
@@ -479,8 +468,8 @@ export const RegisterBenefiaryPage = () => {
                 Confirmar Registro
               </h3>
               <p className="text-brand-muted mb-4">
-                Verifica que tus datos sean correctos. Una vez creada la cuenta,
-                podrás publicar o solicitar alimentos.
+                Verifica que tus datos y documentos sean correctos. Nuestro
+                equipo revisará tu solicitud.
               </p>
               <div className="flex gap-4 w-full">
                 <button
@@ -495,7 +484,7 @@ export const RegisterBenefiaryPage = () => {
                   onClick={handleFinalSubmit}
                   className="flex-1 py-3 font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all shadow-[0_0_20px_rgba(255,0,85,0.15)]"
                 >
-                  Aceptar y Crear
+                  Enviar Solicitud
                 </button>
               </div>
             </div>
