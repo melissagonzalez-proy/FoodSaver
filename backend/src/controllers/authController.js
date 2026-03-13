@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
 export const registerDonor = async (req, res) => {
@@ -123,5 +124,62 @@ export const registerBeneficiary = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error en el servidor al crear la cuenta." });
+  }
+};
+
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // 1. Verificar si el usuario existe
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "Correo o contraseña incorrectos." });
+    }
+
+    // 2. Comparar la contraseña ingresada con la encriptada en la base de datos
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res
+        .status(401)
+        .json({ message: "Correo o contraseña incorrectos." });
+    }
+
+    // 3. (Opcional pero recomendado para Beneficiarios) Verificar si están aprobados
+    if (user.role === "beneficiary" && !user.isVerified) {
+      return res
+        .status(403)
+        .json({
+          message: "Tu cuenta aún está siendo verificada por un administrador.",
+        });
+    }
+
+    // 4. Generar el Token de sesión (Firma digital)
+    const secretKey = process.env.JWT_SECRET || "secreto_temporal_foodsaver";
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      secretKey,
+      { expiresIn: "1d" }, // El token expira en 1 día
+    );
+
+    // 5. Enviar la respuesta al frontend (Sin incluir la contraseña)
+    res.status(200).json({
+      message: "Inicio de sesión exitoso",
+      token,
+      user: {
+        id: user._id,
+        nombres: user.nombres,
+        apellidos: user.apellidos,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("Error en login:", error);
+    res
+      .status(500)
+      .json({ message: "Error en el servidor al intentar iniciar sesión." });
   }
 };

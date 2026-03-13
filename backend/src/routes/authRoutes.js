@@ -2,6 +2,7 @@ import express from "express";
 import {
   registerDonor,
   registerBeneficiary,
+  login,
 } from "../controllers/authController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
 
@@ -10,8 +11,7 @@ const router = express.Router();
 // Ruta normal (JSON) para donadores
 router.post("/register", registerDonor);
 
-// Nueva ruta (Multipart/form-data) para beneficiarios
-// Usamos upload.fields para recibir múltiples archivos con nombres específicos
+// Ruta (Multipart/form-data) para beneficiarios con archivos
 router.post(
   "/register-beneficiary",
   upload.fields([
@@ -20,5 +20,8 @@ router.post(
   ]),
   registerBeneficiary,
 );
+
+// Ruta para iniciar sesión
+router.post("/login", login);
 
 export default router;
