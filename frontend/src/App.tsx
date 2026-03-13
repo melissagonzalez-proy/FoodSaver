@@ -7,6 +7,7 @@ import { SelectionRolePage } from "./features/auth/views/SelectionRolePage";
 import { DashboardPage } from "./features/dashboard/views/DashboardPage";
 import { LandingPage } from "./features/landing/views/LandingPage";
 import { DashboardAdminPage } from "./features/dashboard/views/DashboardAdminPage";
+import { DashboardDonorPage } from "./features/dashboard/views/DashboardDonorPage";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/register-donor" element={<RegisterDonorPage />} />
         <Route path="/selection" element={<SelectionRolePage />} />
         <Route path="/dashboard-admin" element={<DashboardAdminPage />} />
+        <Route path="/dashboard-donor" element={<DashboardDonorPage />} />
 
         {/* Ruta protegida */}
         <Route
