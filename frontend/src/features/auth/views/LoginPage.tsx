@@ -11,7 +11,7 @@ export const LoginPage = () => {
 
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
@@ -23,17 +23,23 @@ export const LoginPage = () => {
     try {
       const response = await axios.post(
         "http://localhost:5000/api/auth/login",
-        {
-          email,
-          password,
-        },
+        { email, password },
       );
 
       localStorage.setItem("token", response.data.token);
-
       localStorage.setItem("user", JSON.stringify(response.data.user));
 
-      navigate("/dashboard");
+      const userRole = response.data.user.role;
+
+      if (userRole === "admin") {
+        navigate("/dashboard-admin");
+      } else if (userRole === "donor") {
+        navigate("/dashboard-donor");
+      } else if (userRole === "beneficiary") {
+        navigate("/dashboard-beneficiary");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         setError(err.response.data.message);
