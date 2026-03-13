@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 
 import authRoutes from "./src/routes/authRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
+import donationRoutes from "./src/routes/donationRoutes.js";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use("/uploads", express.static("uploads"));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/donations", donationRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI)
