@@ -6,6 +6,7 @@ import { RegisterDonorPage } from "./features/auth/views/RegisterDonorPage";
 import { SelectionRolePage } from "./features/auth/views/SelectionRolePage";
 import { DashboardPage } from "./features/dashboard/views/DashboardPage";
 import { LandingPage } from "./features/landing/views/LandingPage";
+import { DashboardAdminPage } from "./features/dashboard/views/DashboardAdminPage";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         />
         <Route path="/register-donor" element={<RegisterDonorPage />} />
         <Route path="/selection" element={<SelectionRolePage />} />
+        <Route path="/dashboard-admin" element={<DashboardAdminPage />} />
 
         {/* Ruta protegida */}
         <Route
