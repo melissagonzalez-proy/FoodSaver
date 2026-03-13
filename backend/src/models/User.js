@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema(
     },
 
     // --- Campos específicos del Donador ---
-    cedula: { type: String, required: false }, // NIT o Cédula
+    cedula: { type: String, required: false, unique: true, sparse: true },
 
     // --- Campos específicos del Beneficiario ---
     tipoDocumento: { type: String, required: false },

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 
-import authRoutes from "./routes/authRoutes.js";
+import authRoutes from "./src/routes/authRoutes.js";
 
 dotenv.config();
 
@@ -11,6 +11,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Hacer que la carpeta uploads sea accesible públicamente desde el navegador
+app.use("/uploads", express.static("uploads"));
 
 app.use("/api/auth", authRoutes);
 

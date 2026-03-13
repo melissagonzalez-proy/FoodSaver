@@ -1,8 +1,7 @@
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 import User from "../models/User.js";
 
-export const register = async (req, res) => {
+export const registerDonor = async (req, res) => {
   try {
     const {
       cedula,
@@ -16,35 +15,50 @@ export const register = async (req, res) => {
       password,
     } = req.body;
 
-    if (!/^\d{9,10}$/.test(cedula))
+    // Verificar si el usuario ya existe
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res
         .status(400)
-        .json({ message: "La cédula debe ser de 9 o 10 dígitos" });
-    if (!/^\d{10}$/.test(celular))
-      return res
-        .status(400)
-        .json({ message: "El celular debe tener 10 dígitos" });
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      return res.status(400).json({ message: "Email inválido" });
-    if (!/^(?=.*[0-9])(?=.*[!@#$%^&*])/.test(password))
-      return res
-        .status(400)
-        .json({
-          message:
-            "La contraseña requiere al menos 1 número decimal y 1 carácter especial",
-        });
+        .json({ message: "El correo electrónico ya está registrado." });
+    }
 
-    const userExists = await User.findOne({ $or: [{ email }, { cedula }] });
-    if (userExists)
-      return res
-        .status(400)
-        .json({ message: "El usuario ya existe con este correo o cédula" });
-
+    // Hashear la contraseña
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Crear el nuevo usuario
     const newUser = new User({
+      role: "donor",
+      nombres,
+      apellidos,
+      email,
+      password: hashedPassword,
+      celular,
+      departamento,
+      ciudad,
+      direccion,
       cedula,
+    });
+
+    await newUser.save();
+
+    res.status(201).json({
+      message: "Cuenta de donador creada con éxito.",
+    });
+  } catch (error) {
+    console.error("Error en registro de donador:", error);
+    res
+      .status(500)
+      .json({ message: "Error en el servidor al crear la cuenta." });
+  }
+};
+
+export const registerBeneficiary = async (req, res) => {
+  try {
+    const {
+      tipoDocumento,
+      numeroDocumento,
       nombres,
       apellidos,
       departamento,
@@ -52,50 +66,62 @@ export const register = async (req, res) => {
       direccion,
       email,
       celular,
+      password,
+    } = req.body;
+
+    // Verificar si el usuario ya existe
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ message: "El correo electrónico ya está registrado." });
+    }
+
+    // Extraer las rutas de los archivos subidos (si existen)
+    const documentoIdentidadUrl = req.files?.["documentoIdentidad"]
+      ? req.files["documentoIdentidad"][0].path
+      : null;
+    const sisbenUrl = req.files?.["sisben"]
+      ? req.files["sisben"][0].path
+      : null;
+
+    if (!documentoIdentidadUrl || !sisbenUrl) {
+      return res
+        .status(400)
+        .json({ message: "Debes adjuntar ambos documentos requeridos." });
+    }
+
+    // Hashear la contraseña
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Crear el nuevo usuario
+    const newUser = new User({
+      role: "beneficiary",
+      nombres,
+      apellidos,
+      email,
       password: hashedPassword,
+      celular,
+      departamento,
+      ciudad,
+      direccion,
+      tipoDocumento,
+      numeroDocumento,
+      documentoIdentidadUrl,
+      sisbenUrl,
     });
 
     await newUser.save();
-    res.status(201).json({ message: "Cuenta ha sido creada con éxito" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error interno del servidor" });
-  }
-};
 
-export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Por favor, ingresa tu email y contraseña." });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: "Credenciales inválidas." });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Credenciales inválidas." });
-    }
-
-    const token = jwt.sign(
-      { id: user._id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" },
-    );
-
-    res.status(200).json({
-      message: "Inicio de sesión exitoso",
-      token,
-      user: { id: user._id, nombres: user.nombres, email: user.email },
+    res.status(201).json({
+      message:
+        "Cuenta creada con éxito. En espera de verificación del administrador.",
     });
   } catch (error) {
-    console.error("Error en el controlador de login:", error);
-    res.status(500).json({ message: "Error interno del servidor." });
+    console.error("Error en registro de beneficiario:", error);
+    res
+      .status(500)
+      .json({ message: "Error en el servidor al crear la cuenta." });
   }
 };
