@@ -2,15 +2,42 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    cedula: { type: String, required: true, unique: true },
+    // --- Campos compartidos por todos los roles ---
     nombres: { type: String, required: true },
     apellidos: { type: String, required: true },
-    departamento: { type: String, required: true },
-    ciudad: { type: String, required: true },
-    direccion: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    celular: { type: String, required: true },
     password: { type: String, required: true },
+    celular: { type: String, required: false },
+    departamento: { type: String, required: false },
+    ciudad: { type: String, required: false },
+    direccion: { type: String, required: false },
+
+    // --- El motor del sistema: El Rol ---
+    role: {
+      type: String,
+      enum: ["donor", "beneficiary", "admin"],
+      required: true,
+    },
+
+    // --- Campos específicos del Donador ---
+    cedula: { type: String, required: false }, // NIT o Cédula
+
+    // --- Campos específicos del Beneficiario ---
+    tipoDocumento: { type: String, required: false },
+    numeroDocumento: { type: String, required: false },
+
+    // Aquí guardaremos las rutas (URLs) de los archivos cuando se suban
+    documentoIdentidadUrl: { type: String, required: false },
+    sisbenUrl: { type: String, required: false },
+
+    // Estado de verificación para el beneficiario (HU-004)
+    isVerified: {
+      type: Boolean,
+      default: function () {
+        // Los admin y donadores nacen verificados, los beneficiarios deben esperar aprobación
+        return this.role !== "beneficiary";
+      },
+    },
   },
   { timestamps: true },
 );
