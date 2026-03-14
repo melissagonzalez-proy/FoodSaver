@@ -44,3 +44,23 @@ export const getDonorDonations = async (req, res) => {
     res.status(500).json({ message: "Error al obtener tus publicaciones." });
   }
 };
+
+// 3. OBTENER GALERÍA DE ALIMENTOS DISPONIBLES (Para el Beneficiario)
+export const getAvailableDonations = async (req, res) => {
+  try {
+    // Buscamos solo los disponibles y "poblamos" los datos del donador
+    const availableDonations = await Donation.find({ estado: "disponible" })
+      .populate(
+        "donor",
+        "nombres apellidos departamento ciudad direccion celular",
+      )
+      .sort({ createdAt: -1 }); // Los más recientes primero
+
+    res.status(200).json(availableDonations);
+  } catch (error) {
+    console.error("Error al obtener la galería de alimentos:", error);
+    res
+      .status(500)
+      .json({ message: "Error al cargar los alimentos disponibles." });
+  }
+};
