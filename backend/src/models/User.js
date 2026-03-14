@@ -4,7 +4,8 @@ const userSchema = new mongoose.Schema(
   {
     // --- Campos compartidos por todos los roles ---
     nombres: { type: String, required: true },
-    apellidos: { type: String, required: true },
+    apellidos: { type: String, required: false },
+    nombreEmpresa: { type: String, required: false },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     celular: { type: String, required: false },
@@ -12,7 +13,6 @@ const userSchema = new mongoose.Schema(
     ciudad: { type: String, required: false },
     direccion: { type: String, required: false },
 
-    // --- El motor del sistema: El Rol ---
     role: {
       type: String,
       enum: ["donor", "beneficiary", "admin"],
@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema(
     },
 
     // --- Campos específicos del Donador ---
-    cedula: { type: String, required: false, unique: true, sparse: true },
+    nit: { type: String, required: false, unique: true, sparse: true },
 
     // --- Campos específicos del Beneficiario ---
     tipoDocumento: { type: String, required: false },
