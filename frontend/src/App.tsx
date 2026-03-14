@@ -8,6 +8,7 @@ import { DashboardPage } from "./features/dashboard/views/DashboardPage";
 import { LandingPage } from "./features/landing/views/LandingPage";
 import { DashboardAdminPage } from "./features/dashboard/views/DashboardAdminPage";
 import { DashboardDonorPage } from "./features/dashboard/views/DashboardDonorPage";
+import { DashboardBeneficiaryPage } from "./features/dashboard/views/DashboardBeneficiaryPage";
 
 function App() {
   return (
@@ -23,6 +24,10 @@ function App() {
         <Route path="/selection" element={<SelectionRolePage />} />
         <Route path="/dashboard-admin" element={<DashboardAdminPage />} />
         <Route path="/dashboard-donor" element={<DashboardDonorPage />} />
+        <Route
+          path="/dashboard-beneficiary"
+          element={<DashboardBeneficiaryPage />}
+        />
 
         {/* Ruta protegida */}
         <Route

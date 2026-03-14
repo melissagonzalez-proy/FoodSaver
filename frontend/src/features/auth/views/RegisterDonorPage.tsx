@@ -12,9 +12,9 @@ import { Link, useNavigate } from "react-router-dom";
 
 export const RegisterDonorPage = () => {
   const [formData, setFormData] = useState({
-    cedula: "",
-    nombres: "",
-    apellidos: "",
+    nombreEmpresa: "",
+    nit: "",
+    nombreEncargado: "",
     departamento: "",
     ciudad: "",
     direccion: "",
@@ -30,7 +30,7 @@ export const RegisterDonorPage = () => {
   const navigate = useNavigate();
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -50,13 +50,12 @@ export const RegisterDonorPage = () => {
   const handleFinalSubmit = async () => {
     setError("");
     try {
-      // Inyectamos el rol manualmente para el backend
       const payload = { ...formData, role: "donor" };
       const response = await axios.post(
         "http://localhost:5000/api/auth/register",
-        payload
+        payload,
       );
-      
+
       setSuccess(response.data.message);
       setTimeout(() => {
         navigate("/login");
@@ -83,7 +82,7 @@ export const RegisterDonorPage = () => {
         </span>
       </Link>
 
-      <div className="w-full max-w-2xl bg-brand-card border border-brand-border rounded-[2rem] p-10 relative shadow-2xl">
+      <div className="w-full max-w-2xl bg-brand-card border border-brand-border rounded-4xl p-10 relative shadow-2xl">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-semibold text-brand-text font-jakarta mb-2">
             Registro de Donador
@@ -113,55 +112,67 @@ export const RegisterDonorPage = () => {
           <form onSubmit={handleInitialSubmit} className="flex flex-col gap-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
-                <label htmlFor="nombres" className="text-sm font-medium text-brand-muted ml-1">
-                  Nombres
+                <label
+                  htmlFor="nombreEmpresa"
+                  className="text-sm font-medium text-brand-muted ml-1"
+                >
+                  Nombre de la empresa
                 </label>
                 <input
-                  id="nombres"
-                  name="nombres"
+                  id="nombreEmpresa"
+                  name="nombreEmpresa"
                   type="text"
-                  value={formData.nombres}
+                  value={formData.nombreEmpresa}
                   onChange={handleChange}
                   className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-                  placeholder="Tus nombres"
+                  placeholder="Ej. Restaurante El Sabor"
                   required
                 />
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="apellidos" className="text-sm font-medium text-brand-muted ml-1">
-                  Apellidos
+                <label
+                  htmlFor="nit"
+                  className="text-sm font-medium text-brand-muted ml-1"
+                >
+                  NIT
                 </label>
                 <input
-                  id="apellidos"
-                  name="apellidos"
+                  id="nit"
+                  name="nit"
                   type="text"
-                  value={formData.apellidos}
+                  value={formData.nit}
                   onChange={handleChange}
                   className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-                  placeholder="Tus apellidos"
+                  placeholder="Sin guiones ni puntos"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <label
+                  htmlFor="nombreEncargado"
+                  className="text-sm font-medium text-brand-muted ml-1"
+                >
+                  Nombre completo del encargado
+                </label>
+                <input
+                  id="nombreEncargado"
+                  name="nombreEncargado"
+                  type="text"
+                  value={formData.nombreEncargado}
+                  onChange={handleChange}
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
+                  placeholder="Nombre y apellidos"
                   required
                 />
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="cedula" className="text-sm font-medium text-brand-muted ml-1">
-                  Cédula o NIT
-                </label>
-                <input
-                  id="cedula"
-                  name="cedula"
-                  type="text"
-                  value={formData.cedula}
-                  onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-                  placeholder="9 o 10 dígitos"
-                  required
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label htmlFor="celular" className="text-sm font-medium text-brand-muted ml-1">
+                <label
+                  htmlFor="celular"
+                  className="text-sm font-medium text-brand-muted ml-1"
+                >
                   Celular
                 </label>
                 <input
@@ -177,7 +188,10 @@ export const RegisterDonorPage = () => {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="departamento" className="text-sm font-medium text-brand-muted ml-1">
+                <label
+                  htmlFor="departamento"
+                  className="text-sm font-medium text-brand-muted ml-1"
+                >
                   Departamento
                 </label>
                 <select
@@ -188,13 +202,18 @@ export const RegisterDonorPage = () => {
                   className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors appearance-none"
                   required
                 >
-                  <option value="" disabled>Selecciona un departamento</option>
+                  <option value="" disabled>
+                    Selecciona un departamento
+                  </option>
                   <option value="Antioquia">Antioquia</option>
                 </select>
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="ciudad" className="text-sm font-medium text-brand-muted ml-1">
+                <label
+                  htmlFor="ciudad"
+                  className="text-sm font-medium text-brand-muted ml-1"
+                >
                   Ciudad
                 </label>
                 <select
@@ -205,8 +224,9 @@ export const RegisterDonorPage = () => {
                   className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors appearance-none"
                   required
                 >
-                  <option value="" disabled>Selecciona una ciudad</option>
-                  <option value="Apartadó">Apartadó</option>
+                  <option value="" disabled>
+                    Selecciona una ciudad
+                  </option>
                   <option value="Giraldo">Giraldo</option>
                   <option value="Medellín">Medellín</option>
                   <option value="Yarumal">Yarumal</option>
@@ -214,7 +234,10 @@ export const RegisterDonorPage = () => {
               </div>
 
               <div className="flex flex-col gap-2 md:col-span-2">
-                <label htmlFor="direccion" className="text-sm font-medium text-brand-muted ml-1">
+                <label
+                  htmlFor="direccion"
+                  className="text-sm font-medium text-brand-muted ml-1"
+                >
                   Dirección del establecimiento
                 </label>
                 <input
@@ -230,7 +253,10 @@ export const RegisterDonorPage = () => {
               </div>
 
               <div className="flex flex-col gap-2 md:col-span-2">
-                <label htmlFor="email" className="text-sm font-medium text-brand-muted ml-1">
+                <label
+                  htmlFor="email"
+                  className="text-sm font-medium text-brand-muted ml-1"
+                >
                   Correo electrónico
                 </label>
                 <input
@@ -246,7 +272,10 @@ export const RegisterDonorPage = () => {
               </div>
 
               <div className="flex flex-col gap-2 md:col-span-2">
-                <label htmlFor="password" className="text-sm font-medium text-brand-muted ml-1">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-medium text-brand-muted ml-1"
+                >
                   Contraseña
                 </label>
                 <div className="relative">
@@ -276,7 +305,10 @@ export const RegisterDonorPage = () => {
               className="w-full mt-4 flex items-center justify-center gap-2 py-4 text-lg font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all shadow-[0_0_20px_rgba(255,0,85,0.15)] group"
             >
               Revisar Datos
-              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              <ArrowRight
+                size={20}
+                className="group-hover:translate-x-1 transition-transform"
+              />
             </button>
           </form>
         ) : (
@@ -312,7 +344,10 @@ export const RegisterDonorPage = () => {
         <div className="mt-8 text-center">
           <p className="text-sm text-brand-muted">
             ¿Ya tienes una cuenta?{" "}
-            <Link to="/login" className="text-brand-accent hover:text-brand-accent-light font-medium transition-colors">
+            <Link
+              to="/login"
+              className="text-brand-accent hover:text-brand-accent-light font-medium transition-colors"
+            >
               Inicia sesión aquí
             </Link>
           </p>
