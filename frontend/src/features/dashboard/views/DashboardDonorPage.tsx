@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { DonationHistory } from "../../auth/components/DonationHistory";
 import {
   LogOut,
   Leaf,
@@ -12,22 +13,13 @@ import {
   CheckCircle,
 } from "lucide-react";
 
-interface DonationData {
-  _id: string;
-  titulo: string;
-  descripcion: string;
-  cantidad: string;
-  fechaCaducidad: string;
-  estado: string;
-  imagenUrl: string;
-}
-
 export const DashboardDonorPage = () => {
   const navigate = useNavigate();
-  const [donations, setDonations] = useState<DonationData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // const [donations, setDonations] = useState<DonationData[]>([]);
+  // const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const userId = JSON.parse(localStorage.getItem("user") || "{}").id;
 
@@ -35,29 +27,10 @@ export const DashboardDonorPage = () => {
     titulo: "",
     descripcion: "",
     cantidad: "",
-    fechaCaducidad: "",
+    horasValidez: "",
     imagen: null as File | null,
   });
   const [imageName, setImageName] = useState("");
-
-  const fetchDonations = useCallback(async () => {
-    try {
-      const response = await axios.get(
-        `http://localhost:5000/api/donations/donor/${userId}`,
-      );
-      setDonations(response.data);
-    } catch (error) {
-      console.error("Error al cargar las publicaciones:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    if (userId) {
-      fetchDonations();
-    }
-  }, [userId, fetchDonations]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -78,12 +51,15 @@ export const DashboardDonorPage = () => {
     setIsSubmitting(true);
 
     try {
+      const fechaCalculada = new Date();
+      fechaCalculada.setHours(fechaCalculada.getHours() + parseInt(formData.horasValidez));
+
       const data = new FormData();
       data.append("donorId", userId);
       data.append("titulo", formData.titulo);
       data.append("descripcion", formData.descripcion);
       data.append("cantidad", formData.cantidad);
-      data.append("fechaCaducidad", formData.fechaCaducidad);
+      data.append("fechaCaducidad", fechaCalculada.toISOString());
       if (formData.imagen) {
         data.append("imagen", formData.imagen);
       }
@@ -96,11 +72,11 @@ export const DashboardDonorPage = () => {
         titulo: "",
         descripcion: "",
         cantidad: "",
-        fechaCaducidad: "",
+        horasValidez: "",
         imagen: null,
       });
       setImageName("");
-      fetchDonations();
+      setRefreshKey(prev => prev + 1);
       setShowSuccessModal(true);
     } catch (error) {
       console.error("Error al publicar:", error);
@@ -208,14 +184,16 @@ export const DashboardDonorPage = () => {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-brand-muted flex items-center gap-1">
-                    <Calendar size={14} /> Vencimiento
+                    <Calendar size={14} /> Horas de validez
                   </label>
                   <input
                     required
-                    type="date"
-                    name="fechaCaducidad"
-                    value={formData.fechaCaducidad}
+                    type="number"
+                    min="1"
+                    name="horasValidez"
+                    value={formData.horasValidez}
                     onChange={handleChange}
+                    placeholder="Ej: 12"
                     className="bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text focus:border-brand-accent outline-none"
                   />
                 </div>
@@ -249,89 +227,10 @@ export const DashboardDonorPage = () => {
             </form>
           </div>
 
-          <div className="lg:col-span-2">
-            <h2 className="text-xl font-semibold text-brand-text mb-6">
-              Mi Historial de Publicaciones
-            </h2>
-
-            {isLoading ? (
-              <div className="text-brand-muted text-center py-10">
-                Cargando publicaciones...
-              </div>
-            ) : donations.length === 0 ? (
-              <div className="bg-brand-card border border-brand-border rounded-4xl p-10 text-center flex flex-col items-center justify-center h-64">
-                <PackageOpen
-                  size={48}
-                  className="text-brand-muted mb-4 opacity-50"
-                />
-                <p className="text-brand-muted">
-                  Aún no has publicado ningún alimento.
-                </p>
-                <p className="text-sm text-brand-muted mt-1">
-                  Usa el formulario de la izquierda para empezar a donar.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {donations.map((donation) => (
-                  <div
-                    key={donation._id}
-                    className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden hover:border-brand-accent/50 transition-colors flex flex-col"
-                  >
-                    {donation.imagenUrl ? (
-                      <div className="h-40 w-full overflow-hidden bg-brand-background relative group">
-                        <img
-                          src={`http://localhost:5000/${donation.imagenUrl.replace(/\\/g, "/")}`}
-                          alt={donation.titulo}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-40 w-full bg-brand-background flex items-center justify-center">
-                        <ImageIcon
-                          size={32}
-                          className="text-brand-muted opacity-50"
-                        />
-                      </div>
-                    )}
-                    <div className="p-5 flex flex-col flex-1">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-brand-text text-lg line-clamp-1">
-                          {donation.titulo}
-                        </h3>
-                        <span
-                          className={`text-xs px-2 py-1 rounded-md font-medium ${
-                            donation.estado === "disponible"
-                              ? "bg-green-500/10 text-green-500"
-                              : donation.estado === "reservado"
-                                ? "bg-yellow-500/10 text-yellow-500"
-                                : "bg-brand-muted/10 text-brand-muted"
-                          }`}
-                        >
-                          {donation.estado}
-                        </span>
-                      </div>
-                      <p className="text-sm text-brand-muted line-clamp-2 mb-4 flex-1">
-                        {donation.descripcion}
-                      </p>
-                      <div className="flex justify-between items-center text-xs text-brand-muted mt-auto pt-4 border-t border-brand-border">
-                        <span className="flex items-center gap-1">
-                          <Scale size={14} /> {donation.cantidad}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar size={14} /> Vence:{" "}
-                          {new Date(
-                            donation.fechaCaducidad,
-                          ).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+      <div className="lg:col-span-2">
+            <DonationHistory key={refreshKey} />
           </div>
-        </div>
+      </div>
       </main>
 
       {showSuccessModal && (

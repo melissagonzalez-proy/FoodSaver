@@ -30,15 +30,13 @@ interface DonationData {
   cantidad: string;
   fechaCaducidad: string;
   estado: string;
-  imagenUrl: string;
+  imagenUrl?: string; // Hacemos la imagen opcional por seguridad
   donor: DonorInfo;
 }
 
 export const DashboardBeneficiaryPage = () => {
   const navigate = useNavigate();
-  const [availableDonations, setAvailableDonations] = useState<DonationData[]>(
-    [],
-  );
+  const [availableDonations, setAvailableDonations] = useState<DonationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -49,7 +47,7 @@ export const DashboardBeneficiaryPage = () => {
   const fetchAvailableDonations = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/donations/available",
+        "http://localhost:5000/api/donations/available"
       );
       setAvailableDonations(response.data);
     } catch (error) {
@@ -59,10 +57,36 @@ export const DashboardBeneficiaryPage = () => {
     }
   };
 
-  const handleRequest = (id: string) => {
-    alert(
-      `Solicitud enviada para el alimento ID: ${id}. El donador será notificado.`,
-    );
+  const handleRequest = async (id: string) => {
+    try {
+      // 1. Obtenemos el ID del beneficiario que está conectado
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        alert("Error: No has iniciado sesión.");
+        return;
+      }
+      const user = JSON.parse(userStr);
+
+      // 2. Hacemos la petición a la nueva ruta
+      const response = await axios.put(`http://localhost:5000/api/donations/${id}/reserve`, {
+        beneficiaryId: user.id
+      });
+
+      // 3. Mostramos el mensaje 
+      alert(response.data.message);
+
+      // 4. Recargamos la galería para que la tarjeta desaparezca mágicamente de la pantalla
+      fetchAvailableDonations();
+
+    } catch (error: any) {
+      // Por si hay error al intentar solicitar el alimento y ya se asigno
+      if (error.response && error.response.data) {
+        alert(error.response.data.message);
+      } else {
+        alert("Hubo un error al intentar solicitar el alimento.");
+      }
+      console.error("Error al solicitar:", error);
+    }
   };
 
   const handleLogout = () => {
@@ -71,10 +95,11 @@ export const DashboardBeneficiaryPage = () => {
     navigate("/login");
   };
 
+  // 1. BLINDAMOS EL BUSCADOR AQUÍ
   const filteredDonations = availableDonations.filter(
     (donation) =>
-      donation.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      donation.donor.ciudad.toLowerCase().includes(searchTerm.toLowerCase()),
+      donation?.titulo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      donation?.donor?.ciudad?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -168,18 +193,19 @@ export const DashboardBeneficiaryPage = () => {
                   )}
                   <div className="absolute top-3 right-3 bg-brand-background/90 backdrop-blur-sm px-3 py-1 rounded-full border border-brand-border flex items-center gap-1 text-xs font-medium text-brand-text">
                     <Scale size={12} className="text-brand-accent" />{" "}
-                    {donation.cantidad}
+                    {donation?.cantidad}
                   </div>
                 </div>
 
                 <div className="p-6 flex flex-col flex-1">
                   <h3 className="font-bold text-brand-text text-xl mb-1 line-clamp-1">
-                    {donation.titulo}
+                    {donation?.titulo}
                   </h3>
                   <p className="text-sm text-brand-muted line-clamp-2 mb-4 flex-1">
-                    {donation.descripcion}
+                    {donation?.descripcion}
                   </p>
 
+                  {/* 2. BLINDAMOS LAS TARJETAS AQUÍ */}
                   <div className="bg-brand-background rounded-xl p-3 mb-4 border border-brand-border/50">
                     <div className="flex items-start gap-2 text-sm text-brand-text mb-2">
                       <Store
@@ -187,18 +213,18 @@ export const DashboardBeneficiaryPage = () => {
                         className="text-brand-accent shrink-0 mt-0.5"
                       />
                       <span className="font-medium">
-                        {donation.donor.nombres} {donation.donor.apellidos}
+                        {donation.donor?.nombres || "Donador"} {donation.donor?.apellidos || "Anónimo"}
                       </span>
                     </div>
                     <div className="flex items-start gap-2 text-xs text-brand-muted mb-1">
                       <MapPin size={14} className="shrink-0 mt-0.5" />
                       <span>
-                        {donation.donor.direccion}, {donation.donor.ciudad}
+                        {donation.donor?.direccion || "Sin dirección"}, {donation.donor?.ciudad || "Sin ciudad"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-brand-muted">
                       <Phone size={14} className="shrink-0" />
-                      <span>{donation.donor.celular}</span>
+                      <span>{donation.donor?.celular || "Sin número"}</span>
                     </div>
                   </div>
 

@@ -22,6 +22,13 @@ const donationSchema = new mongoose.Schema(
     },
 
     imagenUrl: { type: String, required: false }, // Ruta de la foto del alimento
+
+    // Guardará el ID del beneficiario que reservó el producto
+    beneficiary: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { timestamps: true },
 );
