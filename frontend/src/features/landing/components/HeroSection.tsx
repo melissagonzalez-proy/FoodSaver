@@ -99,8 +99,8 @@ export function HeroSection() {
           <div className="absolute inset-0 bg-linear-to-t from-brand-background via-brand-background/20 to-transparent" />
           <div className="absolute bottom-6 lg:bottom-8 left-6 lg:left-8 right-6 lg:right-8">
             <div className="inline-flex items-center gap-2 bg-brand-background/80 backdrop-blur-md border border-brand-border px-4 py-2 rounded-full text-brand-text text-sm font-medium mb-3">
-              <MapPin size={16} className="text-brand-accent" /> Giraldo y
-              Medellín
+              <MapPin size={16} className="text-brand-accent" /> Yarumal,
+              Giraldo, Apartado y Medellín
             </div>
             <p className="text-lg lg:text-xl text-brand-text font-medium font-jakarta">
               Rescatando alimentos frescos todos los días.
