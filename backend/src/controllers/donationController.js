@@ -43,7 +43,7 @@ export const getDonorDonations = async (req, res) => {
 
 export const getAvailableDonations = async (req, res) => {
   try {
-    const availableDonations = await Donation.find({ estado: "disponible" })
+    const availableDonations = await Donation.find({ estado: "activo" })
       .populate(
         "donor",
         "nombres apellidos departamento ciudad direccion celular",
@@ -66,22 +66,23 @@ export const requestDonation = async (req, res) => {
 
     const activeRequest = await Donation.findOne({
       beneficiary: beneficiaryId,
-      estado: 'asignado'
+      estado: "asignado",
     });
 
     if (activeRequest) {
       return res.status(400).json({
-        message: "Ya tienes una reserva activa. Debes recolectarla antes de pedir otra."
+        message:
+          "Ya tienes una reserva activa. Debes recolectarla antes de pedir otra.",
       });
     }
 
     const donation = await Donation.findByIdAndUpdate(
       id,
       {
-        estado: 'asignado',
-        beneficiary: beneficiaryId
+        estado: "asignado",
+        beneficiary: beneficiaryId,
       },
-      { new: true }
+      { new: true },
     );
 
     res.status(200).json({ message: "Reserva realizada con éxito", donation });
@@ -97,13 +98,18 @@ export const cancelDonation = async (req, res) => {
     const donation = await Donation.findByIdAndUpdate(
       id,
       {
-        estado: 'activo',
-        beneficiary: null
+        estado: "activo",
+        beneficiary: null,
       },
-      { new: true }
+      { new: true },
     );
 
-    res.status(200).json({ message: "Donación liberada y vuelve a estar activa.", donation });
+    res
+      .status(200)
+      .json({
+        message: "Donación liberada y vuelve a estar activa.",
+        donation,
+      });
   } catch (error) {
     res.status(500).json({ message: "Error al cancelar la donación." });
   }
@@ -115,11 +121,13 @@ export const completeDonation = async (req, res) => {
 
     const donation = await Donation.findByIdAndUpdate(
       id,
-      { estado: 'recolectado' },
-      { new: true }
+      { estado: "recolectado" },
+      { new: true },
     );
 
-    res.status(200).json({ message: "¡Alimento entregado con éxito!", donation });
+    res
+      .status(200)
+      .json({ message: "¡Alimento entregado con éxito!", donation });
   } catch (error) {
     res.status(500).json({ message: "Error al finalizar la entrega." });
   }

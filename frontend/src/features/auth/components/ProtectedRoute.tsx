@@ -1,15 +1,29 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  allowedRole?: "admin" | "donor" | "beneficiary";
 }
 
-export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({ allowedRole }: ProtectedRouteProps) => {
   const token = localStorage.getItem("token");
+  const userStr = localStorage.getItem("user");
 
-  if (!token) {
+  if (!token || !userStr) {
     return <Navigate to="/login" replace />;
   }
 
-  return <>{children}</>;
+  const user = JSON.parse(userStr);
+
+  if (allowedRole && user.role !== allowedRole) {
+    if (user.role === "admin")
+      return <Navigate to="/dashboard-admin" replace />;
+    if (user.role === "donor")
+      return <Navigate to="/dashboard-donor" replace />;
+    if (user.role === "beneficiary")
+      return <Navigate to="/dashboard-beneficiary" replace />;
+
+    return <Navigate to="/" replace />;
+  }
+
+  return <Outlet />;
 };
