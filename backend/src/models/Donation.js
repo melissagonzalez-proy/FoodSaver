@@ -8,7 +8,6 @@ const donationSchema = new mongoose.Schema(
       required: true,
     },
 
-    // NUEVO: Enlazamos la publicación con el beneficiario que la reserva
     beneficiary: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -20,7 +19,6 @@ const donationSchema = new mongoose.Schema(
     cantidad: { type: String, required: true },
     fechaCaducidad: { type: Date, required: true },
 
-    // ACTUALIZADO: Cambiamos los nombres de los estados según tu HU-008
     estado: {
       type: String,
       enum: ["activo", "asignado", "recolectado"],
