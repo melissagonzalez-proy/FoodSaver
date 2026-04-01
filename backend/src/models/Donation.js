@@ -2,33 +2,32 @@ import mongoose from "mongoose";
 
 const donationSchema = new mongoose.Schema(
   {
-    // Enlazamos la publicación con el usuario que la creó
     donor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
 
-    titulo: { type: String, required: true }, // Ej: "Caja de manzanas"
-    descripcion: { type: String, required: true }, // Ej: "Manzanas rojas en buen estado, 2 tienen golpes leves"
-    cantidad: { type: String, required: true }, // Ej: "5 kg" o "10 porciones"
-    fechaCaducidad: { type: Date, required: true },
-
-    // Para saber si alguien ya lo pidió
-    estado: {
-      type: String,
-      enum: ["disponible", "reservado", "entregado"],
-      default: "disponible",
-    },
-
-    imagenUrl: { type: String, required: false }, // Ruta de la foto del alimento
-
-    // Guardará el ID del beneficiario que reservó el producto
+    // NUEVO: Enlazamos la publicación con el beneficiario que la reserva
     beneficiary: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
+
+    titulo: { type: String, required: true },
+    descripcion: { type: String, required: true },
+    cantidad: { type: String, required: true },
+    fechaCaducidad: { type: Date, required: true },
+
+    // ACTUALIZADO: Cambiamos los nombres de los estados según tu HU-008
+    estado: {
+      type: String,
+      enum: ["activo", "asignado", "recolectado"],
+      default: "activo",
+    },
+
+    imagenUrl: { type: String, required: false },
   },
   { timestamps: true },
 );
