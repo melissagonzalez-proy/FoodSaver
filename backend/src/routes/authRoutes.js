@@ -3,6 +3,9 @@ import {
   registerDonor,
   registerBeneficiary,
   login,
+  forgotPassword, 
+  resetPassword, 
+  changePassword
 } from "../controllers/authController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
 
@@ -23,5 +26,8 @@ router.post(
 
 // Ruta para iniciar sesión
 router.post("/login", login);
+router.post("/forgot-password", forgotPassword);
+router.put("/reset-password/:token", resetPassword);
+router.put("/change-password", changePassword);
 
 export default router;

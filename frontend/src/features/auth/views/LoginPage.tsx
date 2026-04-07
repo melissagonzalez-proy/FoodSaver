@@ -130,6 +130,14 @@ export const LoginPage = () => {
               className="group-hover:translate-x-1 transition-transform"
             />
           </button>
+          <div className="text-right mt-1 mb-4">
+            <Link 
+              to="/forgot-password" 
+              className="text-sm font-medium text-brand-accent hover:text-brand-accent-light transition-colors"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
         </form>
 
         <div className="mt-8 text-center">

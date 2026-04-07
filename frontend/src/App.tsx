@@ -8,6 +8,8 @@ import { DashboardAdminPage } from "./features/dashboard/views/DashboardAdminPag
 import { DashboardDonorPage } from "./features/dashboard/views/DashboardDonorPage";
 import { DashboardBeneficiaryPage } from "./features/dashboard/views/DashboardBeneficiaryPage";
 import { ProtectedRoute } from "./features/auth/components/ProtectedRoute";
+import { ForgotPasswordPage } from "./features/auth/views/ForgotPasswordPage";
+import { ResetPasswordPage } from "./features/auth/views/ResetPasswordPage";
 
 function App() {
   return (
@@ -15,6 +17,8 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         <Route
           path="/register-beneficiary"
           element={<RegisterBeneficiaryPage />}

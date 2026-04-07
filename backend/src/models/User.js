@@ -8,6 +8,8 @@ const userSchema = new mongoose.Schema(
     nombreEmpresa: { type: String, required: false },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    resetPasswordToken: { type: String, required: false },
+    resetPasswordExpire: { type: Date, required: false },
     celular: { type: String, required: false },
     departamento: { type: String, required: false },
     ciudad: { type: String, required: false },

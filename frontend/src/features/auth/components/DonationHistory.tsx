@@ -53,6 +53,25 @@ export const DonationHistory = () => {
     }
   };
 
+  const handleCompleteDelivery = async (id: string, pin: string) => {
+    try {
+      const response = await axios.put(`http://localhost:5000/api/donations/${id}/complete`, {
+        pin: pin
+      });
+      
+      alert(response.data.message); // "¡PIN Validado! Alimento entregado..."
+      fetchDonations(); // Recargamos para que pase a la pestaña de "Recolectados"
+      
+    } catch (error: any) {
+      // Aquí atrapamos si el PIN es incorrecto o si se bloqueó
+      if (error.response && error.response.data) {
+        alert("❌ " + error.response.data.message);
+      } else {
+        alert("Error de conexión al validar el PIN.");
+      }
+    }
+  };
+
   // 4. EL FILTRO (La magia de las pestañas)
   // Filtro de la lista completa para mostrar solo los del estado seleccionados
   const filteredDonations = donations.filter((don) => don.estado === activeTab);
@@ -109,10 +128,10 @@ export const DonationHistory = () => {
           </p>
         ) : (
           filteredDonations.map((donation) => (
-            <DonationCard
-              key={donation._id}
-              donation={donation}
-              onCancel={handleCancelDonation}
+            <DonationCard 
+            donation={donation} 
+            onCancel={handleCancel} 
+            onComplete={handleCompleteDelivery} // <-- Conecta la función aquí
             />
           ))
         )}

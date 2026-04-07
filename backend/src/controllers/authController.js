@@ -1,6 +1,8 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 // 1. REGISTRO DE DONADOR (Con datos de Empresa)
 export const registerDonor = async (req, res) => {
@@ -166,5 +168,113 @@ export const login = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error en el servidor al intentar iniciar sesión." });
+  }
+};
+
+// 4. SOLICITAR RECUPERACIÓN DE CONTRASEÑA (Olvidé mi clave)
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "No existe un usuario con ese correo." });
+    }
+
+    // Generar un Token aleatorio de 20 caracteres
+    const resetToken = crypto.randomBytes(20).toString("hex");
+
+    // Guardar el token y su caducidad (1 hora) en la base de datos
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpire = Date.now() + 3600000; // 1 hora en milisegundos
+    await user.save();
+
+    // Configurar el "Cartero" (Nodemailer)
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS, // Contraseña de aplicación de Gmail
+      },
+    });
+
+    // Crear el link que el usuario clickeará
+    // Asumimos que tu frontend corre en el puerto 5173
+    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "FoodSaver - Recuperación de Contraseña",
+      html: `
+        <h1>Has solicitado cambiar tu contraseña</h1>
+        <p>Haz clic en el siguiente enlace para establecer una nueva contraseña. Este enlace expira en 1 hora:</p>
+        <a href="${resetUrl}" style="padding: 10px 20px; background-color: #FF0055; color: white; text-decoration: none; border-radius: 5px;">Restablecer Contraseña</a>
+        <p>Si no solicitaste esto, ignora este correo.</p>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({ message: "Correo enviado. Revisa tu bandeja de entrada." });
+  } catch (error) {
+    console.error("Error en forgotPassword:", error);
+    res.status(500).json({ message: "Error al intentar enviar el correo." });
+  }
+};
+
+// 5. RESTABLECER CONTRASEÑA (Desde el link del correo)
+export const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+
+    // Buscar al usuario que tenga este token Y que no haya expirado
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpire: { $gt: Date.now() }, // $gt significa "Greater Than" (Mayor que ahora)
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "El enlace es inválido o ha expirado." });
+    }
+
+    // Encriptar la nueva contraseña
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+
+    // Borrar el token para que no se pueda volver a usar
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Contraseña actualizada con éxito. Ya puedes iniciar sesión." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al restablecer la contraseña." });
+  }
+};
+
+// 6. CAMBIAR CONTRASEÑA ESTANDO LOGUEADO (Desde el perfil)
+export const changePassword = async (req, res) => {
+  try {
+    const { userId, passwordActual, passwordNueva } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado." });
+
+    // Verificar si la contraseña actual es correcta
+    const isMatch = await bcrypt.compare(passwordActual, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "La contraseña actual es incorrecta." });
+    }
+
+    // Encriptar y guardar la nueva
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(passwordNueva, salt);
+    await user.save();
+
+    res.status(200).json({ message: "Tu contraseña ha sido cambiada con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al cambiar la contraseña." });
   }
 };

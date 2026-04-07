@@ -16,7 +16,8 @@ const donationSchema = new mongoose.Schema(
 
     titulo: { type: String, required: true },
     descripcion: { type: String, required: true },
-    cantidad: { type: String, required: true },
+    cantidad: { type: Number, required: true },
+    unidad: { type: String, default: "unidades" }, 
     fechaCaducidad: { type: Date, required: true },
 
     estado: {
@@ -26,6 +27,18 @@ const donationSchema = new mongoose.Schema(
     },
 
     imagenUrl: { type: String, required: false },
+
+    // El código secreto de 4 dígitos 
+    pickupPin: { 
+      type: String, 
+      default: null 
+    },
+    
+    // Contador para bloquear intentos fallidos
+    failedPinAttempts: { 
+      type: Number, 
+      default: 0 
+    }
   },
   { timestamps: true },
 );
