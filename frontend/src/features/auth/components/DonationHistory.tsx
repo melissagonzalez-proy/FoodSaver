@@ -7,14 +7,14 @@ interface DonationData {
   titulo: string;
   cantidad: string;
   fechaCaducidad: string;
-  estado: "disponible" | "reservado" | "entregado"; 
+  estado: "activo" | "asignado" | "recolectado";
   imagenUrl?: string;
 }
 
 export const DonationHistory = () => {
   // 1. EL ESTADO (La memoria del componente)
   const [donations, setDonations] = useState<DonationData[]>([]);
-  const [activeTab, setActiveTab] = useState("disponible"); // Por defecto iniciamos en "Activos"
+  const [activeTab, setActiveTab] = useState("activo"); // Por defecto iniciamos en "Activos"
   const [loading, setLoading] = useState(true);
 
   // 2. EL EFECTO (Se ejecuta automáticamente al abrir la página)
@@ -91,9 +91,9 @@ export const DonationHistory = () => {
       {/* SISTEMA DE PESTAÑAS (Tabs) */}
       <div className="flex gap-2 border-b border-brand-border pb-4">
         <button
-          onClick={() => setActiveTab("disponible")}
+          onClick={() => setActiveTab("activo")}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === "disponible"
+            activeTab === "activo"
               ? "bg-green-500/20 text-green-500 border border-green-500/50"
               : "text-brand-muted hover:bg-brand-background"
           }`}
@@ -102,9 +102,9 @@ export const DonationHistory = () => {
         </button>
         
         <button
-          onClick={() => setActiveTab("reservado")}
+          onClick={() => setActiveTab("asignado")}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === "reservado"
+            activeTab === "asignado"
               ? "bg-yellow-500/20 text-yellow-500 border border-yellow-500/50"
               : "text-brand-muted hover:bg-brand-background"
           }`}
@@ -113,9 +113,9 @@ export const DonationHistory = () => {
         </button>
 
         <button
-          onClick={() => setActiveTab("entregado")}
+          onClick={() => setActiveTab("recolectado")}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === "entregado"
+            activeTab === "recolectado"
               ? "bg-gray-500/20 text-gray-400 border border-gray-500/50"
               : "text-brand-muted hover:bg-brand-background"
           }`}
@@ -133,8 +133,8 @@ export const DonationHistory = () => {
         ) : (
           filteredDonations.map((donation) => (
             <DonationCard 
-            donation={donation} 
-            onCancel={handleCancel} 
+            donation={donation}
+            onCancel={handleCancelDonation}
             onComplete={handleCompleteDelivery} // <-- Conecta la función aquí
             />
           ))
