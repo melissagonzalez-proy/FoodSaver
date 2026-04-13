@@ -27,6 +27,18 @@ const userSchema = new mongoose.Schema(
     // --- Campos específicos del Beneficiario ---
     tipoDocumento: { type: String, required: false },
     numeroDocumento: { type: String, required: false },
+    sisbenGrupo: {type: String,required: false},
+
+      phoneVerified: {
+  type: Boolean,
+  default: false
+},
+nitVerified: {
+  type: Boolean,
+  default: false
+},
+
+
 
     // Aquí guardaremos las rutas (URLs) de los archivos cuando se suban
     documentoIdentidadUrl: { type: String, required: false },

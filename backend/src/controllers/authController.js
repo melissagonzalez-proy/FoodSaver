@@ -1,116 +1,237 @@
+import axios from "axios";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import User from "../models/User.js";
 import crypto from "crypto";
+import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
+import User from "../models/User.js";
 
-// 1. REGISTRO DE DONADOR (Con datos de Empresa)
-export const registerDonor = async (req, res) => {
+dotenv.config();
+
+const splitNombreCompleto = (nombreCompleto = "") => {
+  const partes = nombreCompleto.trim().split(" ");
+
+  if (partes.length === 1) {
+    return {
+      nombres: partes[0],
+      apellidos: "",
+    };
+  }
+
+  return {
+    nombres: partes.slice(0, -2).join(" ") || partes[0],
+    apellidos: partes.slice(-2).join(" "),
+  };
+};
+
+
+/* =====================================================
+   DONADOR — PRE REGISTRO (NIT + ENVÍO OTP)
+===================================================== */
+export const preRegisterDonorWithValidation = async (req, res) => {
   try {
     const {
       nombreEmpresa,
       nit,
       nombreEncargado,
+      email,
+      password,
+      celular,
       departamento,
       ciudad,
       direccion,
-      email,
-      celular,
-      password,
     } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ message: "El correo electrónico ya está registrado." });
+
+    // Verificar si ya existe el usuario
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(400).json({
+        message: "El correo ya está registrado",
+      });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = new User({
-      role: "donor",
-      nombreEmpresa,
-      nit,
-      nombres: nombreEncargado,
-      apellidos: "",
-      email,
-      password: hashedPassword,
-      celular,
-      departamento,
-      ciudad,
-      direccion,
-    });
+    // Ejecutar validaciones en n8n (NIT + OTP)
+    const [nitRes, phoneRes] = await Promise.all([
+      axios.post(
+        process.env.N8N_NIT_WEBHOOK,
+        { nit, nombreEmpresa },
+        { timeout: 60000 }
+      ),
+      axios.post(
+        process.env.N8N_PHONE_WEBHOOK,
+        { celular },
+        { timeout: 60000 }
+      ),
+    ]);
 
-    await newUser.save();
+    // Validar NIT
+    if (!nitRes.data || nitRes.data.aprobado !== true) {
+      return res.status(400).json({
+        nitValid: false,
+        message: "NIT no aprobado",
+        detalle: nitRes.data?.mensaje,
+      });
+    }
 
-    res.status(201).json({
-      message: "Cuenta de donador creada con éxito.",
+    return res.status(200).json({
+      nitValid: true,
+      otpSent: phoneRes.data?.success == true,
+      razonSocial: nitRes.data.razonSocial,
     });
   } catch (error) {
-    console.error("Error en registro de donador:", error);
-    res
-      .status(500)
-      .json({ message: "Error en el servidor al crear la cuenta." });
+    console.error(
+      "❌ Error en preRegister:",
+      error.response?.data || error.message
+    );
+    return res.status(500).json({
+      message: "Error validando con n8n",
+    });
   }
 };
 
-// 2. REGISTRO DE BENEFICIARIO (Con Archivos)
+/* =====================================================
+   DONADOR — VERIFICAR OTP Y CREAR CUENTA
+===================================================== */
+export const verifyDonorOtpAndCreate = async (req, res) => {
+  try {
+    const { donorData } = req.body;
+    const otp = req.body.otp || req.body.http;
+    
+
+    // Verificar OTP en n8n
+    const otpRes = await axios.post(
+      process.env.N8N_VERIFY_OTP_WEBHOOK,
+      {
+        celular: donorData.celular,
+        otp,
+      },
+      { timeout: 60000 }
+    );
+
+    console.log("OtpRest ", otpRes.data)
+
+    
+const otpResult = Array.isArray(otpRes.data)
+  ? otpRes.data[0]
+  : otpRes.data;
+
+// ✅ LOG DE VERIFICACIÓN (temporal)
+console.log("✅ OTP RESULT:", otpResult);
+
+// ✅ VALIDACIÓN CORRECTA
+if (!otpResult || otpResult.success !== true) {
+  return res.status(400).json({
+    message: "OTP inválido o expirado",
+    reason: otpResult?.reason,
+  });
+}
+
+
+    // Verificar nuevamente que no exista el usuario
+    const exists = await User.findOne({ email: donorData.email });
+    if (exists) {
+      return res.status(400).json({
+        message: "El usuario ya existe",
+      });
+    }
+
+    // Crear donador
+    const hashedPassword = await bcrypt.hash(donorData.password, 10);
+
+    const newDonor = new User({
+      role: "donor",
+      nombreEmpresa: donorData.nombreEmpresa,
+      nit: donorData.nit,
+      nombres: donorData.nombreEncargado,
+      apellidos: "",
+      email: donorData.email,
+      password: hashedPassword,
+      celular: donorData.celular,
+      departamento: donorData.departamento,
+      ciudad: donorData.ciudad,
+      direccion: donorData.direccion,
+      phoneVerified: true,
+      nitVerified: true,
+    });
+
+    await newDonor.save();
+
+    return res.status(201).json({
+      message: "Donador registrado con éxito",
+    });
+  } catch (error) {
+    console.error(
+      "❌ Error en verify OTP:",
+      error.response?.data || error.message
+    );
+    return res.status(500).json({
+      message: "Error creando el donador",
+    });
+  }
+};
+
+/* =====================================================
+   BENEFICIARIO — REGISTRO (SIN CAMBIOS)
+===================================================== */
 export const registerBeneficiary = async (req, res) => {
   try {
     const {
       tipoDocumento,
       numeroDocumento,
-      nombres,
-      apellidos,
       departamento,
       ciudad,
       direccion,
       email,
       celular,
       password,
+      sisbenGrupo,
     } = req.body;
 
+  
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res
-        .status(400)
-        .json({ message: "El correo electrónico ya está registrado." });
+      return res.status(400).json({
+        message: "El correo electrónico ya está registrado.",
+      });
     }
 
-    // Extraer rutas de archivos
-    const documentoIdentidadUrl = req.files?.["documentoIdentidad"]
-      ? req.files["documentoIdentidad"][0].path
-      : null;
-    const sisbenUrl = req.files?.["sisben"]
-      ? req.files["sisben"][0].path
-      : null;
+    const documentoIdentidadUrl = req.files?.["documentoIdentidad"]?.[0]?.path;
+    const sisbenUrl = req.files?.["sisben"]?.[0]?.path;
 
     if (!documentoIdentidadUrl || !sisbenUrl) {
-      return res
-        .status(400)
-        .json({ message: "Debes adjuntar ambos documentos requeridos." });
+      return res.status(400).json({
+        message: "Debes adjuntar ambos documentos requeridos.",
+      });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    if (!sisbenGrupo) {
+      return res.status(400).json({
+        message: "Debes indicar el grupo del SISBÉN.",
+      });
+    }
 
-    const newUser = new User({
-      role: "beneficiary",
-      nombres,
-      apellidos,
-      email,
-      password: hashedPassword,
-      celular,
-      departamento,
-      ciudad,
-      direccion,
-      tipoDocumento,
-      numeroDocumento,
-      documentoIdentidadUrl,
-      sisbenUrl,
-    });
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    console.log("📥 beneficiaryData:", beneficiaryData);
+    
+const newUser = new User({
+  role: "beneficiary",
+  nombres,
+  apellidos,
+  email: email,
+  password: hashedPassword,
+  celular: celular,
+  departamento: departamento,
+  ciudad: ciudad,
+  direccion:direccion,
+  tipoDocumento: tipoDocumento,
+  numeroDocumento: numeroDocumento,
+  sisbenGrupo: grupoSisben,
+  isVerified: false,
+});
+
 
     await newUser.save();
 
@@ -119,37 +240,177 @@ export const registerBeneficiary = async (req, res) => {
         "Cuenta creada con éxito. En espera de verificación del administrador.",
     });
   } catch (error) {
+    console.log()
     console.error("Error en registro de beneficiario:", error);
-    res
-      .status(500)
-      .json({ message: "Error en el servidor al crear la cuenta." });
+    res.status(500).json({
+      message: "Error en el servidor al crear la cuenta.",
+    });
   }
 };
 
-// 3. INICIO DE SESIÓN (LOGIN)
+
+export const preRegisterBeneficiaryWithValidation = async (req, res) => {
+  try {
+    const {
+      numeroDocumento,
+      tipoDocumento,
+      nombre,
+      sisbenGrupo,
+      municipio,
+      celular,
+      email,
+      password,
+      departamento,
+      ciudad,
+      direccion,
+    } = req.body;
+
+    console.log('numero documento', numeroDocumento, 'sisben', sisbenGrupo)
+    // Email único
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(400).json({
+        message: "El correo ya está registrado",
+      });
+    }
+
+    // Validaciones en paralelo (SISBÉN + OTP)
+    const [sisbenRes, phoneRes] = await Promise.all([
+      axios.post(
+        process.env.N8N_SISBEN_WEBHOOK,
+        {
+          numeroDocumento,
+          tipoDocumento,
+          nombre,
+          sisbenGrupo,
+          municipio,
+        },
+        { timeout: 60000 }
+      ),
+      axios.post(
+        process.env.N8N_PHONE_WEBHOOK,
+        { celular },
+        { timeout: 60000 }
+      ),
+    ]);
+
+    if (!sisbenRes.data || sisbenRes.data.aprobado !== true) {
+      console.log('!sisbenRes.data || sisbenRes.data.aprobado !== true', sisbenRes.data,  sisbenRes.data.aprobado !== true)
+      return res.status(400).json({
+        sisbenValid: false,
+        message: "SISBÉN no válido",
+      });
+    }
+
+    return res.status(200).json({
+      sisbenValid: true,
+      otpSent: phoneRes.data?.success == true
+    });
+
+  } catch (error) {
+    console.error("❌ Error preRegisterBeneficiary:", error);
+    return res.status(500).json({
+      message: "Error validando beneficiario",
+    });
+  }
+};
+
+
+
+
+export const verifyBeneficiaryOtpAndCreate = async (req, res) => {
+  try {
+    const { beneficiaryData, otp } = req.body;
+
+    if (!beneficiaryData || !otp) {
+      return res.status(400).json({
+        message: "Información incompleta",
+      });
+    }
+
+    //  Verificar OTP (MISMO workflow que donador)
+    const otpRes = await axios.post(
+      process.env.N8N_VERIFY_OTP_WEBHOOK,
+      {
+        celular: beneficiaryData.celular,
+        otp,
+      },
+      { timeout: 60000 }
+    );
+
+    const otpResult = Array.isArray(otpRes.data)
+      ? otpRes.data[0]
+      : otpRes.data;
+
+    if (!otpResult || otpResult.success !== true) {
+      return res.status(400).json({
+        message: "OTP inválido o expirado",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      beneficiaryData.password,
+      10
+    );
+
+    const newUser = new User({
+      role: "beneficiary",
+      nombres: beneficiaryData.nombres,
+      apellidos: beneficiaryData.apellidos,
+      email: beneficiaryData.email,
+      password: hashedPassword,
+      celular: beneficiaryData.celular,
+      departamento: beneficiaryData.departamento,
+      ciudad: beneficiaryData.ciudad,
+      direccion: beneficiaryData.direccion,
+      tipoDocumento: beneficiaryData.tipoDocumento,
+      numeroDocumento: beneficiaryData.numeroDocumento,
+      sisbenGrupo: beneficiaryData.sisbenGrupo,
+      isVerified: false, // ✅ espera aprobación
+    });
+
+    console.log(newUser);
+    await newUser.save();
+
+    return res.status(201).json({
+      message: "Beneficiario registrado correctamente",
+      userId: newUser._id,
+    });
+
+  } catch (error) {
+    console.error("❌ Error verifyBeneficiary:", error);
+    return res.status(500).json({
+      message: "Error creando beneficiario",
+    });
+  }
+};
+
+/* =====================================================
+   LOGIN (SIN CAMBIOS)
+===================================================== */
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: "Correo o contraseña incorrectos." });
+      return res.status(404).json({
+        message: "Correo o contraseña incorrectos.",
+      });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res
-        .status(401)
-        .json({ message: "Correo o contraseña incorrectos." });
+      return res.status(401).json({
+        message: "Correo o contraseña incorrectos.",
+      });
     }
 
-    // Generar Token JWT
-    const secretKey = process.env.JWT_SECRET || "secreto_temporal_foodsaver";
-    const token = jwt.sign({ id: user._id, role: user.role }, secretKey, {
-      expiresIn: "1d",
-    });
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET || "secreto_temporal_foodsaver",
+      { expiresIn: "1d" }
+    );
 
     res.status(200).json({
       message: "Inicio de sesión exitoso",
@@ -165,116 +426,123 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.error("Error en login:", error);
-    res
-      .status(500)
-      .json({ message: "Error en el servidor al intentar iniciar sesión." });
+    res.status(500).json({
+      message: "Error en el servidor al intentar iniciar sesión.",
+    });
   }
 };
 
-// 4. SOLICITAR RECUPERACIÓN DE CONTRASEÑA (Olvidé mi clave)
+/* =====================================================
+   RECUPERACIÓN DE CONTRASEÑA (SIN CAMBIOS)
+===================================================== */
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ message: "No existe un usuario con ese correo." });
+      return res.status(404).json({
+        message: "No existe un usuario con ese correo.",
+      });
     }
 
-    // Generar un Token aleatorio de 20 caracteres
     const resetToken = crypto.randomBytes(20).toString("hex");
 
-    // Guardar el token y su caducidad (1 hora) en la base de datos
     user.resetPasswordToken = resetToken;
-    user.resetPasswordExpire = Date.now() + 3600000; // 1 hora en milisegundos
+    user.resetPasswordExpire = Date.now() + 3600000;
     await user.save();
 
-    // Configurar el "Cartero" (Nodemailer)
     const transporter = nodemailer.createTransport({
       service: "Gmail",
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // Contraseña de aplicación de Gmail
+        pass: process.env.EMAIL_PASS,
       },
     });
 
-    // Crear el link que el usuario clickeará
-    // Asumimos que tu frontend corre en el puerto 5173
     const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
+    await transporter.sendMail({
       to: user.email,
       subject: "FoodSaver - Recuperación de Contraseña",
-      html: `
-        <h1>Has solicitado cambiar tu contraseña</h1>
-        <p>Haz clic en el siguiente enlace para establecer una nueva contraseña. Este enlace expira en 1 hora:</p>
-        <a href="${resetUrl}" style="padding: 10px 20px; background-color: #FF0055; color: white; text-decoration: none; border-radius: 5px;">Restablecer Contraseña</a>
-        <p>Si no solicitaste esto, ignora este correo.</p>
-      `,
-    };
+      html: `<a href="${resetUrl}">Restablecer contraseña</a>`,
+    });
 
-    await transporter.sendMail(mailOptions);
-
-    res.status(200).json({ message: "Correo enviado. Revisa tu bandeja de entrada." });
+    res.status(200).json({
+      message: "Correo enviado. Revisa tu bandeja de entrada.",
+    });
   } catch (error) {
     console.error("Error en forgotPassword:", error);
-    res.status(500).json({ message: "Error al intentar enviar el correo." });
+    res.status(500).json({
+      message: "Error al intentar enviar el correo.",
+    });
   }
 };
 
-// 5. RESTABLECER CONTRASEÑA (Desde el link del correo)
+/* =====================================================
+   RESET PASSWORD (SIN CAMBIOS)
+===================================================== */
 export const resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
     const { newPassword } = req.body;
 
-    // Buscar al usuario que tenga este token Y que no haya expirado
     const user = await User.findOne({
       resetPasswordToken: token,
-      resetPasswordExpire: { $gt: Date.now() }, // $gt significa "Greater Than" (Mayor que ahora)
+      resetPasswordExpire: { $gt: Date.now() },
     });
 
     if (!user) {
-      return res.status(400).json({ message: "El enlace es inválido o ha expirado." });
+      return res.status(400).json({
+        message: "El enlace es inválido o ha expirado.",
+      });
     }
 
-    // Encriptar la nueva contraseña
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
-
-    // Borrar el token para que no se pueda volver a usar
+    user.password = await bcrypt.hash(newPassword, 10);
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
 
-    res.status(200).json({ message: "Contraseña actualizada con éxito. Ya puedes iniciar sesión." });
+    res.status(200).json({
+      message: "Contraseña actualizada con éxito.",
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error al restablecer la contraseña." });
+    res.status(500).json({
+      message: "Error al restablecer la contraseña.",
+    });
   }
 };
 
-// 6. CAMBIAR CONTRASEÑA ESTANDO LOGUEADO (Desde el perfil)
+/* =====================================================
+   CHANGE PASSWORD (SIN CAMBIOS)
+===================================================== */
 export const changePassword = async (req, res) => {
   try {
     const { userId, passwordActual, passwordNueva } = req.body;
 
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "Usuario no encontrado." });
-
-    // Verificar si la contraseña actual es correcta
-    const isMatch = await bcrypt.compare(passwordActual, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "La contraseña actual es incorrecta." });
+    if (!user) {
+      return res.status(404).json({
+        message: "Usuario no encontrado.",
+      });
     }
 
-    // Encriptar y guardar la nueva
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(passwordNueva, salt);
+    const isMatch = await bcrypt.compare(passwordActual, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "La contraseña actual es incorrecta.",
+      });
+    }
+
+    user.password = await bcrypt.hash(passwordNueva, 10);
     await user.save();
 
-    res.status(200).json({ message: "Tu contraseña ha sido cambiada con éxito." });
+    res.status(200).json({
+      message: "Tu contraseña ha sido cambiada con éxito.",
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error al cambiar la contraseña." });
+    res.status(500).json({
+      message: "Error al cambiar la contraseña.",
+    });
   }
 };

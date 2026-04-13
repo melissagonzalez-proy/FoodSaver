@@ -1,18 +1,19 @@
 import express from "express";
 import {
-  registerDonor,
-  registerBeneficiary,
+  changePassword,
+  forgotPassword,
   login,
-  forgotPassword, 
-  resetPassword, 
-  changePassword
+  preRegisterBeneficiaryWithValidation,
+  preRegisterDonorWithValidation,
+  registerBeneficiary,
+  resetPassword,
+  verifyBeneficiaryOtpAndCreate,
+  verifyDonorOtpAndCreate
 } from "../controllers/authController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
-// Ruta normal (JSON) para donadores
-router.post("/register", registerDonor);
 
 // Ruta (Multipart/form-data) para beneficiarios con archivos
 router.post(
@@ -24,10 +25,23 @@ router.post(
   registerBeneficiary,
 );
 
+router.post(
+  "/beneficiary/pre-register",
+  preRegisterBeneficiaryWithValidation
+);
+
+router.post(
+  "/beneficiary/verify",
+  verifyBeneficiaryOtpAndCreate
+);
+
 // Ruta para iniciar sesión
 router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.put("/reset-password/:token", resetPassword);
 router.put("/change-password", changePassword);
+
+router.post("/donor/pre-register", preRegisterDonorWithValidation);
+router.post("/donor/verify", verifyDonorOtpAndCreate);
 
 export default router;
