@@ -1,4 +1,5 @@
 import axios from "axios";
+import { apiUrl } from "../../../lib/api";
 import {
   AlertCircle,
   ArrowRight,
@@ -51,10 +52,7 @@ export const RegisterDonorPage = () => {
     setError("");
     try {
       const payload = { ...formData, role: "donor" };
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/register",
-        payload,
-      );
+      const response = await axios.post(apiUrl("/api/auth/register"), payload);
 
       setSuccess(response.data.message);
       setTimeout(() => {

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { apiUrl } from "../../../lib/api";
 import {
   AlertCircle,
   ArrowRight,
@@ -131,7 +132,7 @@ export const RegisterBeneficiaryPage = () => {
       data.append("role", "beneficiary");
 
       const response = await axios.post(
-        "http://localhost:5000/api/auth/register-beneficiary",
+        apiUrl("/api/auth/register-beneficiary"),
         data,
         { headers: { "Content-Type": "multipart/form-data" } },
       );

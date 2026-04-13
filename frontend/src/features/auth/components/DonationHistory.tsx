@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { DonationCard } from "./DonationCard"; // Importamos la tarjeta que acabamos de crear
+import { apiUrl } from "../../../lib/api";
 interface DonationData {
   _id: string;
   titulo: string;
@@ -30,7 +31,9 @@ export const DonationHistory = () => {
       const user = JSON.parse(userStr);
       
       // Llamada al backend
-      const response = await axios.get(`http://localhost:5000/api/donations/donor/${user.id}`);
+      const response = await axios.get(
+        apiUrl(`/api/donations/donor/${user.id}`),
+      );
       setDonations(response.data);
       setLoading(false);
     } catch (error) {
@@ -43,7 +46,7 @@ export const DonationHistory = () => {
   const handleCancelDonation = async (id: string) => {
     try {
       // Llamamos a la nueva ruta que creamos en el backend
-      await axios.delete(`http://localhost:5000/api/donations/${id}/cancel`);
+      await axios.delete(apiUrl(`/api/donations/${id}/cancel`));
       
       // Volvemos a pedir los datos al backend para que la pantalla se actualice al instante
       fetchDonations();
@@ -55,9 +58,10 @@ export const DonationHistory = () => {
 
   const handleCompleteDelivery = async (id: string, pin: string) => {
     try {
-      const response = await axios.put(`http://localhost:5000/api/donations/${id}/complete`, {
-        pin: pin
-      });
+      const response = await axios.put(
+        apiUrl(`/api/donations/${id}/complete`),
+        { pin: pin },
+      );
       
       alert(response.data.message); // "¡PIN Validado! Alimento entregado..."
       fetchDonations(); // Recargamos para que pase a la pestaña de "Recolectados"

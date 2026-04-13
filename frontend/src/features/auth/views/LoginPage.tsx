@@ -1,4 +1,5 @@
 import axios from "axios";
+import { apiUrl } from "../../../lib/api";
 import { AlertCircle, ArrowRight, Eye, EyeOff, Leaf } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -21,10 +22,10 @@ export const LoginPage = () => {
     }
 
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
-        { email, password },
-      );
+      const response = await axios.post(apiUrl("/api/auth/login"), {
+        email,
+        password,
+      });
 
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
