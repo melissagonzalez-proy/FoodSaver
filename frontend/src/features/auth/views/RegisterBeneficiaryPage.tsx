@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 export const RegisterBeneficiaryPage = () => {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     tipoDocumento: "",
     numeroDocumento: "",
@@ -20,21 +22,12 @@ export const RegisterBeneficiaryPage = () => {
     sisben: null as File | null,
   });
 
-  const [docName, setDocName] = useState("");
-  const [sisbenName, setSisbenName] = useState("");
-
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-
+  const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"form" | "confirm" | "otp" | "success">(
     "form",
   );
   const [otp, setOtp] = useState("");
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const navigate = useNavigate();
 
   const documentTypes = [
     "Registro Civil",
@@ -80,27 +73,21 @@ export const RegisterBeneficiaryPage = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
+
+  // ¡AHORA SÍ SE USA ESTA FUNCIÓN!
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
 
     const file = files[0];
-
     if (file.size > 5 * 1024 * 1024) {
       setError("El archivo no puede superar los 5MB");
       return;
     }
 
     setFormData((prev) => ({ ...prev, [name]: file }));
-
-    if (name === "documentoIdentidad") setDocName(file.name);
-    if (name === "sisben") setSisbenName(file.name);
   };
 
   const handleInitialSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -124,13 +111,20 @@ export const RegisterBeneficiaryPage = () => {
       return;
     }
 
+    if (!formData.documentoIdentidad || !formData.sisben) {
+      setError(
+        "Debes adjuntar el documento de identidad y el soporte de SISBÉN.",
+      );
+      return;
+    }
+
     setStep("confirm");
   };
 
   const handlePreRegister = async () => {
     setError("");
+    setLoading(true);
 
-    // 🔍 Validación rápida (extra seguridad)
     if (!formData.celular || !formData.email) {
       setError("Faltan datos obligatorios.");
       setLoading(false);
@@ -138,7 +132,6 @@ export const RegisterBeneficiaryPage = () => {
     }
 
     try {
-      console.log(formData);
       const response = await axios.post(
         "http://localhost:5000/api/auth/beneficiary/pre-register",
         {
@@ -156,32 +149,25 @@ export const RegisterBeneficiaryPage = () => {
         },
       );
 
-      // ✅ Validación de respuesta
       if (response.data.sisbenValid && response.data.otpSent) {
-        setLoading(false);
         setStep("otp");
       } else {
         setError("No se pudo validar el SISBÉN o enviar el OTP.");
-        setLoading(false);
       }
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        console.log("STATUS:", err.response?.status);
-        console.log("DATA:", err.response?.data);
-        console.log("MESSAGE:", err.message);
-
         setError(err.response?.data?.message || "Error en el pre-registro.");
       } else {
-        console.log(err);
         setError("Error en el pre-registro.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
     setError("");
     setLoading(true);
-    console.log("CLICK OTP"); // 👈 DEBUG
 
     try {
       const response = await axios.post(
@@ -193,7 +179,7 @@ export const RegisterBeneficiaryPage = () => {
             apellidos: formData.apellidos,
             tipoDocumento: formData.tipoDocumento,
             numeroDocumento: formData.numeroDocumento,
-            sisbenGrupo: formData.grupoSisben, // 🔥 CORREGIDO
+            sisbenGrupo: formData.grupoSisben,
             celular: formData.celular,
             email: formData.email,
             password: formData.password,
@@ -205,41 +191,24 @@ export const RegisterBeneficiaryPage = () => {
         },
       );
 
-      const uploadDocuments = async (userId: string) => {
-        const data = new FormData();
-
-        data.append("userId", userId);
-
-        if (formData.documentoIdentidad) {
-          data.append("documentoIdentidad", formData.documentoIdentidad);
-        }
-
-        if (formData.sisben) {
-          data.append("sisben", formData.sisben);
-        }
-
-        try {
-          await axios.post(
-            "http://localhost:5000/api/auth/register-beneficiary",
-            data,
-            {
-              headers: { "Content-Type": "multipart/form-data" },
-            },
-          );
-        } catch (err) {
-          console.error("Error subiendo documentos:", err);
-          setError("Error al subir documentos.");
-        }
-      };
-
       const userId = response.data.userId;
-      setUserId(userId);
 
-      // 🔥 subir documentos después de crear usuario
-      await uploadDocuments(userId);
+      // Subir documentos usando la API real
+      if (formData.documentoIdentidad || formData.sisben) {
+        const data = new FormData();
+        data.append("userId", userId);
+        if (formData.documentoIdentidad)
+          data.append("documentoIdentidad", formData.documentoIdentidad);
+        if (formData.sisben) data.append("sisben", formData.sisben);
+
+        await axios.post(
+          "http://localhost:5000/api/auth/register-beneficiary",
+          data,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+      }
 
       setStep("success");
-
       setTimeout(() => {
         navigate("/login");
       }, 2500);
@@ -256,7 +225,6 @@ export const RegisterBeneficiaryPage = () => {
 
   return (
     <div className="min-h-screen bg-brand-background flex flex-col items-center justify-center p-6 font-sans">
-      {/* HEADER */}
       <Link
         to="/"
         className="flex items-center gap-2 text-brand-accent mb-8 hover:opacity-80 transition-opacity"
@@ -268,7 +236,6 @@ export const RegisterBeneficiaryPage = () => {
       </Link>
 
       <div className="w-full max-w-2xl bg-brand-card border border-brand-border rounded-4xl p-10 relative shadow-2xl">
-        {/* TITULO */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-semibold text-brand-text font-jakarta mb-2">
             Registro de Beneficiario
@@ -278,7 +245,6 @@ export const RegisterBeneficiaryPage = () => {
           </p>
         </div>
 
-        {/* ERRORES */}
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center gap-3 text-red-500">
             <AlertCircle size={20} />
@@ -286,23 +252,15 @@ export const RegisterBeneficiaryPage = () => {
           </div>
         )}
 
-        {/* SUCCESS */}
-        {success && (
-          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/50 rounded-xl flex items-center gap-3 text-green-500">
-            <CheckCircle size={20} />
-            <p className="text-sm font-medium">
-              {success}. Redirigiendo al login...
-            </p>
-          </div>
-        )}
-
         {/* ========================= */}
         {/* STEP 1: FORM */}
         {/* ========================= */}
         {step === "form" && (
-          <form onSubmit={handleInitialSubmit} className="flex flex-col gap-6">
+          <form
+            onSubmit={handleInitialSubmit}
+            className="flex flex-col gap-6 animate-in fade-in"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* NOMBRES */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted ml-1">
                   Nombres
@@ -317,7 +275,6 @@ export const RegisterBeneficiaryPage = () => {
                 />
               </div>
 
-              {/* APELLIDOS */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted ml-1">
                   Apellidos
@@ -332,12 +289,10 @@ export const RegisterBeneficiaryPage = () => {
                 />
               </div>
 
-              {/* DOCUMENTO */}
               <div className="md:col-span-2 flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted ml-1">
                   Documento de identidad
                 </label>
-
                 <div className="flex flex-col sm:flex-row gap-3">
                   <select
                     name="tipoDocumento"
@@ -353,7 +308,6 @@ export const RegisterBeneficiaryPage = () => {
                       </option>
                     ))}
                   </select>
-
                   <input
                     name="numeroDocumento"
                     type="text"
@@ -366,12 +320,10 @@ export const RegisterBeneficiaryPage = () => {
                 </div>
               </div>
 
-              {/* SISBÉN */}
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="text-sm font-medium text-brand-muted ml-1">
                   Grupo SISBÉN
                 </label>
-
                 <input
                   name="grupoSisben"
                   value={formData.grupoSisben}
@@ -382,28 +334,25 @@ export const RegisterBeneficiaryPage = () => {
                 />
               </div>
 
-              {/* CELULAR */}
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="text-sm font-medium text-brand-muted ml-1">
                   Celular
                 </label>
-
                 <input
                   name="celular"
                   type="text"
                   value={formData.celular}
                   onChange={handleChange}
                   className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
+                  placeholder="+573001234567"
                   required
                 />
               </div>
 
-              {/* DEPARTAMENTO */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted ml-1">
                   Departamento
                 </label>
-
                 <select
                   name="departamento"
                   value={formData.departamento}
@@ -416,12 +365,10 @@ export const RegisterBeneficiaryPage = () => {
                 </select>
               </div>
 
-              {/* CIUDAD */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted ml-1">
                   Ciudad
                 </label>
-
                 <select
                   name="ciudad"
                   value={formData.ciudad}
@@ -437,12 +384,10 @@ export const RegisterBeneficiaryPage = () => {
                 </select>
               </div>
 
-              {/* DIRECCIÓN */}
               <div className="md:col-span-2 flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted ml-1">
                   Dirección
                 </label>
-
                 <input
                   name="direccion"
                   type="text"
@@ -453,12 +398,10 @@ export const RegisterBeneficiaryPage = () => {
                 />
               </div>
 
-              {/* EMAIL */}
               <div className="md:col-span-2 flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted ml-1">
                   Email
                 </label>
-
                 <input
                   name="email"
                   type="email"
@@ -469,12 +412,10 @@ export const RegisterBeneficiaryPage = () => {
                 />
               </div>
 
-              {/* PASSWORD */}
               <div className="md:col-span-2 flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted ml-1">
                   Contraseña
                 </label>
-
                 <input
                   name="password"
                   type="password"
@@ -485,12 +426,41 @@ export const RegisterBeneficiaryPage = () => {
                   required
                 />
               </div>
+
+              {/* === NUEVOS CAMPOS PARA ARCHIVOS === */}
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <label className="text-sm font-medium text-brand-muted ml-1">
+                  Soporte de Documento de Identidad
+                </label>
+                <input
+                  type="file"
+                  name="documentoIdentidad"
+                  accept=".pdf,image/*"
+                  onChange={handleFileChange}
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-accent/10 file:text-brand-accent hover:file:bg-brand-accent/20 cursor-pointer"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <label className="text-sm font-medium text-brand-muted ml-1">
+                  Soporte de SISBÉN
+                </label>
+                <input
+                  type="file"
+                  name="sisben"
+                  accept=".pdf,image/*"
+                  onChange={handleFileChange}
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-accent/10 file:text-brand-accent hover:file:bg-brand-accent/20 cursor-pointer"
+                  required
+                />
+              </div>
+              {/* ===================================== */}
             </div>
 
-            {/* BOTÓN */}
             <button
               type="submit"
-              className="w-full mt-4 flex items-center justify-center gap-2 py-4 text-lg font-medium bg-brand-accent text-white rounded-xl"
+              className="w-full mt-4 flex items-center justify-center gap-2 py-4 text-lg font-medium bg-brand-accent text-white hover:bg-brand-accent-light transition-colors rounded-xl"
             >
               Revisar Datos
             </button>
@@ -501,31 +471,29 @@ export const RegisterBeneficiaryPage = () => {
         {/* STEP 2: CONFIRM */}
         {/* ========================= */}
         {step === "confirm" && (
-          <div className="flex flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-6 animate-in slide-in-from-right-4">
             <div className="bg-brand-background border border-brand-border rounded-xl p-6 w-full text-center">
               <h3 className="text-xl font-medium text-brand-text mb-2">
                 Confirmar Registro
               </h3>
-
               <p className="text-brand-muted mb-4">
-                Verifica tus datos antes de continuar con validación SISBÉN y
-                OTP.
+                Verifica tus datos antes de continuar con la validación de
+                SISBÉN y OTP.
               </p>
 
               <div className="flex gap-4">
                 <button
                   type="button"
                   onClick={() => setStep("form")}
-                  className="flex-1 py-3 border border-brand-border rounded-xl"
+                  className="flex-1 py-3 border border-brand-border rounded-xl text-brand-text hover:bg-brand-border/50 transition-colors"
                 >
                   Regresar
                 </button>
-
                 <button
                   type="button"
                   onClick={handlePreRegister}
                   disabled={loading}
-                  className="flex-1 py-3 bg-brand-accent text-white rounded-xl"
+                  className="flex-1 py-3 bg-brand-accent text-white rounded-xl disabled:opacity-50 hover:bg-brand-accent-light transition-colors"
                 >
                   {loading ? "Procesando..." : "Confirmar"}
                 </button>
@@ -538,28 +506,26 @@ export const RegisterBeneficiaryPage = () => {
         {/* STEP 3: OTP */}
         {/* ========================= */}
         {step === "otp" && (
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-6 animate-in slide-in-from-right-4">
             <h3 className="text-xl font-medium text-brand-text">
               Verificación OTP
             </h3>
-
             <p className="text-brand-muted text-center">
               Ingresa el código enviado a tu celular
             </p>
-
             <input
               value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className="border border-brand-border p-3 rounded-xl text-center tracking-widest"
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+              maxLength={6}
+              className="w-full border border-brand-border bg-brand-background p-4 rounded-xl text-center text-3xl tracking-widest text-brand-text outline-none focus:border-brand-accent"
               placeholder="123456"
             />
-
             <button
               onClick={handleVerifyOtp}
-              disabled={loading}
-              className="w-full py-3 bg-brand-accent text-white rounded-xl"
+              disabled={loading || otp.length < 4}
+              className="w-full py-4 bg-brand-accent text-white rounded-xl font-medium disabled:opacity-50 hover:bg-brand-accent-light transition-colors"
             >
-              {loading ? "Verificando..." : "Verificar OTP"}
+              {loading ? "Verificando..." : "Verificar código"}
             </button>
           </div>
         )}
@@ -568,22 +534,23 @@ export const RegisterBeneficiaryPage = () => {
         {/* STEP 4: SUCCESS */}
         {/* ========================= */}
         {step === "success" && (
-          <div className="flex flex-col items-center gap-4 text-center">
-            <CheckCircle size={40} className="text-green-500" />
-
-            <h3 className="text-xl font-medium text-brand-text">
-              Registro exitoso
+          <div className="flex flex-col items-center gap-4 text-center animate-in zoom-in-95">
+            <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mb-2">
+              <CheckCircle size={40} className="text-green-500" />
+            </div>
+            <h3 className="text-2xl font-semibold text-brand-text">
+              ¡Registro exitoso!
             </h3>
-
-            <p className="text-brand-muted">Serás redirigido al login...</p>
+            <p className="text-brand-muted">
+              Tu cuenta ha sido creada. Serás redirigido al inicio de sesión...
+            </p>
           </div>
         )}
 
-        {/* LOGIN LINK */}
         <div className="mt-8 text-center">
           <p className="text-sm text-brand-muted">
             ¿Ya tienes una cuenta?{" "}
-            <Link to="/login" className="text-brand-accent">
+            <Link to="/login" className="text-brand-accent hover:underline">
               Inicia sesión aquí
             </Link>
           </p>

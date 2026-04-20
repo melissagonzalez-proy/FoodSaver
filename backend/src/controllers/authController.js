@@ -24,7 +24,6 @@ const splitNombreCompleto = (nombreCompleto = "") => {
   };
 };
 
-
 /* =====================================================
    DONADOR — PRE REGISTRO (NIT + ENVÍO OTP)
 ===================================================== */
@@ -42,7 +41,6 @@ export const preRegisterDonorWithValidation = async (req, res) => {
       direccion,
     } = req.body;
 
-
     // Verificar si ya existe el usuario
     const exists = await User.findOne({ email });
     if (exists) {
@@ -51,18 +49,17 @@ export const preRegisterDonorWithValidation = async (req, res) => {
       });
     }
 
-
     // Ejecutar validaciones en n8n (NIT + OTP)
     const [nitRes, phoneRes] = await Promise.all([
       axios.post(
         process.env.N8N_NIT_WEBHOOK,
         { nit, nombreEmpresa },
-        { timeout: 60000 }
+        { timeout: 60000 },
       ),
       axios.post(
         process.env.N8N_PHONE_WEBHOOK,
         { celular },
-        { timeout: 60000 }
+        { timeout: 60000 },
       ),
     ]);
 
@@ -83,7 +80,7 @@ export const preRegisterDonorWithValidation = async (req, res) => {
   } catch (error) {
     console.error(
       "❌ Error en preRegister:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     return res.status(500).json({
       message: "Error validando con n8n",
@@ -98,7 +95,6 @@ export const verifyDonorOtpAndCreate = async (req, res) => {
   try {
     const { donorData } = req.body;
     const otp = req.body.otp || req.body.http;
-    
 
     // Verificar OTP en n8n
     const otpRes = await axios.post(
@@ -107,27 +103,23 @@ export const verifyDonorOtpAndCreate = async (req, res) => {
         celular: donorData.celular,
         otp,
       },
-      { timeout: 60000 }
+      { timeout: 60000 },
     );
 
-    console.log("OtpRest ", otpRes.data)
+    console.log("OtpRest ", otpRes.data);
 
-    
-const otpResult = Array.isArray(otpRes.data)
-  ? otpRes.data[0]
-  : otpRes.data;
+    const otpResult = Array.isArray(otpRes.data) ? otpRes.data[0] : otpRes.data;
 
-// ✅ LOG DE VERIFICACIÓN (temporal)
-console.log("✅ OTP RESULT:", otpResult);
+    // ✅ LOG DE VERIFICACIÓN (temporal)
+    console.log("✅ OTP RESULT:", otpResult);
 
-// ✅ VALIDACIÓN CORRECTA
-if (!otpResult || otpResult.success !== true) {
-  return res.status(400).json({
-    message: "OTP inválido o expirado",
-    reason: otpResult?.reason,
-  });
-}
-
+    // ✅ VALIDACIÓN CORRECTA
+    if (!otpResult || otpResult.success !== true) {
+      return res.status(400).json({
+        message: "OTP inválido o expirado",
+        reason: otpResult?.reason,
+      });
+    }
 
     // Verificar nuevamente que no exista el usuario
     const exists = await User.findOne({ email: donorData.email });
@@ -164,7 +156,7 @@ if (!otpResult || otpResult.success !== true) {
   } catch (error) {
     console.error(
       "❌ Error en verify OTP:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     return res.status(500).json({
       message: "Error creando el donador",
@@ -173,81 +165,55 @@ if (!otpResult || otpResult.success !== true) {
 };
 
 /* =====================================================
-   BENEFICIARIO — REGISTRO (SIN CAMBIOS)
+   BENEFICIARIO — SUBIDA DE DOCUMENTOS (PASO FINAL)
 ===================================================== */
 export const registerBeneficiary = async (req, res) => {
   try {
-    const {
-      tipoDocumento,
-      numeroDocumento,
-      departamento,
-      ciudad,
-      direccion,
-      email,
-      celular,
-      password,
-      sisbenGrupo,
-    } = req.body;
+    // 1. Recibimos el ID del usuario que se acaba de crear en el paso anterior
+    const { userId } = req.body;
 
-  
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    if (!userId) {
       return res.status(400).json({
-        message: "El correo electrónico ya está registrado.",
+        message: "ID de usuario no proporcionado.",
       });
     }
 
+    // 2. Extraemos las rutas de los archivos que Multer guardó
     const documentoIdentidadUrl = req.files?.["documentoIdentidad"]?.[0]?.path;
     const sisbenUrl = req.files?.["sisben"]?.[0]?.path;
 
     if (!documentoIdentidadUrl || !sisbenUrl) {
       return res.status(400).json({
-        message: "Debes adjuntar ambos documentos requeridos.",
+        message:
+          "Debes adjuntar ambos documentos requeridos (Documento y SISBÉN).",
       });
     }
 
-    if (!sisbenGrupo) {
-      return res.status(400).json({
-        message: "Debes indicar el grupo del SISBÉN.",
+    // 3. Buscamos al usuario en la base de datos
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "Usuario no encontrado en la base de datos.",
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // 4. Actualizamos el usuario agregándole los documentos
+    user.documentoIdentidadUrl = documentoIdentidadUrl;
+    user.sisbenUrl = sisbenUrl;
 
-    console.log("📥 beneficiaryData:", beneficiaryData);
-    
-const newUser = new User({
-  role: "beneficiary",
-  nombres,
-  apellidos,
-  email: email,
-  password: hashedPassword,
-  celular: celular,
-  departamento: departamento,
-  ciudad: ciudad,
-  direccion:direccion,
-  tipoDocumento: tipoDocumento,
-  numeroDocumento: numeroDocumento,
-  sisbenGrupo: grupoSisben,
-  isVerified: false,
-});
+    await user.save();
 
-
-    await newUser.save();
-
-    res.status(201).json({
+    res.status(200).json({
       message:
-        "Cuenta creada con éxito. En espera de verificación del administrador.",
+        "Documentos subidos con éxito. En espera de verificación del administrador.",
     });
   } catch (error) {
-    console.log()
-    console.error("Error en registro de beneficiario:", error);
+    console.error("Error en subida de documentos de beneficiario:", error);
     res.status(500).json({
-      message: "Error en el servidor al crear la cuenta.",
+      message: "Error en el servidor al guardar los documentos.",
     });
   }
 };
-
 
 export const preRegisterBeneficiaryWithValidation = async (req, res) => {
   try {
@@ -265,7 +231,7 @@ export const preRegisterBeneficiaryWithValidation = async (req, res) => {
       direccion,
     } = req.body;
 
-    console.log('numero documento', numeroDocumento, 'sisben', sisbenGrupo)
+    console.log("numero documento", numeroDocumento, "sisben", sisbenGrupo);
     // Email único
     const exists = await User.findOne({ email });
     if (exists) {
@@ -285,17 +251,21 @@ export const preRegisterBeneficiaryWithValidation = async (req, res) => {
           sisbenGrupo,
           municipio,
         },
-        { timeout: 60000 }
+        { timeout: 60000 },
       ),
       axios.post(
         process.env.N8N_PHONE_WEBHOOK,
         { celular },
-        { timeout: 60000 }
+        { timeout: 60000 },
       ),
     ]);
 
     if (!sisbenRes.data || sisbenRes.data.aprobado !== true) {
-      console.log('!sisbenRes.data || sisbenRes.data.aprobado !== true', sisbenRes.data,  sisbenRes.data.aprobado !== true)
+      console.log(
+        "!sisbenRes.data || sisbenRes.data.aprobado !== true",
+        sisbenRes.data,
+        sisbenRes.data.aprobado !== true,
+      );
       return res.status(400).json({
         sisbenValid: false,
         message: "SISBÉN no válido",
@@ -304,9 +274,8 @@ export const preRegisterBeneficiaryWithValidation = async (req, res) => {
 
     return res.status(200).json({
       sisbenValid: true,
-      otpSent: phoneRes.data?.success == true
+      otpSent: phoneRes.data?.success == true,
     });
-
   } catch (error) {
     console.error("❌ Error preRegisterBeneficiary:", error);
     return res.status(500).json({
@@ -314,9 +283,6 @@ export const preRegisterBeneficiaryWithValidation = async (req, res) => {
     });
   }
 };
-
-
-
 
 export const verifyBeneficiaryOtpAndCreate = async (req, res) => {
   try {
@@ -335,12 +301,10 @@ export const verifyBeneficiaryOtpAndCreate = async (req, res) => {
         celular: beneficiaryData.celular,
         otp,
       },
-      { timeout: 60000 }
+      { timeout: 60000 },
     );
 
-    const otpResult = Array.isArray(otpRes.data)
-      ? otpRes.data[0]
-      : otpRes.data;
+    const otpResult = Array.isArray(otpRes.data) ? otpRes.data[0] : otpRes.data;
 
     if (!otpResult || otpResult.success !== true) {
       return res.status(400).json({
@@ -348,10 +312,7 @@ export const verifyBeneficiaryOtpAndCreate = async (req, res) => {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(
-      beneficiaryData.password,
-      10
-    );
+    const hashedPassword = await bcrypt.hash(beneficiaryData.password, 10);
 
     const newUser = new User({
       role: "beneficiary",
@@ -376,7 +337,6 @@ export const verifyBeneficiaryOtpAndCreate = async (req, res) => {
       message: "Beneficiario registrado correctamente",
       userId: newUser._id,
     });
-
   } catch (error) {
     console.error("❌ Error verifyBeneficiary:", error);
     return res.status(500).json({
@@ -409,7 +369,7 @@ export const login = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET || "secreto_temporal_foodsaver",
-      { expiresIn: "1d" }
+      { expiresIn: "1d" },
     );
 
     res.status(200).json({
@@ -543,6 +503,48 @@ export const changePassword = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Error al cambiar la contraseña.",
+    });
+  }
+};
+
+/* =====================================================
+   DONADOR — SUBIDA DE DOCUMENTOS (PASO FINAL)
+===================================================== */
+export const uploadDonorDocuments = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ message: "ID de usuario no proporcionado." });
+    }
+
+    const rutUrl = req.files?.["rut"]?.[0]?.path;
+    const camaraComercioUrl = req.files?.["camaraComercio"]?.[0]?.path;
+
+    if (!rutUrl || !camaraComercioUrl) {
+      return res.status(400).json({
+        message: "Debes adjuntar el RUT y la Cámara de Comercio.",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+
+    user.rutUrl = rutUrl;
+    user.camaraComercioUrl = camaraComercioUrl;
+    await user.save();
+
+    res.status(200).json({
+      message: "Documentos de la empresa subidos con éxito.",
+    });
+  } catch (error) {
+    console.error("Error en subida de documentos de donador:", error);
+    res.status(500).json({
+      message: "Error en el servidor al guardar los documentos.",
     });
   }
 };
