@@ -1,7 +1,12 @@
 import axios from "axios";
-import { AlertCircle, CheckCircle, Leaf } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  Leaf
+} from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiUrl } from "../../../lib/api";
 
 export const RegisterBeneficiaryPage = () => {
   const [formData, setFormData] = useState({
@@ -185,60 +190,12 @@ export const RegisterBeneficiaryPage = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/beneficiary/verify",
-        {
-          otp,
-          beneficiaryData: {
-            nombres: formData.nombres,
-            apellidos: formData.apellidos,
-            tipoDocumento: formData.tipoDocumento,
-            numeroDocumento: formData.numeroDocumento,
-            sisbenGrupo: formData.grupoSisben, // 🔥 CORREGIDO
-            celular: formData.celular,
-            email: formData.email,
-            password: formData.password,
-            departamento: formData.departamento,
-            ciudad: formData.ciudad,
-            direccion: formData.direccion,
-            role: "beneficiary",
-          },
-        },
+        apiUrl("/api/auth/register-beneficiary"),
+        data,
+        { headers: { "Content-Type": "multipart/form-data" } },
       );
 
-      const uploadDocuments = async (userId: string) => {
-        const data = new FormData();
-
-        data.append("userId", userId);
-
-        if (formData.documentoIdentidad) {
-          data.append("documentoIdentidad", formData.documentoIdentidad);
-        }
-
-        if (formData.sisben) {
-          data.append("sisben", formData.sisben);
-        }
-
-        try {
-          await axios.post(
-            "http://localhost:5000/api/auth/register-beneficiary",
-            data,
-            {
-              headers: { "Content-Type": "multipart/form-data" },
-            },
-          );
-        } catch (err) {
-          console.error("Error subiendo documentos:", err);
-          setError("Error al subir documentos.");
-        }
-      };
-
-      const userId = response.data.userId;
-      setUserId(userId);
-
-      // 🔥 subir documentos después de crear usuario
-      await uploadDocuments(userId);
-
-      setStep("success");
+      setSuccess(response.data.message || "Cuenta creada con éxito");
 
       setTimeout(() => {
         navigate("/login");

@@ -5,15 +5,18 @@ export const SelectionRolePage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-brand-background flex items-center justify-center p-6 font-sans">
-      <div className="w-full max-w-4xl">
+    <div className="min-h-screen bg-brand-background flex items-center justify-center p-6 font-sans relative overflow-hidden">
+      <div className="absolute top-[-20%] right-[-10%] w-md h-md bg-brand-accent/10 rounded-full blur-[120px]" />
+      <div className="absolute bottom-[-25%] left-[-10%] w-120 h-120 bg-brand-accent/5 rounded-full blur-[140px]" />
+
+      <div className="w-full max-w-4xl relative z-10">
         <div className="rounded-4xl shadow-2xl border border-brand-border bg-brand-card p-10 text-center">
           <div className="flex flex-col items-center gap-4 mb-8">
             <Leaf className="w-12 h-12 text-brand-accent" />
             <h1 className="text-4xl md:text-5xl font-bold text-brand-text font-jakarta tracking-tight">
               Bienvenido a FoodSaver
             </h1>
-            <p className="text-lg text-brand-muted max-w-2xl">
+            <p className="text-base md:text-lg text-brand-muted max-w-2xl">
               Conectamos personas que desean donar alimentos con quienes los
               necesitan. Juntos reducimos el desperdicio y construimos una
               comunidad más solidaria.
@@ -22,7 +25,7 @@ export const SelectionRolePage = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
             <div
-              className="border border-brand-border rounded-2xl p-8 bg-brand-background shadow-md hover:border-brand-accent/50 transition-all cursor-pointer group flex flex-col h-full"
+              className="border border-brand-border rounded-3xl p-8 bg-brand-background/80 shadow-md hover:border-brand-accent/50 transition-all cursor-pointer group flex flex-col h-full"
               onClick={() => navigate("/register-donor")}
             >
               <HeartHandshake className="w-12 h-12 text-brand-text group-hover:text-brand-accent mx-auto mb-4 transition-colors" />
@@ -39,7 +42,7 @@ export const SelectionRolePage = () => {
             </div>
 
             <div
-              className="border border-brand-border rounded-2xl p-8 bg-brand-background shadow-md hover:border-brand-accent/50 transition-all cursor-pointer group flex flex-col h-full"
+              className="border border-brand-border rounded-3xl p-8 bg-brand-background/80 shadow-md hover:border-brand-accent/50 transition-all cursor-pointer group flex flex-col h-full"
               onClick={() => navigate("/register-beneficiary")}
             >
               <ShoppingBag className="w-12 h-12 text-brand-text group-hover:text-brand-accent mx-auto mb-4 transition-colors" />

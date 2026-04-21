@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiUrl } from "../../../lib/api";
 
 type Step = "FORM" | "OTP";
 
@@ -56,11 +57,14 @@ export const RegisterDonorPage = () => {
       return;
     }
 
+    setIsConfirming(true);
+  };
+
+  const handleFinalSubmit = async () => {
+    setError("");
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/auth/donor/pre-register",
-        formData
-      );
+      const payload = { ...formData, role: "donor" };
+      const response = await axios.post(apiUrl("/api/auth/register"), payload);
 
       if (res.data.nitValid === true && res.data.otpSent === true) {
         setStep("OTP");

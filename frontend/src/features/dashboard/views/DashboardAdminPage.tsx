@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { apiUrl, assetUrl } from "../../../lib/api";
 import {
   Users,
   FileText,
@@ -62,7 +63,9 @@ export const DashboardAdminPage = () => {
   const fetchPendingUsers = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/admin/pending-beneficiaries");
+      const response = await axios.get(
+        apiUrl("/api/admin/pending-beneficiaries"),
+      );
       setPendingUsers(response.data);
     } catch (error) {
       console.error("Error al cargar los usuarios:", error);
@@ -74,7 +77,7 @@ export const DashboardAdminPage = () => {
   const fetchAllDonations = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/donations/admin/all");
+      const response = await axios.get(apiUrl("/api/donations/admin/all"));
       setAllDonations(response.data);
     } catch (error) {
       console.error("Error al cargar las donaciones:", error);
@@ -96,9 +99,13 @@ export const DashboardAdminPage = () => {
 
     try {
       if (modalConfig.type === "approve") {
-        await axios.put(`http://localhost:5000/api/admin/approve-beneficiary/${modalConfig.userId}`);
+        await axios.put(
+          apiUrl(`/api/admin/approve-beneficiary/${modalConfig.userId}`),
+        );
       } else {
-        await axios.delete(`http://localhost:5000/api/admin/reject-beneficiary/${modalConfig.userId}`);
+        await axios.delete(
+          apiUrl(`/api/admin/reject-beneficiary/${modalConfig.userId}`),
+        );
       }
       setPendingUsers(pendingUsers.filter((user) => user._id !== modalConfig.userId));
       setModalConfig({ isOpen: false, type: null, userId: null, userName: "" });
@@ -110,7 +117,7 @@ export const DashboardAdminPage = () => {
   const openFile = (path: string) => {
     if (!path) return;
     const normalizedPath = path.replace(/\\/g, "/");
-    window.open(`http://localhost:5000/${normalizedPath}`, "_blank");
+    window.open(assetUrl(normalizedPath), "_blank");
   };
 
   const handleLogout = () => {
