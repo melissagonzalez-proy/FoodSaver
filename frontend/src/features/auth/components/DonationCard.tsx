@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Clock, Scale, XCircle, Image as ImageIcon } from "lucide-react";
+import { Clock, Scale, XCircle, Image as ImageIcon, Pencil } from "lucide-react";
 
 interface Donation {
   _id: string;
   titulo: string;
   cantidad: string;
   fechaCaducidad: string;
+  fechaRecogida: string; 
   estado: "activo" | "asignado" | "recolectado"; 
   imagenUrl?: string;
 }
@@ -14,9 +15,10 @@ interface Props {
   donation: Donation;
   onCancel: (id: string) => void;
   onComplete: (id: string, pin: string) => void;
+  onEdit?: () => void;
 }
 
-export const DonationCard = ({ donation, onCancel, onComplete }: Props) => { // ¡Asegúrate de recibir onComplete aquí!
+export const DonationCard = ({ donation, onCancel, onComplete, onEdit }: Props) => {
   const [timeLeft, setTimeLeft] = useState("");
   const [pinInput, setPinInput] = useState("");
 
@@ -88,18 +90,29 @@ export const DonationCard = ({ donation, onCancel, onComplete }: Props) => { // 
           </div>
         </div>
 
-        {/* ACTUALIZADO: El botón de cancelar SOLO aparece si está 'activo' */}
+        {/* ACTUALIZADO: Botones de Editar y Cancelar si está 'activo' */}
         {donation.estado === "activo" && (
-          <button
-            onClick={() => onCancel(donation._id)}
-            className="mt-auto pt-3 flex items-center justify-center gap-2 w-full py-2 text-sm font-medium text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/10 transition-colors"
-          >
-            <XCircle size={16} />
-            Cancelar Publicación
-          </button>
+          <div className="mt-auto pt-3 flex gap-2">
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className="flex-1 py-2 flex items-center justify-center gap-1 text-sm font-medium text-brand-accent border border-brand-accent/30 rounded-lg hover:bg-brand-accent/10 transition-colors"
+              >
+                <Pencil size={16} />
+                Editar
+              </button>
+            )}
+            <button
+              onClick={() => onCancel(donation._id)}
+              className="flex-1 py-2 flex items-center justify-center gap-1 text-sm font-medium text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/10 transition-colors"
+            >
+              <XCircle size={16} />
+              Cancelar
+            </button>
+          </div>
         )}
 
-        {/* SECTOR SAFE-PICKUP: SOLO aparece si está 'asignado' */}
+        {/* SECTOR SAFE-PICKUP */}
         {donation.estado === "asignado" && (
           <div className="mt-auto pt-4 border-t border-brand-border/50 flex flex-col gap-2">
             <label className="text-xs font-semibold text-brand-text uppercase tracking-wider">
@@ -110,7 +123,7 @@ export const DonationCard = ({ donation, onCancel, onComplete }: Props) => { // 
                 type="text"
                 maxLength={4}
                 value={pinInput}
-                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))} // Solo permite números
+                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
                 placeholder="Ej: 4829"
                 className="flex-1 bg-brand-background border border-brand-border rounded-lg px-3 py-2 text-sm text-center tracking-[0.3em] font-bold text-brand-text focus:border-brand-accent outline-none transition-colors"
               />
