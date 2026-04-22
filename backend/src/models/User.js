@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema(
     departamento: { type: String, required: false },
     ciudad: { type: String, required: false },
     direccion: { type: String, required: false },
+    rutUrl: { type: String, required: false },
+    camaraComercioUrl: { type: String, required: false },
 
     role: {
       type: String,
@@ -27,18 +29,16 @@ const userSchema = new mongoose.Schema(
     // --- Campos específicos del Beneficiario ---
     tipoDocumento: { type: String, required: false },
     numeroDocumento: { type: String, required: false },
-    sisbenGrupo: {type: String,required: false},
+    sisbenGrupo: { type: String, required: false },
 
-      phoneVerified: {
-  type: Boolean,
-  default: false
-},
-nitVerified: {
-  type: Boolean,
-  default: false
-},
-
-
+    phoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+    nitVerified: {
+      type: Boolean,
+      default: false,
+    },
 
     // Aquí guardaremos las rutas (URLs) de los archivos cuando se suban
     documentoIdentidadUrl: { type: String, required: false },

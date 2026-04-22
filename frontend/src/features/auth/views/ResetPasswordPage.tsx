@@ -5,13 +5,16 @@ import { apiUrl } from "../../../lib/api";
 import { Leaf, Lock, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 
 export const ResetPasswordPage = () => {
-  const { token } = useParams(); // Atrapamos el token de la URL
+  const { token } = useParams();
   const navigate = useNavigate();
-  
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error" | null; message: string }>({ type: null, message: "" });
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error" | null;
+    message: string;
+  }>({ type: null, message: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,26 +28,32 @@ export const ResetPasswordPage = () => {
     }
 
     if (password.length < 6) {
-      setFeedback({ type: "error", message: "La contraseña debe tener al menos 6 caracteres." });
+      setFeedback({
+        type: "error",
+        message: "La contraseña debe tener al menos 6 caracteres.",
+      });
       setIsLoading(false);
       return;
     }
 
     try {
       const response = await axios.put(
-        apiUrl(`/api/auth/reset-password/${token}`),
-        { newPassword: password },
+        `http://localhost:5000/api/auth/reset-password/${token}`,
+        {
+          newPassword: password,
+        },
       );
       setFeedback({ type: "success", message: response.data.message });
-      
-      // Redirigir al login después de 3 segundos
+
       setTimeout(() => {
         navigate("/login");
       }, 3000);
     } catch (error: any) {
-      setFeedback({ 
-        type: "error", 
-        message: error.response?.data?.message || "Hubo un error al restablecer la contraseña. El enlace puede haber expirado." 
+      setFeedback({
+        type: "error",
+        message:
+          error.response?.data?.message ||
+          "Hubo un error al restablecer la contraseña. El enlace puede haber expirado.",
       });
     } finally {
       setIsLoading(false);
@@ -60,25 +69,38 @@ export const ResetPasswordPage = () => {
           <div className="w-16 h-16 bg-brand-accent/10 rounded-2xl flex items-center justify-center mb-4 border border-brand-accent/20">
             <Leaf size={32} className="text-brand-accent" />
           </div>
-          <h1 className="text-3xl font-semibold text-brand-text font-jakarta">Nueva Contraseña</h1>
-          <p className="text-brand-muted text-center mt-2 text-base">
+          <h1 className="text-2xl font-bold text-brand-text font-jakarta">
+            Nueva Contraseña
+          </h1>
+          <p className="text-brand-muted text-center mt-2 text-sm">
             Ingresa tu nueva contraseña para acceder a FoodSaver.
           </p>
         </div>
 
         {feedback.type && (
-          <div className={`p-4 rounded-xl mb-6 flex items-start gap-3 text-sm ${feedback.type === 'success' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
-            {feedback.type === 'success' ? <CheckCircle size={20} className="shrink-0 mt-0.5" /> : <AlertCircle size={20} className="shrink-0 mt-0.5" />}
+          <div
+            className={`p-4 rounded-xl mb-6 flex items-start gap-3 text-sm ${feedback.type === "success" ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}
+          >
+            {feedback.type === "success" ? (
+              <CheckCircle size={20} className="shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle size={20} className="shrink-0 mt-0.5" />
+            )}
             <p>{feedback.message}</p>
           </div>
         )}
 
-        {feedback.type !== 'success' ? (
+        {feedback.type !== "success" ? (
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div className="relative">
-              <label className="text-sm font-medium text-brand-muted ml-1 mb-1.5 block">Nueva Contraseña</label>
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
+                Nueva Contraseña
+              </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted" size={20} />
+                <Lock
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted"
+                  size={20}
+                />
                 <input
                   type="password"
                   required
@@ -91,9 +113,14 @@ export const ResetPasswordPage = () => {
             </div>
 
             <div className="relative">
-              <label className="text-sm font-medium text-brand-muted ml-1 mb-1.5 block">Confirmar Contraseña</label>
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
+                Confirmar Contraseña
+              </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted" size={20} />
+                <Lock
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted"
+                  size={20}
+                />
                 <input
                   type="password"
                   required
@@ -115,7 +142,10 @@ export const ResetPasswordPage = () => {
           </form>
         ) : (
           <div className="text-center mt-4">
-            <Link to="/login" className="inline-flex items-center gap-2 px-6 py-3 bg-brand-background border border-brand-border text-brand-text rounded-xl hover:border-brand-accent transition-colors font-medium">
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-brand-background border border-brand-border text-brand-text rounded-xl hover:border-brand-accent transition-colors font-medium"
+            >
               Ir a Iniciar Sesión <ArrowRight size={18} />
             </Link>
           </div>
