@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { apiUrl } from "../../../lib/api";
 import { Leaf, Lock, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 
 export const ResetPasswordPage = () => {

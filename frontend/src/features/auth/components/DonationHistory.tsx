@@ -1,36 +1,34 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { DonationCard } from "./DonationCard"; // Importamos la tarjeta que acabamos de crear
+import { DonationCard } from "./DonationCard"; 
 import { apiUrl } from "../../../lib/api";
+
 interface DonationData {
   _id: string;
   titulo: string;
   cantidad: string;
   fechaCaducidad: string;
+  fechaRecogida: string; 
   estado: "activo" | "asignado" | "recolectado";
   imagenUrl?: string;
 }
 
 export const DonationHistory = () => {
-  // 1. EL ESTADO (La memoria del componente)
   const [donations, setDonations] = useState<DonationData[]>([]);
-  const [activeTab, setActiveTab] = useState("activo"); // Por defecto iniciamos en "Activos"
+  const [activeTab, setActiveTab] = useState("activo"); 
   const [loading, setLoading] = useState(true);
 
-  // 2. EL EFECTO (Se ejecuta automáticamente al abrir la página)
   useEffect(() => {
     fetchDonations();
   }, []);
 
   const fetchDonations = async () => {
     try {
-      // Obtenemos el ID del usuario que inició sesión
       const userStr = localStorage.getItem("user");
-      if (!userStr) return; // Si no hay usuario, no hacemos nada
+      if (!userStr) return; 
       
       const user = JSON.parse(userStr);
       
-      // Llamada al backend
       const response = await axios.get(
         apiUrl(`/api/donations/donor/${user.id}`),
       );
@@ -42,13 +40,9 @@ export const DonationHistory = () => {
     }
   };
 
-  // 3. LA FUNCIÓN PARA CANCELAR
   const handleCancelDonation = async (id: string) => {
     try {
-      // Llamamos a la nueva ruta que creamos en el backend
       await axios.delete(apiUrl(`/api/donations/${id}/cancel`));
-      
-      // Volvemos a pedir los datos al backend para que la pantalla se actualice al instante
       fetchDonations();
     } catch (error) {
       console.error("Error al cancelar la donación:", error);
@@ -63,11 +57,10 @@ export const DonationHistory = () => {
         { pin: pin },
       );
       
-      alert(response.data.message); // "¡PIN Validado! Alimento entregado..."
-      fetchDonations(); // Recargamos para que pase a la pestaña de "Recolectados"
+      alert(response.data.message); 
+      fetchDonations(); 
       
     } catch (error: any) {
-      // Aquí atrapamos si el PIN es incorrecto o si se bloqueó
       if (error.response && error.response.data) {
         alert("❌ " + error.response.data.message);
       } else {
@@ -76,8 +69,6 @@ export const DonationHistory = () => {
     }
   };
 
-  // 4. EL FILTRO (La magia de las pestañas)
-  // Filtro de la lista completa para mostrar solo los del estado seleccionados
   const filteredDonations = donations.filter((don) => don.estado === activeTab);
 
   if (loading) return <p className="text-brand-muted">Cargando tu historial...</p>;
@@ -88,7 +79,6 @@ export const DonationHistory = () => {
         Mi Historial de Publicaciones
       </h2>
 
-      {/* SISTEMA DE PESTAÑAS (Tabs) */}
       <div className="flex gap-2 border-b border-brand-border pb-4">
         <button
           onClick={() => setActiveTab("activo")}
@@ -124,7 +114,6 @@ export const DonationHistory = () => {
         </button>
       </div>
 
-      {/* RENDERIZADO DE LAS TARJETAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredDonations.length === 0 ? (
           <p className="text-brand-muted col-span-2 py-8 text-center border border-dashed border-brand-border rounded-xl">
@@ -133,9 +122,10 @@ export const DonationHistory = () => {
         ) : (
           filteredDonations.map((donation) => (
             <DonationCard 
-            donation={donation}
-            onCancel={handleCancelDonation}
-            onComplete={handleCompleteDelivery} // <-- Conecta la función aquí
+              key={donation._id} 
+              donation={donation}
+              onCancel={handleCancelDonation}
+              onComplete={handleCompleteDelivery} 
             />
           ))
         )}

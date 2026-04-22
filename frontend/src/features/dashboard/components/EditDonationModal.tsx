@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { X, UploadCloud, Image as ImageIcon } from 'lucide-react';
 import axios from 'axios';
 
-// Interfaces (Ajustalas a tus tipos reales si es necesario)
 interface Donation {
   _id: string;
   titulo: string;
@@ -18,7 +17,7 @@ interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
   donation: Donation | null;
-  onSuccess: () => void; // Función para recargar la lista de donaciones tras editar
+  onSuccess: () => void; 
 }
 
 export const EditDonationModal = ({ isOpen, onClose, donation, onSuccess }: EditModalProps) => {
@@ -35,7 +34,6 @@ export const EditDonationModal = ({ isOpen, onClose, donation, onSuccess }: Edit
     fechaRecogida: "",
   });
 
-  // Cuando el modal se abre y recibe la donación, pre-llenamos el formulario
   useEffect(() => {
     if (donation) {
       setFormData({
@@ -43,11 +41,10 @@ export const EditDonationModal = ({ isOpen, onClose, donation, onSuccess }: Edit
         descripcion: donation.descripcion,
         cantidad: donation.cantidad,
         unidad: donation.unidad,
-        // Cortamos el string de la fecha para que el input type="date" lo pueda leer (YYYY-MM-DD)
         fechaCaducidad: donation.fechaCaducidad ? donation.fechaCaducidad.split('T')[0] : "",
         fechaRecogida: donation.fechaRecogida ? donation.fechaRecogida.split('T')[0] : "",
       });
-      setImageFile(null); // Reiniciamos la imagen al abrir
+      setImageFile(null); 
     }
   }, [donation]);
 
@@ -71,18 +68,16 @@ export const EditDonationModal = ({ isOpen, onClose, donation, onSuccess }: Edit
       data.append("fechaCaducidad", formData.fechaCaducidad);
       data.append("fechaRecogida", formData.fechaRecogida);
       
-      // Solo enviamos imagen si el usuario seleccionó una NUEVA
       if (imageFile) {
         data.append("imagen", imageFile);
       }
 
-      // Reemplaza con tu ruta y token real
       await axios.put(`http://localhost:5000/api/donations/edit/${donation._id}`, data, {
         headers: { "Content-Type": "multipart/form-data" }
       });
 
-      onSuccess(); // Recargamos el dashboard
-      onClose(); // Cerramos el modal
+      onSuccess(); 
+      onClose(); 
     } catch (err: any) {
       setError(err.response?.data?.message || "Error al actualizar la publicación");
     } finally {
@@ -119,7 +114,7 @@ export const EditDonationModal = ({ isOpen, onClose, donation, onSuccess }: Edit
 
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-brand-muted">Descripción</label>
-              <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} className="input bg-brand-background min-h-[100px] resize-none py-3" required />
+              <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} className="input bg-brand-background min-h-25 resize-none py-3" required />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -144,7 +139,7 @@ export const EditDonationModal = ({ isOpen, onClose, donation, onSuccess }: Edit
                 <input type="date" name="fechaCaducidad" value={formData.fechaCaducidad} onChange={handleChange} className="input bg-brand-background" required />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-brand-muted text-brand-accent">Fecha de Recogida</label>
+                <label className="text-sm font-medium text-brand-muted">Fecha de Recogida</label>
                 <input type="date" name="fechaRecogida" value={formData.fechaRecogida} onChange={handleChange} className="input border-brand-accent/30 bg-brand-accent/5" required />
               </div>
             </div>
@@ -154,7 +149,7 @@ export const EditDonationModal = ({ isOpen, onClose, donation, onSuccess }: Edit
               <label className="cursor-pointer border-2 border-dashed border-brand-border hover:border-brand-accent rounded-xl p-4 flex items-center justify-center gap-3 transition-colors bg-brand-background">
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files && setImageFile(e.target.files[0])} />
                 {imageFile ? <ImageIcon className="text-brand-accent" /> : <UploadCloud className="text-brand-muted" />}
-                <span className="text-sm text-brand-text font-medium truncate max-w-[200px]">
+                <span className="text-sm text-brand-text font-medium truncate max-w-50">
                   {imageFile ? imageFile.name : "Seleccionar nueva imagen"}
                 </span>
               </label>

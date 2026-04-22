@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
-import { apiUrl } from "../../../lib/api";
 import {
   AlertCircle,
   ArrowRight,
