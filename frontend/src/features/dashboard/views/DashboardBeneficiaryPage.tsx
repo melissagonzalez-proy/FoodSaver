@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { apiUrl, assetUrl } from "../../../lib/api";
 import {
   LogOut,
   Leaf,
@@ -44,7 +45,7 @@ export const DashboardBeneficiaryPage = () => {
   const fetchAvailableDonations = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/donations/available");
+      const response = await axios.get(apiUrl("/api/donations/available"));
       setAvailableDonations(response.data);
     } catch (error) { console.error(error); } finally { setIsLoading(false); }
   }, []);
@@ -52,7 +53,9 @@ export const DashboardBeneficiaryPage = () => {
   const fetchMyReservations = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`http://localhost:5000/api/donations/beneficiary/${currentUser.id}`);
+      const response = await axios.get(
+        apiUrl(`/api/donations/beneficiary/${currentUser.id}`),
+      );
       setMyReservations(response.data);
     } catch (error) { console.error(error); } finally { setIsLoading(false); }
   }, [currentUser.id]);
@@ -69,9 +72,13 @@ export const DashboardBeneficiaryPage = () => {
   const confirmRequest = async () => {
     if (!requestModal.donation) return;
     try {
-      const response = await axios.put(`http://localhost:5000/api/donations/request/${requestModal.donation._id}`, {
-        beneficiaryId: currentUser.id, cantidadSolicitada: requestModal.cantidadSolicitada
-      });
+      const response = await axios.put(
+        apiUrl(`/api/donations/request/${requestModal.donation._id}`),
+        {
+          beneficiaryId: currentUser.id,
+          cantidadSolicitada: requestModal.cantidadSolicitada,
+        },
+      );
       const pinSecreto = response.data.donation.pickupPin;
       setFeedbackModal({ isOpen: true, type: "success", message: response.data.message || "¡Reserva exitosa!", pin: pinSecreto });
       setRequestModal({ isOpen: false, donation: null, cantidadSolicitada: 1 });
@@ -84,7 +91,12 @@ export const DashboardBeneficiaryPage = () => {
 
   const handleCancelReservation = async (id: string) => {
     if (!window.confirm("¿Estás seguro de que deseas cancelar esta reserva? El alimento volverá a estar disponible para otros y el PIN se anulará.")) return;
-    try { await axios.put(`http://localhost:5000/api/donations/cancel/${id}`); fetchMyReservations(); } catch { alert("Error al cancelar la reserva."); }
+    try {
+      await axios.put(apiUrl(`/api/donations/cancel/${id}`));
+      fetchMyReservations();
+    } catch {
+      alert("Error al cancelar la reserva.");
+    }
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
@@ -100,7 +112,7 @@ export const DashboardBeneficiaryPage = () => {
     
     setPasswordModal(prev => ({ ...prev, isSubmitting: true }));
     try {
-      const response = await axios.put("http://localhost:5000/api/auth/change-password", {
+      const response = await axios.put(apiUrl("/api/auth/change-password"), {
         userId: currentUser.id,
         passwordActual: passwordModal.actual,
         passwordNueva: passwordModal.nueva
@@ -167,7 +179,7 @@ export const DashboardBeneficiaryPage = () => {
               {filteredDonations.map((donation) => (
                 <div key={donation._id} className="bg-brand-card border border-brand-border rounded-4xl overflow-hidden hover:border-brand-accent/30 transition-all duration-300 flex flex-col group shadow-lg">
                   <div className="h-44 w-full overflow-hidden bg-brand-background relative">
-                    {donation.imagenUrl ? <img src={`http://localhost:5000/${donation.imagenUrl.replace(/\\/g, "/")}`} alt={donation.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full flex items-center justify-center"><ShoppingBag size={32} className="text-brand-muted opacity-30" /></div>}
+                    {donation.imagenUrl ? <img src={assetUrl(donation.imagenUrl.replace(/\\/g, "/"))} alt={donation.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full flex items-center justify-center"><ShoppingBag size={32} className="text-brand-muted opacity-30" /></div>}
                     <div className="absolute top-3 right-3 bg-brand-background/90 backdrop-blur-sm px-3 py-1 rounded-full border border-brand-border text-xs font-medium text-brand-text flex items-center gap-1">
                       <Scale size={12} className="text-brand-accent" /> {donation.cantidad} {donation.unidad || 'uds'}
                     </div>

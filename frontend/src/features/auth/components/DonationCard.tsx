@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Clock, Scale, XCircle, Image as ImageIcon } from "lucide-react";
+import { assetUrl } from "../../../lib/api";
 
 interface Donation {
   _id: string;
@@ -53,7 +54,7 @@ export const DonationCard = ({ donation, onCancel, onComplete }: Props) => { // 
       {donation.imagenUrl ? (
         <div className="h-40 w-full overflow-hidden bg-brand-background relative group">
           <img
-            src={`http://localhost:5000/${donation.imagenUrl.replace(/\\/g, "/")}`}
+            src={assetUrl(donation.imagenUrl.replace(/\\/g, "/"))}
             alt={donation.titulo}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
