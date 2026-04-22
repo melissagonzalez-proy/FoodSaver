@@ -1,19 +1,20 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { DonationCard } from "./DonationCard"; // Importamos la tarjeta que acabamos de crear
+import { apiUrl } from "../../../lib/api";
 interface DonationData {
   _id: string;
   titulo: string;
   cantidad: string;
   fechaCaducidad: string;
-  estado: "disponible" | "reservado" | "entregado"; 
+  estado: "activo" | "asignado" | "recolectado";
   imagenUrl?: string;
 }
 
 export const DonationHistory = () => {
   // 1. EL ESTADO (La memoria del componente)
   const [donations, setDonations] = useState<DonationData[]>([]);
-  const [activeTab, setActiveTab] = useState("disponible"); // Por defecto iniciamos en "Activos"
+  const [activeTab, setActiveTab] = useState("activo"); // Por defecto iniciamos en "Activos"
   const [loading, setLoading] = useState(true);
 
   // 2. EL EFECTO (Se ejecuta automáticamente al abrir la página)
@@ -30,7 +31,9 @@ export const DonationHistory = () => {
       const user = JSON.parse(userStr);
       
       // Llamada al backend
-      const response = await axios.get(`http://localhost:5000/api/donations/donor/${user.id}`);
+      const response = await axios.get(
+        apiUrl(`/api/donations/donor/${user.id}`),
+      );
       setDonations(response.data);
       setLoading(false);
     } catch (error) {
@@ -43,7 +46,7 @@ export const DonationHistory = () => {
   const handleCancelDonation = async (id: string) => {
     try {
       // Llamamos a la nueva ruta que creamos en el backend
-      await axios.delete(`http://localhost:5000/api/donations/${id}/cancel`);
+      await axios.delete(apiUrl(`/api/donations/${id}/cancel`));
       
       // Volvemos a pedir los datos al backend para que la pantalla se actualice al instante
       fetchDonations();
@@ -55,9 +58,10 @@ export const DonationHistory = () => {
 
   const handleCompleteDelivery = async (id: string, pin: string) => {
     try {
-      const response = await axios.put(`http://localhost:5000/api/donations/${id}/complete`, {
-        pin: pin
-      });
+      const response = await axios.put(
+        apiUrl(`/api/donations/${id}/complete`),
+        { pin: pin },
+      );
       
       alert(response.data.message); // "¡PIN Validado! Alimento entregado..."
       fetchDonations(); // Recargamos para que pase a la pestaña de "Recolectados"
@@ -87,9 +91,9 @@ export const DonationHistory = () => {
       {/* SISTEMA DE PESTAÑAS (Tabs) */}
       <div className="flex gap-2 border-b border-brand-border pb-4">
         <button
-          onClick={() => setActiveTab("disponible")}
+          onClick={() => setActiveTab("activo")}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === "disponible"
+            activeTab === "activo"
               ? "bg-green-500/20 text-green-500 border border-green-500/50"
               : "text-brand-muted hover:bg-brand-background"
           }`}
@@ -98,9 +102,9 @@ export const DonationHistory = () => {
         </button>
         
         <button
-          onClick={() => setActiveTab("reservado")}
+          onClick={() => setActiveTab("asignado")}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === "reservado"
+            activeTab === "asignado"
               ? "bg-yellow-500/20 text-yellow-500 border border-yellow-500/50"
               : "text-brand-muted hover:bg-brand-background"
           }`}
@@ -109,9 +113,9 @@ export const DonationHistory = () => {
         </button>
 
         <button
-          onClick={() => setActiveTab("entregado")}
+          onClick={() => setActiveTab("recolectado")}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === "entregado"
+            activeTab === "recolectado"
               ? "bg-gray-500/20 text-gray-400 border border-gray-500/50"
               : "text-brand-muted hover:bg-brand-background"
           }`}
@@ -129,8 +133,8 @@ export const DonationHistory = () => {
         ) : (
           filteredDonations.map((donation) => (
             <DonationCard 
-            donation={donation} 
-            onCancel={handleCancel} 
+            donation={donation}
+            onCancel={handleCancelDonation}
             onComplete={handleCompleteDelivery} // <-- Conecta la función aquí
             />
           ))

@@ -55,7 +55,7 @@ export const DonationCard = ({ donation, onCancel, onComplete, onEdit }: Props) 
       {donation.imagenUrl ? (
         <div className="h-40 w-full overflow-hidden bg-brand-background relative group">
           <img
-            src={`http://localhost:5000/${donation.imagenUrl.replace(/\\/g, "/")}`}
+            src={assetUrl(donation.imagenUrl.replace(/\\/g, "/"))}
             alt={donation.titulo}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />

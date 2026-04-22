@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { apiUrl } from "../../../lib/api";
 import { Leaf, Mail, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 
 export const ForgotPasswordPage = () => {
@@ -36,12 +37,12 @@ export const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-background flex flex-col justify-center items-center p-4 font-sans relative overflow-hidden">
+    <div className="min-h-screen bg-brand-background flex flex-col justify-center items-center p-6 font-sans relative overflow-hidden">
       {/* Círculos decorativos de fondo */}
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-brand-accent/20 rounded-full blur-[100px]"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-brand-accent/10 rounded-full blur-[100px]"></div>
 
-      <div className="w-full max-w-md bg-brand-card border border-brand-border rounded-4xl p-8 shadow-2xl z-10">
+      <div className="w-full max-w-md bg-brand-card border border-brand-border rounded-4xl p-10 shadow-2xl z-10">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-brand-accent/10 rounded-2xl flex items-center justify-center mb-4 border border-brand-accent/20">
             <Leaf size={32} className="text-brand-accent" />
@@ -84,7 +85,7 @@ export const ForgotPasswordPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="ejemplo@correo.com"
-                className="w-full bg-brand-background border border-brand-border rounded-xl pl-12 pr-4 py-3 text-brand-text focus:border-brand-accent outline-none transition-colors"
+                className="w-full bg-brand-background border border-brand-border rounded-xl pl-12 pr-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
               />
             </div>
           </div>
@@ -92,7 +93,7 @@ export const ForgotPasswordPage = () => {
           <button
             type="submit"
             disabled={isLoading || !email}
-            className="w-full py-3 bg-brand-accent text-white rounded-xl font-medium hover:bg-brand-accent-light transition-all shadow-lg shadow-brand-accent/20 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            className="w-full py-4 text-lg bg-brand-accent text-white rounded-xl font-medium hover:bg-brand-accent-light transition-all shadow-[0_0_20px_rgba(255,0,85,0.15)] disabled:opacity-50 disabled:cursor-not-allowed mt-2"
           >
             {isLoading ? "Enviando..." : "Enviar enlace de recuperación"}
           </button>

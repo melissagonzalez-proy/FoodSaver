@@ -1,9 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { LogOut, Leaf, PlusCircle, PackageOpen, Image as ImageIcon, Calendar, Scale, CheckCircle, Clock, KeyRound, Lock, XCircle, Box, ListOrdered, Pencil } from "lucide-react";
-// IMPORTANTE: Asegúrate de que la ruta al modal sea correcta según la estructura de tus carpetas
-import { EditDonationModal } from "../components/EditDonationModal";
+import { apiUrl, assetUrl } from "../../../lib/api";
+import { LogOut, Leaf, PlusCircle, PackageOpen, Image as ImageIcon, Calendar, Scale, CheckCircle, Clock, KeyRound, Lock, XCircle, Box, ListOrdered } from "lucide-react";
 
 interface BeneficiaryInfo { _id: string; nombres: string; apellidos: string; }
 interface DonationData {
@@ -63,7 +62,9 @@ export const DashboardDonorPage = () => {
 
   const fetchDonations = useCallback(async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/donations/donor/${userId}`);
+      const response = await axios.get(
+        apiUrl(`/api/donations/donor/${userId}`),
+      );
       setDonations(response.data);
     } catch (error) { console.error(error); } finally { setIsLoading(false); }
   }, [userId]);
@@ -92,24 +93,32 @@ export const DashboardDonorPage = () => {
       data.append("fechaRecogida", formData.fechaRecogida); // <-- NUEVO
       if (formData.imagen) data.append("imagen", formData.imagen);
 
-      await axios.post("http://localhost:5000/api/donations", data, { headers: { "Content-Type": "multipart/form-data" } });
-      
-      // Limpiar formulario incluyendo fechaRecogida
-      setFormData({ titulo: "", descripcion: "", cantidad: "", unidad: "kg", fechaCaducidad: "", fechaRecogida: "", imagen: null });
+      await axios.post(apiUrl("/api/donations"), data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setFormData({ titulo: "", descripcion: "", cantidad: "", unidad: "kg", fechaCaducidad: "", imagen: null });
       setImageName(""); fetchDonations(); setActiveTab("activo"); setMainView("inventario"); setShowSuccessModal(true);
     } catch { alert("Hubo un error al crear la publicación."); } finally { setIsSubmitting(false); }
   };
 
   const handleCancel = async (id: string) => {
     if (!window.confirm("¿Seguro que deseas cancelar esta reserva y liberar el producto?")) return;
-    try { await axios.put(`http://localhost:5000/api/donations/cancel/${id}`); fetchDonations(); } catch { alert("Error al cancelar la reserva."); }
+    try {
+      await axios.put(apiUrl(`/api/donations/cancel/${id}`));
+      fetchDonations();
+    } catch {
+      alert("Error al cancelar la reserva.");
+    }
   };
 
   const handleComplete = async (id: string) => {
     const pin = pinInputs[id];
     if (!pin || pin.length !== 4) { alert("Ingresa el PIN de 4 dígitos."); return; }
     try {
-      const response = await axios.put(`http://localhost:5000/api/donations/complete/${id}`, { pin });
+      const response = await axios.put(
+        apiUrl(`/api/donations/complete/${id}`),
+        { pin },
+      );
       alert(response.data.message); fetchDonations();
     } catch (error: any) { alert(error.response?.data?.message || "Error al completar la entrega."); }
   };
@@ -129,7 +138,7 @@ export const DashboardDonorPage = () => {
     
     setPasswordModal(prev => ({ ...prev, isSubmitting: true }));
     try {
-      const response = await axios.put("http://localhost:5000/api/auth/change-password", {
+      const response = await axios.put(apiUrl("/api/auth/change-password"), {
         userId: userId,
         passwordActual: passwordModal.actual,
         passwordNueva: passwordModal.nueva
@@ -220,7 +229,7 @@ export const DashboardDonorPage = () => {
                   {filteredDonations.map((donation) => (
                     <div key={donation._id} className={`bg-brand-card border border-brand-border rounded-2xl overflow-hidden transition-colors flex flex-col ${donation.estado === "recolectado" ? "opacity-60 grayscale" : "hover:border-brand-accent/50"}`}>
                       <div className="h-40 w-full overflow-hidden bg-brand-background relative group">
-                        {donation.imagenUrl ? <img src={`http://localhost:5000/${donation.imagenUrl.replace(/\\/g, "/")}`} alt={donation.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full flex items-center justify-center"><ImageIcon size={32} className="text-brand-muted opacity-50" /></div>}
+                        {donation.imagenUrl ? <img src={assetUrl(donation.imagenUrl.replace(/\\/g, "/"))} alt={donation.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full flex items-center justify-center"><ImageIcon size={32} className="text-brand-muted opacity-50" /></div>}
                       </div>
                       <div className="p-5 flex flex-col flex-1">
                         <div className="flex justify-between items-start mb-2 gap-2"><h3 className="font-semibold text-brand-text text-lg line-clamp-1">{donation.titulo}</h3><CountdownTimer expiresAt={donation.fechaCaducidad} /></div>
