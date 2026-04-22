@@ -8,7 +8,8 @@ import {
   completeDonation,
   getBeneficiaryDonations,
   getDonorHistory,
-  getAllDonationsAdmin
+  getAllDonationsAdmin,
+  updateDonation
 } from "../controllers/donationController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
 
@@ -23,5 +24,6 @@ router.put("/request/:id", requestDonation);
 router.put("/cancel/:id", cancelDonation);
 router.put("/complete/:id", completeDonation);
 router.get("/admin/all", getAllDonationsAdmin);
+router.put('/edit/:id', upload.single('imagen'), updateDonation);
 
 export default router;

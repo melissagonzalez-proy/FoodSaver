@@ -1,18 +1,11 @@
 import axios from "axios";
-import { apiUrl } from "../../../lib/api";
-import {
-  AlertCircle,
-  ArrowRight,
-  CheckCircle,
-  Eye,
-  EyeOff,
-  Leaf,
-  FileCheck,
-} from "lucide-react";
+import { AlertCircle, CheckCircle, Leaf } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 export const RegisterBeneficiaryPage = () => {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     tipoDocumento: "",
     numeroDocumento: "",
@@ -24,18 +17,17 @@ export const RegisterBeneficiaryPage = () => {
     email: "",
     celular: "",
     password: "",
+    grupoSisben: "",
     documentoIdentidad: null as File | null,
     sisben: null as File | null,
   });
 
-  const [docName, setDocName] = useState("");
-  const [sisbenName, setSisbenName] = useState("");
-
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<"form" | "confirm" | "otp" | "success">(
+    "form",
+  );
+  const [otp, setOtp] = useState("");
 
   const documentTypes = [
     "Registro Civil",
@@ -80,24 +72,22 @@ export const RegisterBeneficiaryPage = () => {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ¡AHORA SÍ SE USA ESTA FUNCIÓN!
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
 
     const file = files[0];
-
     if (file.size > 5 * 1024 * 1024) {
       setError("El archivo no puede superar los 5MB");
       return;
     }
 
     setFormData((prev) => ({ ...prev, [name]: file }));
-
-    if (name === "documentoIdentidad") setDocName(file.name);
-    if (name === "sisben") setSisbenName(file.name);
   };
 
   const handleInitialSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -116,39 +106,120 @@ export const RegisterBeneficiaryPage = () => {
       return;
     }
 
-    setIsConfirming(true);
+    if (!formData.grupoSisben) {
+      setError("El grupo SISBÉN es obligatorio.");
+      return;
+    }
+
+    if (!formData.documentoIdentidad || !formData.sisben) {
+      setError(
+        "Debes adjuntar el documento de identidad y el soporte de SISBÉN.",
+      );
+      return;
+    }
+
+    setStep("confirm");
   };
 
-  const handleFinalSubmit = async () => {
+  const handlePreRegister = async () => {
     setError("");
+    setLoading(true);
+
+    if (!formData.celular || !formData.email) {
+      setError("Faltan datos obligatorios.");
+      setLoading(false);
+      return;
+    }
 
     try {
-      const data = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== null) {
-          data.append(key, value);
-        }
-      });
-      data.append("role", "beneficiary");
-
       const response = await axios.post(
-        apiUrl("/api/auth/register-beneficiary"),
-        data,
-        { headers: { "Content-Type": "multipart/form-data" } },
+        "http://localhost:5000/api/auth/beneficiary/pre-register",
+        {
+          numeroDocumento: formData.numeroDocumento,
+          tipoDocumento: formData.tipoDocumento,
+          nombre: `${formData.nombres} ${formData.apellidos}`,
+          sisbenGrupo: formData.grupoSisben,
+          municipio: formData.ciudad,
+          celular: formData.celular,
+          email: formData.email,
+          password: formData.password,
+          departamento: formData.departamento,
+          ciudad: formData.ciudad,
+          direccion: formData.direccion,
+        },
       );
 
-      setSuccess(response.data.message || "Cuenta creada con éxito");
+      if (response.data.sisbenValid && response.data.otpSent) {
+        setStep("otp");
+      } else {
+        setError("No se pudo validar el SISBÉN o enviar el OTP.");
+      }
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || "Error en el pre-registro.");
+      } else {
+        setError("Error en el pre-registro.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleVerifyOtp = async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/beneficiary/verify",
+        {
+          otp,
+          beneficiaryData: {
+            nombres: formData.nombres,
+            apellidos: formData.apellidos,
+            tipoDocumento: formData.tipoDocumento,
+            numeroDocumento: formData.numeroDocumento,
+            sisbenGrupo: formData.grupoSisben,
+            celular: formData.celular,
+            email: formData.email,
+            password: formData.password,
+            departamento: formData.departamento,
+            ciudad: formData.ciudad,
+            direccion: formData.direccion,
+            role: "beneficiary",
+          },
+        },
+      );
+
+      const userId = response.data.userId;
+
+      // Subir documentos usando la API real
+      if (formData.documentoIdentidad || formData.sisben) {
+        const data = new FormData();
+        data.append("userId", userId);
+        if (formData.documentoIdentidad)
+          data.append("documentoIdentidad", formData.documentoIdentidad);
+        if (formData.sisben) data.append("sisben", formData.sisben);
+
+        await axios.post(
+          "http://localhost:5000/api/auth/register-beneficiary",
+          data,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+      }
+
+      setStep("success");
       setTimeout(() => {
         navigate("/login");
       }, 2500);
     } catch (err) {
-      setIsConfirming(false);
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         setError(err.response.data.message);
       } else {
-        setError("Error al conectar con el servidor. Intenta de nuevo.");
+        setError("OTP inválido o expirado.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -175,63 +246,50 @@ export const RegisterBeneficiaryPage = () => {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center gap-3 text-red-500 transition-all">
-            <AlertCircle size={20} className="shrink-0" />
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center gap-3 text-red-500">
+            <AlertCircle size={20} />
             <p className="text-sm font-medium">{error}</p>
           </div>
         )}
 
-        {success && (
-          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/50 rounded-xl flex items-center gap-3 text-green-500 transition-all">
-            <CheckCircle size={20} className="shrink-0" />
-            <p className="text-sm font-medium">
-              {success}. Redirigiendo al login...
-            </p>
-          </div>
-        )}
-
-        {!isConfirming ? (
-          <form onSubmit={handleInitialSubmit} className="flex flex-col gap-6">
+        {/* ========================= */}
+        {/* STEP 1: FORM */}
+        {/* ========================= */}
+        {step === "form" && (
+          <form
+            onSubmit={handleInitialSubmit}
+            className="flex flex-col gap-6 animate-in fade-in"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="nombres"
-                  className="text-sm font-medium text-brand-muted ml-1"
-                >
+                <label className="text-sm font-medium text-brand-muted ml-1">
                   Nombres
                 </label>
                 <input
-                  id="nombres"
                   name="nombres"
                   type="text"
                   value={formData.nombres}
                   onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-                  placeholder="Tus nombres"
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
                   required
                 />
               </div>
 
               <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="apellidos"
-                  className="text-sm font-medium text-brand-muted ml-1"
-                >
+                <label className="text-sm font-medium text-brand-muted ml-1">
                   Apellidos
                 </label>
                 <input
-                  id="apellidos"
                   name="apellidos"
                   type="text"
                   value={formData.apellidos}
                   onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-                  placeholder="Tus apellidos"
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
                   required
                 />
               </div>
 
-              <div className="flex flex-col gap-2 md:col-span-2">
+              <div className="md:col-span-2 flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted ml-1">
                   Documento de identidad
                 </label>
@@ -240,12 +298,10 @@ export const RegisterBeneficiaryPage = () => {
                     name="tipoDocumento"
                     value={formData.tipoDocumento}
                     onChange={handleChange}
-                    className="bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text sm:w-1/3 appearance-none"
+                    className="bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text sm:w-1/3"
                     required
                   >
-                    <option value="" disabled>
-                      Seleccionar
-                    </option>
+                    <option value="">Seleccionar</option>
                     {documentTypes.map((doc) => (
                       <option key={doc} value={doc}>
                         {doc}
@@ -257,248 +313,244 @@ export const RegisterBeneficiaryPage = () => {
                     type="text"
                     value={formData.numeroDocumento}
                     onChange={handleChange}
+                    className="flex-1 bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
                     placeholder="Número de documento"
-                    className="bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text flex-1"
                     required
                   />
                 </div>
               </div>
 
-              <div className="col-span-2 flex flex-col gap-2">
-                <label
-                  htmlFor="celular"
-                  className="text-sm font-medium text-brand-muted ml-1"
-                >
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <label className="text-sm font-medium text-brand-muted ml-1">
+                  Grupo SISBÉN
+                </label>
+                <input
+                  name="grupoSisben"
+                  value={formData.grupoSisben}
+                  onChange={handleChange}
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
+                  placeholder="Ej: B3"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <label className="text-sm font-medium text-brand-muted ml-1">
                   Celular
                 </label>
                 <input
-                  id="celular"
                   name="celular"
                   type="text"
                   value={formData.celular}
                   onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-                  placeholder="10 dígitos"
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
+                  placeholder="+573001234567"
                   required
                 />
               </div>
 
               <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="departamento"
-                  className="text-sm font-medium text-brand-muted ml-1"
-                >
+                <label className="text-sm font-medium text-brand-muted ml-1">
                   Departamento
                 </label>
                 <select
-                  id="departamento"
                   name="departamento"
                   value={formData.departamento}
                   onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors appearance-none"
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
                   required
                 >
-                  <option value="" disabled>
-                    Selecciona un departamento
-                  </option>
+                  <option value="">Seleccionar</option>
                   <option value="Antioquia">Antioquia</option>
                 </select>
               </div>
 
               <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="ciudad"
-                  className="text-sm font-medium text-brand-muted ml-1"
-                >
+                <label className="text-sm font-medium text-brand-muted ml-1">
                   Ciudad
                 </label>
                 <select
-                  id="ciudad"
                   name="ciudad"
                   value={formData.ciudad}
                   onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors appearance-none"
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
                   required
                 >
-                  <option value="" disabled>
-                    Selecciona una ciudad
-                  </option>
+                  <option value="">Seleccionar</option>
+                  <option value="Medellín">Medellín</option>
                   <option value="Apartadó">Apartadó</option>
                   <option value="Giraldo">Giraldo</option>
-                  <option value="Medellín">Medellín</option>
                   <option value="Yarumal">Yarumal</option>
                 </select>
               </div>
 
-              <div className="flex flex-col gap-2 md:col-span-2">
-                <label
-                  htmlFor="direccion"
-                  className="text-sm font-medium text-brand-muted ml-1"
-                >
-                  Dirección de residencia
+              <div className="md:col-span-2 flex flex-col gap-2">
+                <label className="text-sm font-medium text-brand-muted ml-1">
+                  Dirección
                 </label>
                 <input
-                  id="direccion"
                   name="direccion"
                   type="text"
                   value={formData.direccion}
                   onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-                  placeholder="Ej. Calle Principal 123"
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
                   required
                 />
               </div>
 
-              <div className="flex flex-col gap-2 md:col-span-2">
-                <label
-                  htmlFor="email"
-                  className="text-sm font-medium text-brand-muted ml-1"
-                >
-                  Correo electrónico
+              <div className="md:col-span-2 flex flex-col gap-2">
+                <label className="text-sm font-medium text-brand-muted ml-1">
+                  Email
                 </label>
                 <input
-                  id="email"
                   name="email"
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-                  placeholder="correo@ejemplo.com"
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
+                  required
+                />
+              </div>
+
+              <div className="md:col-span-2 flex flex-col gap-2">
+                <label className="text-sm font-medium text-brand-muted ml-1">
+                  Contraseña
+                </label>
+                <input
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                />
+              </div>
+
+              {/* === NUEVOS CAMPOS PARA ARCHIVOS === */}
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <label className="text-sm font-medium text-brand-muted ml-1">
+                  Soporte de Documento de Identidad
+                </label>
+                <input
+                  type="file"
+                  name="documentoIdentidad"
+                  accept=".pdf,image/*"
+                  onChange={handleFileChange}
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-accent/10 file:text-brand-accent hover:file:bg-brand-accent/20 cursor-pointer"
                   required
                 />
               </div>
 
               <div className="flex flex-col gap-2 md:col-span-2">
-                <label
-                  htmlFor="password"
-                  className="text-sm font-medium text-brand-muted ml-1"
-                >
-                  Contraseña
+                <label className="text-sm font-medium text-brand-muted ml-1">
+                  Soporte de SISBÉN
                 </label>
-                <div className="relative">
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors pr-12"
-                    placeholder="Mínimo 6 caracteres"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text transition-colors"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-span-2 flex flex-col gap-4 mt-4">
-              <h3 className="text-lg font-semibold text-brand-text">
-                Documentación requerida
-              </h3>
-
-              {/* Documento de identidad */}
-              <label
-                className={`cursor-pointer border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-colors ${docName ? "border-brand-accent bg-brand-accent/5" : "border-brand-border hover:border-brand-accent"}`}
-              >
-                <input
-                  type="file"
-                  name="documentoIdentidad"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <div className="text-brand-accent text-3xl mb-2">
-                  {docName ? <FileCheck size={32} /> : "📎"}
-                </div>
-                <p className="text-brand-text font-medium">
-                  {docName ? docName : "Adjuntar documento de identidad"}
-                </p>
-                {!docName && (
-                  <p className="text-sm text-brand-muted mt-1">
-                    PDF, JPG o PNG (Max. 5MB)
-                  </p>
-                )}
-              </label>
-
-              {/* Documento SISBEN */}
-              <label
-                className={`cursor-pointer border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-colors ${sisbenName ? "border-brand-accent bg-brand-accent/5" : "border-brand-border hover:border-brand-accent"}`}
-              >
                 <input
                   type="file"
                   name="sisben"
-                  accept=".pdf,.jpg,.jpeg,.png"
+                  accept=".pdf,image/*"
                   onChange={handleFileChange}
-                  className="hidden"
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-accent/10 file:text-brand-accent hover:file:bg-brand-accent/20 cursor-pointer"
+                  required
                 />
-                <div className="text-brand-accent text-3xl mb-2">
-                  {sisbenName ? <FileCheck size={32} /> : "📄"}
-                </div>
-                <p className="text-brand-text font-medium">
-                  {sisbenName ? sisbenName : "Adjuntar SISBEN"}
-                </p>
-                {!sisbenName && (
-                  <p className="text-sm text-brand-muted mt-1">
-                    PDF, JPG o PNG (Max. 5MB)
-                  </p>
-                )}
-              </label>
+              </div>
+              {/* ===================================== */}
             </div>
 
             <button
               type="submit"
-              className="w-full mt-4 flex items-center justify-center gap-2 py-4 text-lg font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all shadow-[0_0_20px_rgba(255,0,85,0.15)] group"
+              className="w-full mt-4 flex items-center justify-center gap-2 py-4 text-lg font-medium bg-brand-accent text-white hover:bg-brand-accent-light transition-colors rounded-xl"
             >
               Revisar Datos
-              <ArrowRight
-                size={20}
-                className="group-hover:translate-x-1 transition-transform"
-              />
             </button>
           </form>
-        ) : (
-          <div className="flex flex-col items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        )}
+
+        {/* ========================= */}
+        {/* STEP 2: CONFIRM */}
+        {/* ========================= */}
+        {step === "confirm" && (
+          <div className="flex flex-col items-center gap-6 animate-in slide-in-from-right-4">
             <div className="bg-brand-background border border-brand-border rounded-xl p-6 w-full text-center">
-              <h3 className="text-xl font-medium text-brand-text mb-2 font-jakarta">
+              <h3 className="text-xl font-medium text-brand-text mb-2">
                 Confirmar Registro
               </h3>
               <p className="text-brand-muted mb-4">
-                Verifica que tus datos y documentos sean correctos. Nuestro
-                equipo revisará tu solicitud.
+                Verifica tus datos antes de continuar con la validación de
+                SISBÉN y OTP.
               </p>
-              <div className="flex gap-4 w-full">
+
+              <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => setIsConfirming(false)}
-                  className="flex-1 py-3 font-medium border border-brand-border text-brand-text rounded-xl hover:bg-brand-background transition-colors"
+                  onClick={() => setStep("form")}
+                  className="flex-1 py-3 border border-brand-border rounded-xl text-brand-text hover:bg-brand-border/50 transition-colors"
                 >
                   Regresar
                 </button>
                 <button
                   type="button"
-                  onClick={handleFinalSubmit}
-                  className="flex-1 py-3 font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all shadow-[0_0_20px_rgba(255,0,85,0.15)]"
+                  onClick={handlePreRegister}
+                  disabled={loading}
+                  className="flex-1 py-3 bg-brand-accent text-white rounded-xl disabled:opacity-50 hover:bg-brand-accent-light transition-colors"
                 >
-                  Enviar Solicitud
+                  {loading ? "Procesando..." : "Confirmar"}
                 </button>
               </div>
             </div>
           </div>
         )}
 
+        {/* ========================= */}
+        {/* STEP 3: OTP */}
+        {/* ========================= */}
+        {step === "otp" && (
+          <div className="flex flex-col items-center gap-6 animate-in slide-in-from-right-4">
+            <h3 className="text-xl font-medium text-brand-text">
+              Verificación OTP
+            </h3>
+            <p className="text-brand-muted text-center">
+              Ingresa el código enviado a tu celular
+            </p>
+            <input
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+              maxLength={6}
+              className="w-full border border-brand-border bg-brand-background p-4 rounded-xl text-center text-3xl tracking-widest text-brand-text outline-none focus:border-brand-accent"
+              placeholder="123456"
+            />
+            <button
+              onClick={handleVerifyOtp}
+              disabled={loading || otp.length < 4}
+              className="w-full py-4 bg-brand-accent text-white rounded-xl font-medium disabled:opacity-50 hover:bg-brand-accent-light transition-colors"
+            >
+              {loading ? "Verificando..." : "Verificar código"}
+            </button>
+          </div>
+        )}
+
+        {/* ========================= */}
+        {/* STEP 4: SUCCESS */}
+        {/* ========================= */}
+        {step === "success" && (
+          <div className="flex flex-col items-center gap-4 text-center animate-in zoom-in-95">
+            <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mb-2">
+              <CheckCircle size={40} className="text-green-500" />
+            </div>
+            <h3 className="text-2xl font-semibold text-brand-text">
+              ¡Registro exitoso!
+            </h3>
+            <p className="text-brand-muted">
+              Tu cuenta ha sido creada. Serás redirigido al inicio de sesión...
+            </p>
+          </div>
+        )}
+
         <div className="mt-8 text-center">
           <p className="text-sm text-brand-muted">
             ¿Ya tienes una cuenta?{" "}
-            <Link
-              to="/login"
-              className="text-brand-accent hover:text-brand-accent-light font-medium transition-colors"
-            >
+            <Link to="/login" className="text-brand-accent hover:underline">
               Inicia sesión aquí
             </Link>
           </p>

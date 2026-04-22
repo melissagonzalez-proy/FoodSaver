@@ -132,8 +132,8 @@ export const LoginPage = () => {
             />
           </button>
           <div className="text-right mt-1 mb-4">
-            <Link 
-              to="/forgot-password" 
+            <Link
+              to="/forgot-password"
               className="text-sm font-medium text-brand-accent hover:text-brand-accent-light transition-colors"
             >
               ¿Olvidaste tu contraseña?
