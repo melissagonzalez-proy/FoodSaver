@@ -8,7 +8,7 @@ interface BeneficiaryInfo { _id: string; nombres: string; apellidos: string; }
 interface DonationData {
   _id: string; titulo: string; descripcion: string;
   cantidad: number; unidad?: string;
-  fechaCaducidad: string; estado: "activo" | "asignado" | "recolectado";
+  fechaCaducidad: string; fechaRecogida: string; estado: "activo" | "asignado" | "recolectado"; // <-- AÑADIDA FECHA RECOGIDA
   imagenUrl: string; pickupPin?: string; beneficiary?: BeneficiaryInfo; createdAt: string;
 }
 
@@ -47,15 +47,18 @@ export const DashboardDonorPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [pinInputs, setPinInputs] = useState<{ [key: string]: string }>({});
+  
+  // NUEVO ESTADO PARA EL MODAL DE EDICIÓN
+  const [editingDonation, setEditingDonation] = useState<DonationData | null>(null);
+
   const userId = JSON.parse(localStorage.getItem("user") || "{}").id;
 
-  // "unidad" al estado inicial
+  // NUEVO: Agregada fechaRecogida al estado inicial
   const [formData, setFormData] = useState({
-    titulo: "", descripcion: "", cantidad: "", unidad: "kg", fechaCaducidad: "", imagen: null as File | null,
+    titulo: "", descripcion: "", cantidad: "", unidad: "kg", fechaCaducidad: "", fechaRecogida: "", imagen: null as File | null,
   });
   const [imageName, setImageName] = useState("");
-
-    const [passwordModal, setPasswordModal] = useState({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false });
+  const [passwordModal, setPasswordModal] = useState({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false });
 
   const fetchDonations = useCallback(async () => {
     try {
@@ -85,8 +88,9 @@ export const DashboardDonorPage = () => {
       data.append("titulo", formData.titulo);
       data.append("descripcion", formData.descripcion);
       data.append("cantidad", formData.cantidad);
-      data.append("unidad", formData.unidad); // NUEVO: Enviamos la unidad al backend
+      data.append("unidad", formData.unidad);
       data.append("fechaCaducidad", formData.fechaCaducidad);
+      data.append("fechaRecogida", formData.fechaRecogida); // <-- NUEVO
       if (formData.imagen) data.append("imagen", formData.imagen);
 
       await axios.post(apiUrl("/api/donations"), data, {
@@ -139,7 +143,7 @@ export const DashboardDonorPage = () => {
         passwordActual: passwordModal.actual,
         passwordNueva: passwordModal.nueva
       });
-      alert(response.data.message); // "Tu contraseña ha sido cambiada con éxito."
+      alert(response.data.message); 
       setPasswordModal({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false });
     } catch (error: any) {
       alert(error.response?.data?.message || "Error al cambiar la contraseña.");
@@ -158,20 +162,9 @@ export const DashboardDonorPage = () => {
           <button onClick={() => setMainView("inventario")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${mainView === "inventario" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}><PackageOpen size={20} /> Inventario</button>
           <button onClick={() => setMainView("historial")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${mainView === "historial" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}><ListOrdered size={20} /> Historial</button>
         </nav>
-        {/* Cambiar Contraseña y Cerrar Sesión abajo */}
         <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-brand-border/50">
-          <button 
-            onClick={() => setPasswordModal({ ...passwordModal, isOpen: true })}
-            className="flex items-center gap-3 px-4 py-3 text-brand-muted hover:bg-brand-background hover:text-brand-text rounded-xl font-medium w-full text-left transition-colors"
-          >
-            <KeyRound size={20} /> Cambiar Contraseña
-          </button>
-          <button 
-            onClick={handleLogout} 
-            className="flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-xl font-medium w-full text-left transition-colors"
-          >
-            <LogOut size={20} /> Cerrar Sesión
-          </button>
+          <button onClick={() => setPasswordModal({ ...passwordModal, isOpen: true })} className="flex items-center gap-3 px-4 py-3 text-brand-muted hover:bg-brand-background hover:text-brand-text rounded-xl font-medium w-full text-left transition-colors"><KeyRound size={20} /> Cambiar Contraseña</button>
+          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-xl font-medium w-full text-left transition-colors"><LogOut size={20} /> Cerrar Sesión</button>
         </div>
       </aside>
 
@@ -189,7 +182,6 @@ export const DashboardDonorPage = () => {
                 <input required name="titulo" value={formData.titulo} onChange={handleChange} placeholder="Título. Ej: Caja de manzanas" className="bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text focus:border-brand-accent outline-none" />
                 <textarea required name="descripcion" value={formData.descripcion} onChange={handleChange} placeholder="Descripción..." rows={2} className="bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text focus:border-brand-accent outline-none resize-none" />
                 
-                {/* NUEVO: Fila compartida para Cantidad (Número) y Unidad (Select) */}
                 <div className="flex gap-2">
                   <input required name="cantidad" value={formData.cantidad} onChange={handleChange} placeholder="Cant. Ej: 5" type="number" min="1" className="w-1/2 bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text focus:border-brand-accent outline-none" />
                   <select name="unidad" value={formData.unidad} onChange={handleChange} className="w-1/2 bg-brand-background border border-brand-border rounded-xl px-2 py-2.5 text-brand-text focus:border-brand-accent outline-none">
@@ -202,7 +194,17 @@ export const DashboardDonorPage = () => {
                   </select>
                 </div>
 
-                <input required type="date" name="fechaCaducidad" value={formData.fechaCaducidad} onChange={handleChange} min={today} className="bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text focus:border-brand-accent outline-none" />
+                {/* NUEVO: Fila dividida para las dos fechas */}
+                <div className="flex gap-2">
+                  <div className="w-1/2 flex flex-col gap-1">
+                    <label className="text-[10px] uppercase font-bold text-brand-muted ml-1 tracking-wider">Vencimiento</label>
+                    <input required type="date" name="fechaCaducidad" value={formData.fechaCaducidad} onChange={handleChange} min={today} className="w-full bg-brand-background border border-brand-border rounded-xl px-3 py-2.5 text-brand-text focus:border-brand-accent outline-none text-sm" />
+                  </div>
+                  <div className="w-1/2 flex flex-col gap-1">
+                    <label className="text-[10px] uppercase font-bold text-brand-accent ml-1 tracking-wider">Recogida</label>
+                    <input required type="date" name="fechaRecogida" value={formData.fechaRecogida} onChange={handleChange} min={today} className="w-full bg-brand-background border border-brand-accent/30 rounded-xl px-3 py-2.5 text-brand-text focus:border-brand-accent outline-none text-sm" />
+                  </div>
+                </div>
                 
                 <label className={`cursor-pointer border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center transition-colors ${imageName ? "border-brand-accent bg-brand-accent/5" : "border-brand-border hover:border-brand-accent"}`}>
                   <input type="file" name="imagen" accept="image/*" onChange={handleFileChange} className="hidden" /><ImageIcon size={24} className="text-brand-accent mb-2" /><span className="text-sm font-medium text-brand-text">{imageName || "Subir foto"}</span>
@@ -236,6 +238,17 @@ export const DashboardDonorPage = () => {
                           <span className="flex items-center gap-1"><Scale size={14} /> {donation.cantidad} {donation.unidad || 'uds'}</span>
                           <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(donation.fechaCaducidad).toLocaleDateString()}</span>
                         </div>
+                        
+                        {/* NUEVO: Botones Editar / Cancelar (SOLO para estado activo) */}
+                        {donation.estado === "activo" && (
+                          <div className="flex gap-2 mt-auto">
+                            <button onClick={() => setEditingDonation(donation)} className="flex-1 py-2 border border-brand-accent/30 text-brand-accent hover:bg-brand-accent/10 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1">
+                              <Pencil size={16} /> Editar
+                            </button>
+                            {/* Opcional: Si quieres botón de eliminar/cancelar publicación aquí, puedes agregarlo */}
+                          </div>
+                        )}
+
                         {donation.estado === "asignado" && (
                           <div className="flex flex-col gap-3 mt-auto">
                             <div className="flex flex-col gap-1">
@@ -277,7 +290,8 @@ export const DashboardDonorPage = () => {
           </div>
         )}
       </main>
-      {/* --- MODAL CAMBIAR CONTRASEÑA --- */}
+
+      {/* MODAL CAMBIAR CONTRASEÑA */}
       {passwordModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 shadow-2xl">
@@ -287,7 +301,6 @@ export const DashboardDonorPage = () => {
               </div>
               <h3 className="text-2xl font-bold text-brand-text">Cambiar Clave</h3>
             </div>
-
             <form onSubmit={handlePasswordChange} className="flex flex-col gap-4">
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted" size={18} />
@@ -301,7 +314,6 @@ export const DashboardDonorPage = () => {
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted" size={18} />
                 <input required type="password" placeholder="Confirmar Nueva" value={passwordModal.confirmar} onChange={(e) => setPasswordModal({...passwordModal, confirmar: e.target.value})} className="w-full bg-brand-background border border-brand-border rounded-xl pl-12 pr-4 py-3 text-sm text-brand-text focus:border-brand-accent outline-none transition-colors" />
               </div>
-
               <div className="flex gap-3 mt-4">
                 <button type="button" onClick={() => setPasswordModal({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false })} className="flex-1 py-3 font-medium border border-brand-border text-brand-text rounded-xl hover:bg-brand-background transition-colors">
                   Cancelar
@@ -314,11 +326,22 @@ export const DashboardDonorPage = () => {
           </div>
         </div>
       )}
+
+      {/* MODAL SUCCESS PUBLICACIÓN */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 text-center"><div className="w-16 h-16 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center mx-auto mb-6"><CheckCircle size={32} /></div><h3 className="text-2xl font-bold text-brand-text mb-2 font-jakarta">¡Publicado!</h3><p className="text-brand-muted mb-8">El alimento está activo y visible para los beneficiarios.</p><button onClick={() => setShowSuccessModal(false)} className="w-full py-3 bg-brand-accent text-white rounded-xl font-medium">Continuar</button></div>
         </div>
       )}
+
+      {/* MODAL DE EDICIÓN */}
+      <EditDonationModal 
+        isOpen={!!editingDonation} 
+        onClose={() => setEditingDonation(null)} 
+        donation={editingDonation} 
+        onSuccess={fetchDonations} 
+      />
+
     </div>
   );
 };
