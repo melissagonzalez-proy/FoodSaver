@@ -110,10 +110,8 @@ export const verifyDonorOtpAndCreate = async (req, res) => {
 
     const otpResult = Array.isArray(otpRes.data) ? otpRes.data[0] : otpRes.data;
 
-    // ✅ LOG DE VERIFICACIÓN (temporal)
-    console.log("✅ OTP RESULT:", otpResult);
+    console.log(" OTP RESULT:", otpResult);
 
-    // ✅ VALIDACIÓN CORRECTA
     if (!otpResult || otpResult.success !== true) {
       return res.status(400).json({
         message: "OTP inválido o expirado",
@@ -152,6 +150,7 @@ export const verifyDonorOtpAndCreate = async (req, res) => {
 
     return res.status(201).json({
       message: "Donador registrado con éxito",
+      userId: newDonor._id,
     });
   } catch (error) {
     console.error(
@@ -327,7 +326,7 @@ export const verifyBeneficiaryOtpAndCreate = async (req, res) => {
       tipoDocumento: beneficiaryData.tipoDocumento,
       numeroDocumento: beneficiaryData.numeroDocumento,
       sisbenGrupo: beneficiaryData.sisbenGrupo,
-      isVerified: false, // ✅ espera aprobación
+      isVerified: false, 
     });
 
     console.log(newUser);

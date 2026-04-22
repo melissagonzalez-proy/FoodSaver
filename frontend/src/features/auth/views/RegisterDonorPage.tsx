@@ -77,7 +77,7 @@ export const RegisterDonorPage = () => {
       return;
     }
 
-    setIsConfirming(true);
+    //setIsConfirming(true);
   };
 
   const handleFinalSubmit = async () => {
@@ -156,7 +156,6 @@ export const RegisterDonorPage = () => {
       if (createdUserId) data.append("userId", createdUserId);
       data.append("rut", documents.rut);
       data.append("camaraComercio", documents.camaraComercio);
-
       // Endpoint imaginario (debes ajustarlo a la ruta real de tu backend)
       await axios.post(
         "http://localhost:5000/api/auth/donor/upload-docs",
@@ -166,6 +165,7 @@ export const RegisterDonorPage = () => {
         },
       );
 
+      
       setSuccess("¡Registro completado! Redirigiendo al inicio de sesión...");
       setTimeout(() => navigate("/login"), 2000);
     } catch (err: any) {
@@ -392,6 +392,7 @@ export const RegisterDonorPage = () => {
             </div>
 
             <button
+              onClick={handleFinalSubmit}
               type="submit"
               disabled={loading}
               className="w-full py-4 mt-4 bg-brand-accent text-white rounded-xl flex items-center justify-center gap-2 font-medium hover:bg-brand-accent-light transition-colors disabled:opacity-50"

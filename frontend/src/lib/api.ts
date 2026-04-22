@@ -11,3 +11,5 @@ export const assetUrl = (path: string) => {
   const cleaned = path.replace(/^\/+/, "");
   return `${API_BASE_URL}/${cleaned}`;
 };
+
+

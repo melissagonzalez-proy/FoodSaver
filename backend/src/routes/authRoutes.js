@@ -7,6 +7,7 @@ import {
   preRegisterDonorWithValidation,
   registerBeneficiary,
   resetPassword,
+  uploadDonorDocuments,
   verifyBeneficiaryOtpAndCreate,
   verifyDonorOtpAndCreate
 } from "../controllers/authController.js";
@@ -40,6 +41,17 @@ router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.put("/reset-password/:token", resetPassword);
 router.put("/change-password", changePassword);
+
+
+router.post(
+  "/donor/upload-docs",
+  upload.fields([
+    { name: "rut", maxCount: 1 },
+    { name: "camaraComercio", maxCount: 1 },
+  ]),
+  uploadDonorDocuments,
+);
+
 
 router.post("/donor/pre-register", preRegisterDonorWithValidation);
 router.post("/donor/verify", verifyDonorOtpAndCreate);
