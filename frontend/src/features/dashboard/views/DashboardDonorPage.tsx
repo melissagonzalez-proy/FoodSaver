@@ -1,14 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
+import { EditDonationModal } from "../components/EditDonationModal";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { apiUrl, assetUrl } from "../../../lib/api";
-import { LogOut, Leaf, PlusCircle, PackageOpen, Image as ImageIcon, Calendar, Scale, CheckCircle, Clock, KeyRound, Lock, XCircle, Box, ListOrdered } from "lucide-react";
+import { LogOut, Leaf, PlusCircle, PackageOpen, Image as ImageIcon, Calendar, Scale, CheckCircle, Clock, KeyRound, Lock, XCircle, Box, ListOrdered, Pencil } from "lucide-react";
 
 interface BeneficiaryInfo { _id: string; nombres: string; apellidos: string; }
 interface DonationData {
   _id: string; titulo: string; descripcion: string;
-  cantidad: number; unidad?: string;
-  fechaCaducidad: string; fechaRecogida: string; estado: "activo" | "asignado" | "recolectado"; // <-- AÑADIDA FECHA RECOGIDA
+  cantidad: number; unidad: string;
+  fechaCaducidad: string; fechaRecogida: string; estado: "activo" | "asignado" | "recolectado"; 
   imagenUrl: string; pickupPin?: string; beneficiary?: BeneficiaryInfo; createdAt: string;
 }
 
@@ -96,7 +97,7 @@ export const DashboardDonorPage = () => {
       await axios.post(apiUrl("/api/donations"), data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setFormData({ titulo: "", descripcion: "", cantidad: "", unidad: "kg", fechaCaducidad: "", imagen: null });
+      setFormData({ titulo: "", descripcion: "", cantidad: "", unidad: "kg", fechaCaducidad: "", fechaRecogida: "", imagen: null });
       setImageName(""); fetchDonations(); setActiveTab("activo"); setMainView("inventario"); setShowSuccessModal(true);
     } catch { alert("Hubo un error al crear la publicación."); } finally { setIsSubmitting(false); }
   };
