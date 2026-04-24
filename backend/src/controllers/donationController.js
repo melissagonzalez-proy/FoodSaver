@@ -283,3 +283,27 @@ export const updateDonation = async (req, res) => {
     res.status(500).json({ message: "Error interno al actualizar la publicación." });
   }
 };
+
+/* 
+   MÉTRICAS: TOTAL RECOLECTADO 
+*/
+export const getCollectedMetrics = async (req, res) => {
+  try {
+    const metrics = await Donation.aggregate([
+      { $match: { estado: "recolectado" } },
+      { 
+        $group: {
+          _id: null,
+          totalAlimentos: { $sum: "$cantidad" }
+        }
+      }
+    ]);
+
+    const total = metrics.length > 0 ? metrics[0].totalAlimentos : 0;
+
+    res.status(200).json({ totalRecolectado: total });
+  } catch (error) {
+    console.error("Error al calcular métricas:", error);
+    res.status(500).json({ message: "Error interno al calcular métricas." });
+  }
+};

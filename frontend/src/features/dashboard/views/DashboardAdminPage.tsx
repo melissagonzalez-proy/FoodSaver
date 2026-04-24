@@ -11,9 +11,11 @@ import {
   Search,
   Leaf,
   AlertTriangle,
-  PackageOpen, // NUEVO ICONO
+  PackageOpen,
   Clock,
-  Box
+  Box,
+  TrendingUp, 
+  RefreshCw   
 } from "lucide-react";
 
 interface UserShort {
@@ -41,7 +43,11 @@ export const DashboardAdminPage = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
-  const [allDonations, setAllDonations] = useState<DonationData[]>([]); // NUEVO ESTADO
+  const [allDonations, setAllDonations] = useState<DonationData[]>([]);
+  
+  const [totalCollected, setTotalCollected] = useState<number>(0);
+  const [isMetricsLoading, setIsMetricsLoading] = useState(false);
+
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -57,6 +63,7 @@ export const DashboardAdminPage = () => {
       fetchPendingUsers();
     } else {
       fetchAllDonations();
+      fetchMetrics(); // 
     }
   }, [activeTab]);
 
@@ -83,6 +90,18 @@ export const DashboardAdminPage = () => {
       console.error("Error al cargar las donaciones:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchMetrics = async () => {
+    setIsMetricsLoading(true);
+    try {
+      const response = await axios.get(apiUrl("/api/donations/metrics/total-collected"));
+      setTotalCollected(response.data.totalRecolectado);
+    } catch (error) {
+      console.error("Error al cargar métricas:", error);
+    } finally {
+      setIsMetricsLoading(false);
     }
   };
 
@@ -189,9 +208,9 @@ export const DashboardAdminPage = () => {
           </div>
         </header>
 
-        <div className="bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl">
-          {/* --- VISTA 1: SOLICITUDES PENDIENTES --- */}
-          {activeTab === "solicitudes" && (
+        {/* --- VISTA 1: SOLICITUDES PENDIENTES --- */}
+        {activeTab === "solicitudes" && (
+          <div className="bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -238,67 +257,104 @@ export const DashboardAdminPage = () => {
                 </tbody>
               </table>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* --- VISTA 2: MONITOREO DE DONACIONES --- */}
-          {activeTab === "donaciones" && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-brand-border text-brand-muted text-sm">
-                    <th className="pb-3 font-medium">Alimento</th>
-                    <th className="pb-3 font-medium">Donador</th>
-                    <th className="pb-3 font-medium">Beneficiario (Reserva)</th>
-                    <th className="pb-3 font-medium text-center">Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    <tr><td colSpan={4} className="text-center py-10 text-brand-muted">Cargando donaciones...</td></tr>
-                  ) : filteredDonations.length === 0 ? (
-                    <tr><td colSpan={4} className="text-center py-10 text-brand-muted">No se encontraron donaciones.</td></tr>
-                  ) : (
-                    filteredDonations.map((donation) => (
-                      <tr key={donation._id} className="border-b border-brand-border/50 hover:bg-brand-background/50 transition-colors">
-                        <td className="py-4">
-                          <p className="font-semibold text-brand-text">{donation.titulo}</p>
-                          <p className="text-xs text-brand-muted">
-                            {donation.cantidad} {donation.unidad || 'uds'} • {new Date(donation.createdAt).toLocaleDateString()}
-                          </p>
-                        </td>
-                        <td className="py-4 text-sm text-brand-text">
-                          {donation.donor?.nombreEmpresa || `${donation.donor?.nombres} ${donation.donor?.apellidos}`}
-                          <br /><span className="text-xs text-brand-muted">{donation.donor?.email}</span>
-                        </td>
-                        <td className="py-4 text-sm text-brand-text">
-                          {donation.beneficiary ? (
-                            <>
-                              {donation.beneficiary.nombres} {donation.beneficiary.apellidos}
-                              <br /><span className="text-xs text-brand-muted">{donation.beneficiary.email}</span>
-                            </>
-                          ) : (
-                            <span className="text-brand-muted italic">Sin reservar</span>
-                          )}
-                        </td>
-                        <td className="py-4 text-center">
-                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
-                            donation.estado === 'activo' ? 'bg-green-500/10 text-green-500' : 
-                            donation.estado === 'asignado' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-gray-500/10 text-gray-400'
-                          }`}>
-                            {donation.estado === 'activo' && <CheckCircle size={12} />}
-                            {donation.estado === 'asignado' && <Clock size={12} />}
-                            {donation.estado === 'recolectado' && <Box size={12} />}
-                            {donation.estado.toUpperCase()}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+        {/* --- VISTA 2: MONITOREO DE DONACIONES Y MÉTRICAS --- */}
+        {activeTab === "donaciones" && (
+          <div className="flex flex-col gap-6">
+            
+            {/* NUEVO: TARJETA DE MÉTRICAS (Contador Dinámico) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-brand-card border border-brand-border rounded-3xl p-6 shadow-md flex items-center justify-between group">
+                <div className="flex items-center gap-5">
+                  <div className="w-16 h-16 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 border border-green-500/20">
+                    <TrendingUp size={32} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider mb-1">Impacto Positivo</p>
+                    <div className="flex items-baseline gap-2">
+                      <h3 className="text-4xl font-bold text-brand-text font-jakarta">
+                        {isMetricsLoading ? "..." : totalCollected.toLocaleString()}
+                      </h3>
+                      <span className="text-sm font-medium text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">
+                        Raciones/kg Salvados
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {/* Botón de recarga manual */}
+                <button 
+                  onClick={fetchMetrics} 
+                  disabled={isMetricsLoading}
+                  className="p-3 text-brand-muted hover:text-brand-accent hover:bg-brand-background rounded-full transition-all disabled:opacity-50"
+                  title="Actualizar Métrica"
+                >
+                  <RefreshCw size={20} className={isMetricsLoading ? "animate-spin" : ""} />
+                </button>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* TABLA DE DONACIONES */}
+            <div className="bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-brand-border text-brand-muted text-sm">
+                      <th className="pb-3 font-medium">Alimento</th>
+                      <th className="pb-3 font-medium">Donador</th>
+                      <th className="pb-3 font-medium">Beneficiario (Reserva)</th>
+                      <th className="pb-3 font-medium text-center">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading ? (
+                      <tr><td colSpan={4} className="text-center py-10 text-brand-muted">Cargando donaciones...</td></tr>
+                    ) : filteredDonations.length === 0 ? (
+                      <tr><td colSpan={4} className="text-center py-10 text-brand-muted">No se encontraron donaciones.</td></tr>
+                    ) : (
+                      filteredDonations.map((donation) => (
+                        <tr key={donation._id} className="border-b border-brand-border/50 hover:bg-brand-background/50 transition-colors">
+                          <td className="py-4">
+                            <p className="font-semibold text-brand-text">{donation.titulo}</p>
+                            <p className="text-xs text-brand-muted">
+                              {donation.cantidad} {donation.unidad || 'uds'} • {new Date(donation.createdAt).toLocaleDateString()}
+                            </p>
+                          </td>
+                          <td className="py-4 text-sm text-brand-text">
+                            {donation.donor?.nombreEmpresa || `${donation.donor?.nombres} ${donation.donor?.apellidos}`}
+                            <br /><span className="text-xs text-brand-muted">{donation.donor?.email}</span>
+                          </td>
+                          <td className="py-4 text-sm text-brand-text">
+                            {donation.beneficiary ? (
+                              <>
+                                {donation.beneficiary.nombres} {donation.beneficiary.apellidos}
+                                <br /><span className="text-xs text-brand-muted">{donation.beneficiary.email}</span>
+                              </>
+                            ) : (
+                              <span className="text-brand-muted italic">Sin reservar</span>
+                            )}
+                          </td>
+                          <td className="py-4 text-center">
+                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
+                              donation.estado === 'activo' ? 'bg-green-500/10 text-green-500' : 
+                              donation.estado === 'asignado' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-gray-500/10 text-gray-400'
+                            }`}>
+                              {donation.estado === 'activo' && <CheckCircle size={12} />}
+                              {donation.estado === 'asignado' && <Clock size={12} />}
+                              {donation.estado === 'recolectado' && <Box size={12} />}
+                              {donation.estado.toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Modal Personalizado (Para Aprobación de Usuarios) */}

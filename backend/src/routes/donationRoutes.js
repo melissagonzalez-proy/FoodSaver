@@ -9,11 +9,14 @@ import {
   getBeneficiaryDonations,
   getDonorHistory,
   getAllDonationsAdmin,
-  updateDonation
+  updateDonation,
+  getCollectedMetrics
 } from "../controllers/donationController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
+
+router.get("/metrics/total-collected", getCollectedMetrics);
 
 router.post("/", upload.single("imagen"), createDonation);
 router.get("/available", getAvailableDonations);
