@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { apiUrl } from "../../../lib/api"; 
 import { CheckCircle, AlertCircle, Save } from "lucide-react";
