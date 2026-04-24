@@ -1,3 +1,4 @@
+import { RatingModal } from "../components/RatingModal";
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -19,9 +20,10 @@ import {
   Clock,
   Box,
   Lock,
-  User 
+  User,
+  Star 
 } from "lucide-react";
-import { EditProfile } from "../components/EditProfile"; // <-- IMPORTACIÓN DEL COMPONENTE
+import { EditProfile } from "../components/EditProfile"; 
 
 interface DonorInfo { _id: string; nombres: string; apellidos: string; departamento: string; ciudad: string; direccion: string; celular: string; nombreEmpresa?: string; }
 interface DonationData {
@@ -31,7 +33,6 @@ interface DonationData {
 
 export const DashboardBeneficiaryPage = () => {
   const navigate = useNavigate();
-  // NUEVO: Agregamos "perfil" a los estados posibles
   const [activeTab, setActiveTab] = useState<"galeria" | "reservas" | "perfil">("galeria");
   const [availableDonations, setAvailableDonations] = useState<DonationData[]>([]);
   const [myReservations, setMyReservations] = useState<DonationData[]>([]);
@@ -42,8 +43,15 @@ export const DashboardBeneficiaryPage = () => {
 
   const [feedbackModal, setFeedbackModal] = useState<{ isOpen: boolean; type: "success" | "error"; message: string; pin?: string; }>({ isOpen: false, type: "success", message: "" });
   const [requestModal, setRequestModal] = useState<{ isOpen: boolean; donation: DonationData | null; cantidadSolicitada: number; }>({ isOpen: false, donation: null, cantidadSolicitada: 1 });
-  
   const [passwordModal, setPasswordModal] = useState({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false });
+
+  // ESTADO DEL MODAL DE CALIFICACIÓN
+  const [ratingModal, setRatingModal] = useState({
+    isOpen: false,
+    donationId: "",
+    toUserId: "",
+    toUserName: ""
+  });
 
   const fetchAvailableDonations = useCallback(async () => {
     setIsLoading(true);
@@ -137,14 +145,11 @@ export const DashboardBeneficiaryPage = () => {
 
   return (
     <div className="h-screen overflow-hidden bg-brand-background font-sans flex flex-col md:flex-row relative">
-      {/* SIDEBAR */}
       <aside className="w-full md:w-64 bg-brand-card border-r border-brand-border p-6 flex flex-col z-10">
         <div className="flex items-center gap-2 text-brand-accent mb-10"><Leaf size={28} /><span className="text-2xl font-bold tracking-tight text-brand-text font-jakarta">FoodSaver</span></div>
         <nav className="flex-1 flex flex-col gap-2">
           <button onClick={() => setActiveTab("galeria")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "galeria" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}><ShoppingBag size={20} /> Galería</button>
           <button onClick={() => setActiveTab("reservas")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "reservas" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}><ListOrdered size={20} /> Mis Reservas</button>
-          
-          {/* NUEVO BOTÓN DE PERFIL */}
           <button onClick={() => setActiveTab("perfil")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "perfil" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}><User size={20} /> Mi Perfil</button>
         </nav>
         
@@ -154,15 +159,12 @@ export const DashboardBeneficiaryPage = () => {
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
       <main className="flex-1 p-8 overflow-y-auto z-10">
         <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            {/* TÍTULO DINÁMICO */}
             <h1 className="text-3xl font-bold text-brand-text font-jakarta mb-2">
               {activeTab === "galeria" ? "Alimentos Disponibles" : activeTab === "reservas" ? "Mis Reservas" : "Mi Perfil"}
             </h1>
-            {/* DESCRIPCIÓN DINÁMICA */}
             <p className="text-brand-muted">
               {activeTab === "galeria" ? "Explora los excedentes disponibles para recolección inmediata." : activeTab === "reservas" ? "Gestiona los alimentos que has reservado y revisa tus códigos PIN." : "Actualiza tus datos personales y de logística de recolección."}
             </p>
@@ -175,7 +177,6 @@ export const DashboardBeneficiaryPage = () => {
           )}
         </header>
 
-        {/* LÓGICA DE VISTAS */}
         {activeTab === "perfil" ? (
           <EditProfile />
         ) : isLoading ? (
@@ -225,7 +226,18 @@ export const DashboardBeneficiaryPage = () => {
                         <td className="py-4 text-sm"><p className="font-medium text-brand-text flex items-center gap-1"><Store size={14} className="text-brand-accent"/> {reservation.donor.nombreEmpresa || reservation.donor.nombres}</p><p className="text-xs text-brand-muted flex items-center gap-1 mt-1"><MapPin size={12}/> {reservation.donor.direccion}, {reservation.donor.ciudad}</p></td>
                         <td className="py-4 text-center"><span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${reservation.estado === 'asignado' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'}`}>{reservation.estado === 'asignado' ? <Clock size={12} /> : <Box size={12} />}{reservation.estado === 'asignado' ? 'Pendiente' : 'Recolectado'}</span></td>
                         <td className="py-4 text-center">{reservation.estado === "asignado" ? (<div className="inline-flex items-center gap-2 bg-brand-background border border-brand-accent/30 px-4 py-2 rounded-lg text-brand-accent font-bold tracking-[0.2em] shadow-[0_0_10px_rgba(255,0,85,0.1)]"><KeyRound size={16} /> {reservation.pickupPin}</div>) : (<span className="text-brand-muted text-sm">—</span>)}</td>
-                        <td className="py-4 flex justify-center">{reservation.estado === "asignado" ? (<button onClick={() => handleCancelReservation(reservation._id)} className="flex items-center gap-1 text-xs px-3 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors font-medium"><XCircle size={14} /> Cancelar</button>) : (<span className="text-brand-muted text-xs">Entregado</span>)}</td>
+                        
+                        {/* BOTÓN NUEVO AQUÍ: Evaluar al donador si ya se entregó el alimento */}
+                        <td className="py-4 flex justify-center">
+                          {reservation.estado === "asignado" ? (
+                            <button onClick={() => handleCancelReservation(reservation._id)} className="flex items-center gap-1 text-xs px-3 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors font-medium"><XCircle size={14} /> Cancelar</button>
+                          ) : (
+                            <button onClick={() => setRatingModal({ isOpen: true, donationId: reservation._id, toUserId: reservation.donor._id, toUserName: reservation.donor.nombreEmpresa || reservation.donor.nombres })} className="flex items-center gap-1 text-xs px-3 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors font-medium">
+                              <Star size={14} /> Calificar
+                            </button>
+                          )}
+                        </td>
+
                       </tr>
                     ))
                   )}
@@ -236,7 +248,7 @@ export const DashboardBeneficiaryPage = () => {
         )}
       </main>
 
-      {/* --- MODAL CAMBIAR CONTRASEÑA --- */}
+      {/* MODALES */}
       {passwordModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 shadow-2xl">
@@ -270,7 +282,6 @@ export const DashboardBeneficiaryPage = () => {
         </div>
       )}
 
-      {/* MODAL DE SOLICITUD DE RECOLECCIÓN */}
       {requestModal.isOpen && requestModal.donation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 text-center shadow-2xl">
@@ -288,7 +299,6 @@ export const DashboardBeneficiaryPage = () => {
         </div>
       )}
 
-      {/* MODAL DE FEEDBACK (ÉXITO O ERROR) */}
       {feedbackModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 text-center shadow-2xl">
@@ -304,6 +314,17 @@ export const DashboardBeneficiaryPage = () => {
           </div>
         </div>
       )}
+
+      {/* MODAL DE CALIFICACIÓN */}
+      <RatingModal
+        isOpen={ratingModal.isOpen}
+        onClose={() => setRatingModal({ ...ratingModal, isOpen: false })}
+        donationId={ratingModal.donationId}
+        toUserId={ratingModal.toUserId}
+        toUserName={ratingModal.toUserName}
+        onSuccess={fetchMyReservations}
+      />
+
     </div>
   );
 };

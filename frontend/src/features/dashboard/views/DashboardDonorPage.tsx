@@ -1,9 +1,10 @@
+import { RatingModal } from "../components/RatingModal";
 import { useEffect, useState, useCallback } from "react";
 import { EditDonationModal } from "../components/EditDonationModal";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { apiUrl, assetUrl } from "../../../lib/api";
-import { LogOut, User, Leaf, PlusCircle, PackageOpen, Image as ImageIcon, Calendar, Scale, CheckCircle, Clock, KeyRound, Lock, XCircle, Box, ListOrdered, Pencil } from "lucide-react";
+import { LogOut, User, Leaf, PlusCircle, PackageOpen, Image as ImageIcon, Calendar, Scale, CheckCircle, Clock, KeyRound, Lock, XCircle, Box, ListOrdered, Pencil, Star } from "lucide-react";
 import { EditProfile } from "../components/EditProfile";
 
 interface BeneficiaryInfo { _id: string; nombres: string; apellidos: string; }
@@ -50,6 +51,13 @@ export const DashboardDonorPage = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [pinInputs, setPinInputs] = useState<{ [key: string]: string }>({});
   const [editingDonation, setEditingDonation] = useState<DonationData | null>(null);
+  
+  const [ratingModal, setRatingModal] = useState({
+    isOpen: false,
+    donationId: "",
+    toUserId: "",
+    toUserName: ""
+  });
 
   const userId = JSON.parse(localStorage.getItem("user") || "{}").id;
 
@@ -89,7 +97,7 @@ export const DashboardDonorPage = () => {
       data.append("cantidad", formData.cantidad);
       data.append("unidad", formData.unidad);
       data.append("fechaCaducidad", formData.fechaCaducidad);
-      data.append("fechaRecogida", formData.fechaRecogida); // <-- NUEVO
+      data.append("fechaRecogida", formData.fechaRecogida); 
       if (formData.imagen) data.append("imagen", formData.imagen);
 
       await axios.post(apiUrl("/api/donations"), data, {
@@ -183,9 +191,6 @@ export const DashboardDonorPage = () => {
         </div>
       </aside>
 
-      {/* ==========================================
-          CONTENIDO PRINCIPAL
-      ========================================== */}
       <main className="flex-1 p-8 overflow-y-auto z-10">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-brand-text font-jakarta mb-2">
@@ -200,7 +205,6 @@ export const DashboardDonorPage = () => {
           </p>
         </header>
 
-        {/* 1. VISTA DE INVENTARIO */}
         {mainView === "inventario" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1 bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl h-fit">
@@ -285,6 +289,18 @@ export const DashboardDonorPage = () => {
                             </div>
                           </div>
                         )}
+
+                        {/* NUEVO BOTÓN DE CALIFICAR PARA EL DONADOR */}
+                        {donation.estado === "recolectado" && donation.beneficiary && (
+                          <div className="flex gap-2 mt-auto pt-2">
+                            <button 
+                              onClick={() => setRatingModal({ isOpen: true, donationId: donation._id, toUserId: donation.beneficiary!._id, toUserName: donation.beneficiary!.nombres })} 
+                              className="flex-1 py-2 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                            >
+                              <Star size={16} /> Evaluar Beneficiario
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -294,7 +310,6 @@ export const DashboardDonorPage = () => {
           </div>
         )}
 
-        {/* 2. VISTA DE HISTORIAL */}
         {mainView === "historial" && (
           <div className="bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl overflow-hidden">
             <table className="w-full text-left border-collapse">
@@ -317,14 +332,13 @@ export const DashboardDonorPage = () => {
           </div>
         )}
 
-        {/* 3. VISTA DE PERFIL */}
         {mainView === "perfil" && (
           <EditProfile />
         )}
 
       </main>
 
-      {/* MODAL CAMBIAR CONTRASEÑA */}
+      {/* MODALES */}
       {passwordModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 shadow-2xl">
@@ -362,7 +376,6 @@ export const DashboardDonorPage = () => {
         </div>
       )}
 
-      {/* MODAL SUCCESS PUBLICACIÓN */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 text-center">
@@ -376,12 +389,21 @@ export const DashboardDonorPage = () => {
         </div>
       )}
 
-      {/* MODAL DE EDICIÓN */}
       <EditDonationModal 
         isOpen={!!editingDonation} 
         onClose={() => setEditingDonation(null)} 
         donation={editingDonation} 
         onSuccess={fetchDonations} 
+      />
+
+      {/* MODAL DE CALIFICACIÓN */}
+      <RatingModal
+        isOpen={ratingModal.isOpen}
+        onClose={() => setRatingModal({ ...ratingModal, isOpen: false })}
+        donationId={ratingModal.donationId}
+        toUserId={ratingModal.toUserId}
+        toUserName={ratingModal.toUserName}
+        onSuccess={fetchDonations}
       />
 
     </div>

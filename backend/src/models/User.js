@@ -16,6 +16,8 @@ const userSchema = new mongoose.Schema(
     direccion: { type: String, required: false },
     rutUrl: { type: String, required: false },
     camaraComercioUrl: { type: String, required: false },
+    promedioCalificacion: { type: Number, default: 0 },
+    totalEvaluaciones: { type: Number, default: 0 },
 
     role: {
       type: String,
