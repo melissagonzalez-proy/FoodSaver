@@ -547,3 +547,44 @@ export const uploadDonorDocuments = async (req, res) => {
     });
   }
 };
+
+/* 
+  ACTUALIZAR PERFIL 
+*/
+export const updateProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombres, apellidos, departamento, ciudad, direccion, celular } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+    if (nombres) user.nombres = nombres;
+    if (apellidos) user.apellidos = apellidos;
+    if (departamento) user.departamento = departamento;
+    if (ciudad) user.ciudad = ciudad;
+    if (direccion) user.direccion = direccion;
+    if (celular) user.celular = celular;
+
+    await user.save();
+
+    res.status(200).json({ 
+      message: "Perfil actualizado con éxito.",
+      user: {
+        id: user._id,
+        nombres: user.nombres,
+        apellidos: user.apellidos,
+        departamento: user.departamento,
+        ciudad: user.ciudad,
+        direccion: user.direccion,
+        celular: user.celular,
+        role: user.role
+      }
+    });
+
+  } catch (error) {
+    console.error("Error actualizando perfil:", error);
+    res.status(500).json({ message: "Error interno al actualizar el perfil." });
+  }
+};

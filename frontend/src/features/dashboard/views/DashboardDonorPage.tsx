@@ -3,7 +3,8 @@ import { EditDonationModal } from "../components/EditDonationModal";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { apiUrl, assetUrl } from "../../../lib/api";
-import { LogOut, Leaf, PlusCircle, PackageOpen, Image as ImageIcon, Calendar, Scale, CheckCircle, Clock, KeyRound, Lock, XCircle, Box, ListOrdered, Pencil } from "lucide-react";
+import { LogOut, User, Leaf, PlusCircle, PackageOpen, Image as ImageIcon, Calendar, Scale, CheckCircle, Clock, KeyRound, Lock, XCircle, Box, ListOrdered, Pencil } from "lucide-react";
+import { EditProfile } from "../components/EditProfile";
 
 interface BeneficiaryInfo { _id: string; nombres: string; apellidos: string; }
 interface DonationData {
@@ -41,20 +42,17 @@ const CountdownTimer = ({ expiresAt }: { expiresAt: string }) => {
 
 export const DashboardDonorPage = () => {
   const navigate = useNavigate();
-  const [mainView, setMainView] = useState<"inventario" | "historial">("inventario");
+  const [mainView, setMainView] = useState<"inventario" | "historial" | "perfil">("inventario");
   const [activeTab, setActiveTab] = useState<"activo" | "asignado" | "recolectado">("activo");
   const [donations, setDonations] = useState<DonationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [pinInputs, setPinInputs] = useState<{ [key: string]: string }>({});
-  
-  // NUEVO ESTADO PARA EL MODAL DE EDICIÓN
   const [editingDonation, setEditingDonation] = useState<DonationData | null>(null);
 
   const userId = JSON.parse(localStorage.getItem("user") || "{}").id;
 
-  // NUEVO: Agregada fechaRecogida al estado inicial
   const [formData, setFormData] = useState({
     titulo: "", descripcion: "", cantidad: "", unidad: "kg", fechaCaducidad: "", fechaRecogida: "", imagen: null as File | null,
   });
@@ -158,24 +156,52 @@ export const DashboardDonorPage = () => {
   return (
     <div className="h-screen overflow-hidden bg-brand-background font-sans flex flex-col md:flex-row relative">
       <aside className="w-full md:w-64 bg-brand-card border-r border-brand-border p-6 flex flex-col z-10">
-        <div className="flex items-center gap-2 text-brand-accent mb-10"><Leaf size={28} /><span className="text-2xl font-bold tracking-tight text-brand-text font-jakarta">FoodSaver</span></div>
+        <div className="flex items-center gap-2 text-brand-accent mb-10">
+          <Leaf size={28} />
+          <span className="text-2xl font-bold tracking-tight text-brand-text font-jakarta">FoodSaver</span>
+        </div>
+        
         <nav className="flex-1 flex flex-col gap-2">
-          <button onClick={() => setMainView("inventario")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${mainView === "inventario" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}><PackageOpen size={20} /> Inventario</button>
-          <button onClick={() => setMainView("historial")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${mainView === "historial" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}><ListOrdered size={20} /> Historial</button>
+          <button onClick={() => setMainView("inventario")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${mainView === "inventario" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}>
+            <PackageOpen size={20} /> Inventario
+          </button>
+          <button onClick={() => setMainView("historial")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${mainView === "historial" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}>
+            <ListOrdered size={20} /> Historial
+          </button>
+          <button onClick={() => setMainView("perfil")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${mainView === "perfil" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}>
+            <User size={20} /> Mi Perfil
+          </button>
         </nav>
+        
         <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-brand-border/50">
-          <button onClick={() => setPasswordModal({ ...passwordModal, isOpen: true })} className="flex items-center gap-3 px-4 py-3 text-brand-muted hover:bg-brand-background hover:text-brand-text rounded-xl font-medium w-full text-left transition-colors"><KeyRound size={20} /> Cambiar Contraseña</button>
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-xl font-medium w-full text-left transition-colors"><LogOut size={20} /> Cerrar Sesión</button>
+          <button onClick={() => setPasswordModal({ ...passwordModal, isOpen: true })} className="flex items-center gap-3 px-4 py-3 text-brand-muted hover:bg-brand-background hover:text-brand-text rounded-xl font-medium w-full text-left transition-colors">
+            <KeyRound size={20} /> Cambiar Contraseña
+          </button>
+          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-xl font-medium w-full text-left transition-colors">
+            <LogOut size={20} /> Cerrar Sesión
+          </button>
         </div>
       </aside>
 
+      {/* ==========================================
+          CONTENIDO PRINCIPAL
+      ========================================== */}
       <main className="flex-1 p-8 overflow-y-auto z-10">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-brand-text font-jakarta mb-2">{mainView === "inventario" ? "Panel de Control de Inventario" : "Historial de Donaciones"}</h1>
-          <p className="text-brand-muted">{mainView === "inventario" ? "Publica y gestiona el estado de tus excedentes alimentarios." : "Supervisa todas las donaciones que has realizado y su estado actual."}</p>
+          <h1 className="text-3xl font-bold text-brand-text font-jakarta mb-2">
+            {mainView === "inventario" ? "Panel de Control de Inventario" : 
+             mainView === "historial" ? "Historial de Donaciones" : 
+             "Mi Perfil"}
+          </h1>
+          <p className="text-brand-muted">
+            {mainView === "inventario" ? "Publica y gestiona el estado de tus excedentes alimentarios." : 
+             mainView === "historial" ? "Supervisa todas las donaciones que has realizado y su estado actual." :
+             "Actualiza tus datos personales y de logística de recolección."}
+          </p>
         </header>
 
-        {mainView === "inventario" ? (
+        {/* 1. VISTA DE INVENTARIO */}
+        {mainView === "inventario" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1 bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl h-fit">
               <div className="flex items-center gap-2 mb-6"><PlusCircle className="text-brand-accent" size={24} /><h2 className="text-xl font-semibold text-brand-text">Nueva Publicación</h2></div>
@@ -195,7 +221,6 @@ export const DashboardDonorPage = () => {
                   </select>
                 </div>
 
-                {/* NUEVO: Fila dividida para las dos fechas */}
                 <div className="flex gap-2">
                   <div className="w-1/2 flex flex-col gap-1">
                     <label className="text-[10px] uppercase font-bold text-brand-muted ml-1 tracking-wider">Vencimiento</label>
@@ -240,13 +265,11 @@ export const DashboardDonorPage = () => {
                           <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(donation.fechaCaducidad).toLocaleDateString()}</span>
                         </div>
                         
-                        {/* NUEVO: Botones Editar / Cancelar (SOLO para estado activo) */}
                         {donation.estado === "activo" && (
                           <div className="flex gap-2 mt-auto">
                             <button onClick={() => setEditingDonation(donation)} className="flex-1 py-2 border border-brand-accent/30 text-brand-accent hover:bg-brand-accent/10 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1">
                               <Pencil size={16} /> Editar
                             </button>
-                            {/* Opcional: Si quieres botón de eliminar/cancelar publicación aquí, puedes agregarlo */}
                           </div>
                         )}
 
@@ -269,7 +292,10 @@ export const DashboardDonorPage = () => {
               )}
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* 2. VISTA DE HISTORIAL */}
+        {mainView === "historial" && (
           <div className="bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -290,6 +316,12 @@ export const DashboardDonorPage = () => {
             </table>
           </div>
         )}
+
+        {/* 3. VISTA DE PERFIL */}
+        {mainView === "perfil" && (
+          <EditProfile />
+        )}
+
       </main>
 
       {/* MODAL CAMBIAR CONTRASEÑA */}
@@ -302,6 +334,7 @@ export const DashboardDonorPage = () => {
               </div>
               <h3 className="text-2xl font-bold text-brand-text">Cambiar Clave</h3>
             </div>
+
             <form onSubmit={handlePasswordChange} className="flex flex-col gap-4">
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted" size={18} />
@@ -315,6 +348,7 @@ export const DashboardDonorPage = () => {
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted" size={18} />
                 <input required type="password" placeholder="Confirmar Nueva" value={passwordModal.confirmar} onChange={(e) => setPasswordModal({...passwordModal, confirmar: e.target.value})} className="w-full bg-brand-background border border-brand-border rounded-xl pl-12 pr-4 py-3 text-sm text-brand-text focus:border-brand-accent outline-none transition-colors" />
               </div>
+
               <div className="flex gap-3 mt-4">
                 <button type="button" onClick={() => setPasswordModal({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false })} className="flex-1 py-3 font-medium border border-brand-border text-brand-text rounded-xl hover:bg-brand-background transition-colors">
                   Cancelar
@@ -331,7 +365,14 @@ export const DashboardDonorPage = () => {
       {/* MODAL SUCCESS PUBLICACIÓN */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 text-center"><div className="w-16 h-16 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center mx-auto mb-6"><CheckCircle size={32} /></div><h3 className="text-2xl font-bold text-brand-text mb-2 font-jakarta">¡Publicado!</h3><p className="text-brand-muted mb-8">El alimento está activo y visible para los beneficiarios.</p><button onClick={() => setShowSuccessModal(false)} className="w-full py-3 bg-brand-accent text-white rounded-xl font-medium">Continuar</button></div>
+          <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle size={32} />
+            </div>
+            <h3 className="text-2xl font-bold text-brand-text mb-2 font-jakarta">¡Publicado!</h3>
+            <p className="text-brand-muted mb-8">El alimento está activo y visible para los beneficiarios.</p>
+            <button onClick={() => setShowSuccessModal(false)} className="w-full py-3 bg-brand-accent text-white rounded-xl font-medium">Continuar</button>
+          </div>
         </div>
       )}
 

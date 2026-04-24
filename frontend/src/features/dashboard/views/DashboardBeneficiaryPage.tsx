@@ -18,8 +18,10 @@ import {
   XCircle,
   Clock,
   Box,
-  Lock
+  Lock,
+  User 
 } from "lucide-react";
+import { EditProfile } from "../components/EditProfile"; // <-- IMPORTACIÓN DEL COMPONENTE
 
 interface DonorInfo { _id: string; nombres: string; apellidos: string; departamento: string; ciudad: string; direccion: string; celular: string; nombreEmpresa?: string; }
 interface DonationData {
@@ -29,7 +31,8 @@ interface DonationData {
 
 export const DashboardBeneficiaryPage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"galeria" | "reservas">("galeria");
+  // NUEVO: Agregamos "perfil" a los estados posibles
+  const [activeTab, setActiveTab] = useState<"galeria" | "reservas" | "perfil">("galeria");
   const [availableDonations, setAvailableDonations] = useState<DonationData[]>([]);
   const [myReservations, setMyReservations] = useState<DonationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,7 +63,10 @@ export const DashboardBeneficiaryPage = () => {
     } catch (error) { console.error(error); } finally { setIsLoading(false); }
   }, [currentUser.id]);
 
-  useEffect(() => { if (activeTab === "galeria") { fetchAvailableDonations(); } else { fetchMyReservations(); } }, [activeTab, fetchAvailableDonations, fetchMyReservations]);
+  useEffect(() => { 
+    if (activeTab === "galeria") { fetchAvailableDonations(); } 
+    else if (activeTab === "reservas") { fetchMyReservations(); } 
+  }, [activeTab, fetchAvailableDonations, fetchMyReservations]);
 
   const getErrorMessage = (error: unknown): string => {
     if (axios.isAxiosError(error)) { return error.response?.data?.message || "Hubo un error al procesar tu solicitud."; }
@@ -117,7 +123,7 @@ export const DashboardBeneficiaryPage = () => {
         passwordActual: passwordModal.actual,
         passwordNueva: passwordModal.nueva
       });
-      alert(response.data.message); // "Tu contraseña ha sido cambiada con éxito."
+      alert(response.data.message);
       setPasswordModal({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false });
     } catch (error: any) {
       alert(error.response?.data?.message || "Error al cambiar la contraseña.");
@@ -131,35 +137,35 @@ export const DashboardBeneficiaryPage = () => {
 
   return (
     <div className="h-screen overflow-hidden bg-brand-background font-sans flex flex-col md:flex-row relative">
+      {/* SIDEBAR */}
       <aside className="w-full md:w-64 bg-brand-card border-r border-brand-border p-6 flex flex-col z-10">
         <div className="flex items-center gap-2 text-brand-accent mb-10"><Leaf size={28} /><span className="text-2xl font-bold tracking-tight text-brand-text font-jakarta">FoodSaver</span></div>
         <nav className="flex-1 flex flex-col gap-2">
           <button onClick={() => setActiveTab("galeria")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "galeria" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}><ShoppingBag size={20} /> Galería</button>
           <button onClick={() => setActiveTab("reservas")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "reservas" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}><ListOrdered size={20} /> Mis Reservas</button>
+          
+          {/* NUEVO BOTÓN DE PERFIL */}
+          <button onClick={() => setActiveTab("perfil")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "perfil" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}><User size={20} /> Mi Perfil</button>
         </nav>
         
-        {/* Cambiar Contraseña y Cerrar Sesión abajo */}
         <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-brand-border/50">
-          <button 
-            onClick={() => setPasswordModal({ ...passwordModal, isOpen: true })}
-            className="flex items-center gap-3 px-4 py-3 text-brand-muted hover:bg-brand-background hover:text-brand-text rounded-xl font-medium w-full text-left transition-colors"
-          >
-            <KeyRound size={20} /> Cambiar Contraseña
-          </button>
-          <button 
-            onClick={handleLogout} 
-            className="flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-xl font-medium w-full text-left transition-colors"
-          >
-            <LogOut size={20} /> Cerrar Sesión
-          </button>
+          <button onClick={() => setPasswordModal({ ...passwordModal, isOpen: true })} className="flex items-center gap-3 px-4 py-3 text-brand-muted hover:bg-brand-background hover:text-brand-text rounded-xl font-medium w-full text-left transition-colors"><KeyRound size={20} /> Cambiar Contraseña</button>
+          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-xl font-medium w-full text-left transition-colors"><LogOut size={20} /> Cerrar Sesión</button>
         </div>
       </aside>
 
+      {/* MAIN CONTENT */}
       <main className="flex-1 p-8 overflow-y-auto z-10">
         <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-brand-text font-jakarta mb-2">{activeTab === "galeria" ? "Alimentos Disponibles" : "Mis Reservas"}</h1>
-            <p className="text-brand-muted">{activeTab === "galeria" ? "Explora los excedentes disponibles para recolección inmediata." : "Gestiona los alimentos que has reservado y revisa tus códigos PIN."}</p>
+            {/* TÍTULO DINÁMICO */}
+            <h1 className="text-3xl font-bold text-brand-text font-jakarta mb-2">
+              {activeTab === "galeria" ? "Alimentos Disponibles" : activeTab === "reservas" ? "Mis Reservas" : "Mi Perfil"}
+            </h1>
+            {/* DESCRIPCIÓN DINÁMICA */}
+            <p className="text-brand-muted">
+              {activeTab === "galeria" ? "Explora los excedentes disponibles para recolección inmediata." : activeTab === "reservas" ? "Gestiona los alimentos que has reservado y revisa tus códigos PIN." : "Actualiza tus datos personales y de logística de recolección."}
+            </p>
           </div>
           {activeTab === "galeria" && (
             <div className="relative w-full md:w-72">
@@ -169,7 +175,10 @@ export const DashboardBeneficiaryPage = () => {
           )}
         </header>
 
-        {isLoading ? (
+        {/* LÓGICA DE VISTAS */}
+        {activeTab === "perfil" ? (
+          <EditProfile />
+        ) : isLoading ? (
           <div className="text-center py-20 flex flex-col items-center"><div className="w-10 h-10 border-4 border-brand-accent border-t-transparent rounded-full animate-spin mb-4"></div><p className="text-brand-muted">Cargando...</p></div>
         ) : activeTab === "galeria" ? (
           filteredDonations.length === 0 ? (
@@ -253,18 +262,15 @@ export const DashboardBeneficiaryPage = () => {
               </div>
 
               <div className="flex gap-3 mt-4">
-                <button type="button" onClick={() => setPasswordModal({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false })} className="flex-1 py-3 font-medium border border-brand-border text-brand-text rounded-xl hover:bg-brand-background transition-colors">
-                  Cancelar
-                </button>
-                <button type="submit" disabled={passwordModal.isSubmitting} className="flex-1 py-3 font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all disabled:opacity-50">
-                  {passwordModal.isSubmitting ? "..." : "Guardar"}
-                </button>
+                <button type="button" onClick={() => setPasswordModal({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false })} className="flex-1 py-3 font-medium border border-brand-border text-brand-text rounded-xl hover:bg-brand-background transition-colors">Cancelar</button>
+                <button type="submit" disabled={passwordModal.isSubmitting} className="flex-1 py-3 font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all disabled:opacity-50">{passwordModal.isSubmitting ? "..." : "Guardar"}</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
+      {/* MODAL DE SOLICITUD DE RECOLECCIÓN */}
       {requestModal.isOpen && requestModal.donation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 text-center shadow-2xl">
@@ -282,6 +288,7 @@ export const DashboardBeneficiaryPage = () => {
         </div>
       )}
 
+      {/* MODAL DE FEEDBACK (ÉXITO O ERROR) */}
       {feedbackModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 text-center shadow-2xl">

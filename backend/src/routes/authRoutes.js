@@ -9,14 +9,14 @@ import {
   resetPassword,
   uploadDonorDocuments,
   verifyBeneficiaryOtpAndCreate,
-  verifyDonorOtpAndCreate
+  verifyDonorOtpAndCreate,
+  updateProfile
 } from "../controllers/authController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
 
-// Ruta (Multipart/form-data) para beneficiarios con archivos
 router.post(
   "/register-beneficiary",
   upload.fields([
@@ -36,7 +36,6 @@ router.post(
   verifyBeneficiaryOtpAndCreate
 );
 
-// Ruta para iniciar sesión
 router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.put("/reset-password/:token", resetPassword);
@@ -52,8 +51,9 @@ router.post(
   uploadDonorDocuments,
 );
 
-
 router.post("/donor/pre-register", preRegisterDonorWithValidation);
 router.post("/donor/verify", verifyDonorOtpAndCreate);
+
+router.put("/profile/:id", updateProfile);
 
 export default router;
