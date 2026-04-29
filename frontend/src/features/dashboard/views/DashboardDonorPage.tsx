@@ -1,16 +1,17 @@
-import { RatingModal } from "../components/RatingModal";
-import { useEffect, useState, useCallback } from "react";
-import { EditDonationModal } from "../components/EditDonationModal";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Box, Calendar, CheckCircle, Clock, Image as ImageIcon, KeyRound, Leaf, ListOrdered, Lock, LogOut, PackageOpen, Pencil, PlusCircle, Scale, Star, User, XCircle } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiUrl, assetUrl } from "../../../lib/api";
-import { LogOut, User, Leaf, PlusCircle, PackageOpen, Image as ImageIcon, Calendar, Scale, CheckCircle, Clock, KeyRound, Lock, XCircle, Box, ListOrdered, Pencil, Star } from "lucide-react";
+import { EditDonationModal } from "../components/EditDonationModal";
 import { EditProfile } from "../components/EditProfile";
+import { RatingModal } from "../components/RatingModal";
 
 interface BeneficiaryInfo { _id: string; nombres: string; apellidos: string; }
 interface DonationData {
   _id: string; titulo: string; descripcion: string;
   cantidad: number; unidad: string;
+  nombres: string;
   fechaCaducidad: string; fechaRecogida: string; estado: "activo" | "asignado" | "recolectado"; 
   imagenUrl: string; pickupPin?: string; beneficiary?: BeneficiaryInfo; createdAt: string;
 }
@@ -91,7 +92,7 @@ export const DashboardDonorPage = () => {
     e.preventDefault(); setIsSubmitting(true);
     try {
       const data = new FormData();
-      data.append("donorId", userId);
+      data.append("donorId", String(userId));
       data.append("titulo", formData.titulo);
       data.append("descripcion", formData.descripcion);
       data.append("cantidad", formData.cantidad);
@@ -105,7 +106,16 @@ export const DashboardDonorPage = () => {
       });
       setFormData({ titulo: "", descripcion: "", cantidad: "", unidad: "kg", fechaCaducidad: "", fechaRecogida: "", imagen: null });
       setImageName(""); fetchDonations(); setActiveTab("activo"); setMainView("inventario"); setShowSuccessModal(true);
-    } catch { alert("Hubo un error al crear la publicación."); } finally { setIsSubmitting(false); }
+    } catch (err) {
+  console.error(err);
+
+  if (axios.isAxiosError(err)) {
+    console.error("DATA:", err.response?.data);
+    console.error("STATUS:", err.response?.status);
+  }
+
+  alert("Hubo un error al crear la publicación.");
+} finally { setIsSubmitting(false); }
   };
 
   const handleCancel = async (id: string) => {
@@ -150,7 +160,7 @@ export const DashboardDonorPage = () => {
         passwordActual: passwordModal.actual,
         passwordNueva: passwordModal.nueva
       });
-      alert(response.data.message); 
+      alert(response.data.message);
       setPasswordModal({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false });
     } catch (error: any) {
       alert(error.response?.data?.message || "Error al cambiar la contraseña.");
@@ -293,8 +303,8 @@ export const DashboardDonorPage = () => {
                         {/* NUEVO BOTÓN DE CALIFICAR PARA EL DONADOR */}
                         {donation.estado === "recolectado" && donation.beneficiary && (
                           <div className="flex gap-2 mt-auto pt-2">
-                            <button 
-                              onClick={() => setRatingModal({ isOpen: true, donationId: donation._id, toUserId: donation.beneficiary!._id, toUserName: donation.beneficiary!.nombres })} 
+                            <button
+                              onClick={() => {console.log("BENEFICIARY:", donation.beneficiary?.nombres); setRatingModal({ isOpen: true, donationId: donation._id, toUserId: donation.beneficiary!._id, toUserName: donation.beneficiary!.nombres || "Usuario" })}}
                               className="flex-1 py-2 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
                             >
                               <Star size={16} /> Evaluar Beneficiario

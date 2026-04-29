@@ -1,19 +1,32 @@
+import Donation from "../models/Donation.js";
 import Rating from "../models/Rating.js";
 import User from "../models/User.js";
-import Donation from "../models/Donation.js"; 
 
 /* 
   CREAR CALIFICACIÓN Y ACTUALIZAR PROMEDIO
 */
 export const rateUser = async (req, res) => {
   try {
-    const { donationId, toUserId, score, comentario } = req.body;
+    const { donationId, score, comentario } = req.body;
     const fromUserId = req.user.id; 
 
-    const donation = await Donation.findById(donationId);
+    const donation = await Donation.findById(donationId)
+  .populate("beneficiary", "nombres apellidos")
+  .populate("donor", "nombres nombreEmpresa");
+
     if (!donation || donation.estado !== "recolectado") {
       return res.status(400).json({ message: "Solo puedes calificar donaciones completadas." });
     }
+
+    const toUserId =
+  donation.beneficiary?._id.toString() === fromUserId
+    ? donation.donor
+    : donation.beneficiary;
+
+    const existingRating = await Rating.findOne({ donationId, fromUser: fromUserId });
+if (existingRating) {
+  return res.status(400).json({ message: "Ya calificaste esta donación." });
+}
 
     const newRating = new Rating({
       donationId,
@@ -35,6 +48,7 @@ export const rateUser = async (req, res) => {
 
     res.status(201).json({ message: "Calificación enviada con éxito." });
   } catch (error) {
+    console.error("error", error); 
     if (error.code === 11000) {
       return res.status(400).json({ message: "Ya has calificado esta transacción." });
     }

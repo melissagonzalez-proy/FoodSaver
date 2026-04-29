@@ -3,7 +3,7 @@ import Donation from "../models/Donation.js";
 // 1. CREAR DONACIÓN
 export const createDonation = async (req, res) => {
   try {
-    const { donorId, titulo, descripcion, cantidad, unidad, fechaCaducidad } =
+    const { donorId, titulo, descripcion, cantidad, unidad, fechaCaducidad, fechaRecogida } =
       req.body;
     const imagenUrl = req.file ? req.file.path : null;
 

@@ -1,11 +1,11 @@
-import express from "express";
-import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import express from "express";
+import mongoose from "mongoose";
 
-import authRoutes from "./src/routes/authRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
-import donationRoutes from "./src/routes/donationRoutes.js";
+import authRoutes from "./src/routes/authRoutes.js";
+import { default as donationRoutes, default as ratingRoutes } from "./src/routes/donationRoutes.js";
 
 dotenv.config();
 
@@ -20,6 +20,8 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/donations", donationRoutes);
+
+app.use("/api/ratings", ratingRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI)

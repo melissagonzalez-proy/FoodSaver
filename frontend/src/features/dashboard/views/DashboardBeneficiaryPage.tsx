@@ -1,29 +1,29 @@
-import { RatingModal } from "../components/RatingModal";
-import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { apiUrl, assetUrl } from "../../../lib/api";
 import {
-  LogOut,
-  Leaf,
-  MapPin,
+  AlertCircle,
+  Box,
   Calendar,
+  CheckCircle,
+  Clock,
+  KeyRound,
+  Leaf,
+  ListOrdered,
+  Lock,
+  LogOut,
+  MapPin,
   Scale,
   Search,
   ShoppingBag,
+  Star,
   Store,
-  CheckCircle,
-  AlertCircle,
-  ListOrdered,
-  KeyRound,
-  XCircle,
-  Clock,
-  Box,
-  Lock,
   User,
-  Star 
+  XCircle
 } from "lucide-react";
-import { EditProfile } from "../components/EditProfile"; 
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { apiUrl, assetUrl } from "../../../lib/api";
+import { EditProfile } from "../components/EditProfile";
+import { RatingModal } from "../components/RatingModal";
 
 interface DonorInfo { _id: string; nombres: string; apellidos: string; departamento: string; ciudad: string; direccion: string; celular: string; nombreEmpresa?: string; }
 interface DonationData {
@@ -232,7 +232,7 @@ export const DashboardBeneficiaryPage = () => {
                           {reservation.estado === "asignado" ? (
                             <button onClick={() => handleCancelReservation(reservation._id)} className="flex items-center gap-1 text-xs px-3 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors font-medium"><XCircle size={14} /> Cancelar</button>
                           ) : (
-                            <button onClick={() => setRatingModal({ isOpen: true, donationId: reservation._id, toUserId: reservation.donor._id, toUserName: reservation.donor.nombreEmpresa || reservation.donor.nombres })} className="flex items-center gap-1 text-xs px-3 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors font-medium">
+                            <button onClick={() => setRatingModal({ isOpen: true, donationId: reservation._id, toUserId: reservation.donor?._id, toUserName: reservation.donor?.nombreEmpresa || reservation.donor?.nombres || "Usuario" })} className="flex items-center gap-1 text-xs px-3 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors font-medium">
                               <Star size={14} /> Calificar
                             </button>
                           )}
