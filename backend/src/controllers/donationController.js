@@ -102,6 +102,10 @@ export const requestDonation = async (req, res) => {
     const { id } = req.params;
     const { beneficiaryId, cantidadSolicitada } = req.body;
 
+    if (cantidadSolicitada !== undefined && Number(cantidadSolicitada) <= 0) {
+      return res.status(400).json({ message: "La cantidad solicitada debe ser mayor a 0." });
+    }
+
     // Regla Anti-Acaparamiento
     const activeRequest = await Donation.findOne({
       beneficiary: beneficiaryId,
@@ -197,6 +201,10 @@ export const completeDonation = async (req, res) => {
     const { pin } = req.body;
 
     const donation = await Donation.findById(id);
+
+    if (!donation) {
+      return res.status(404).json({ message: "Donacion no encontrada." });
+    }
 
     if (donation.failedPinAttempts >= 3) {
       return res.status(403).json({

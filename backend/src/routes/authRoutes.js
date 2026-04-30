@@ -13,6 +13,10 @@ import {
   updateProfile
 } from "../controllers/authController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
+import {
+  authenticate,
+  authorizeSelfOrAdmin,
+} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -39,7 +43,7 @@ router.post(
 router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.put("/reset-password/:token", resetPassword);
-router.put("/change-password", changePassword);
+router.put("/change-password", authenticate, authorizeSelfOrAdmin, changePassword);
 
 
 router.post(
@@ -54,6 +58,6 @@ router.post(
 router.post("/donor/pre-register", preRegisterDonorWithValidation);
 router.post("/donor/verify", verifyDonorOtpAndCreate);
 
-router.put("/profile/:id", updateProfile);
+router.put("/profile/:id", authenticate, authorizeSelfOrAdmin, updateProfile);
 
 export default router;

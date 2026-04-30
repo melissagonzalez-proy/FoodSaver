@@ -1,13 +1,14 @@
 import mongoose from "mongoose";
 import Rating from "../models/Rating.js";
 import User from "../models/User.js";
+import Donation from "../models/Donation.js";
 
 /* 
   CREAR CALIFICACIÓN Y ACTUALIZAR PROMEDIO
 */
 export const rateUser = async (req, res) => {
   try {
-    const { donationId, score, comentario } = req.body;
+    const { donationId, toUserId, score, comentario } = req.body;
     const fromUserId = req.user.id;
 
     if (!mongoose.Types.ObjectId.isValid(donationId)) {

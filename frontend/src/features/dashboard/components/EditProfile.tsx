@@ -6,6 +6,7 @@ import { CheckCircle, AlertCircle, Save } from "lucide-react";
 export const EditProfile = () => {
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentUserId = currentUser.id || currentUser._id || "";
+  const token = localStorage.getItem("token");
 
   const [formData, setFormData] = useState({
     nombres: currentUser.nombres || "",
@@ -53,14 +54,20 @@ export const EditProfile = () => {
     const direccionCompleta = `${formData.tipoVia} ${formData.numeroPrincipal} # ${formData.numeroSecundario}`;
 
     try {
-      const response = await axios.put(apiUrl(`/api/auth/profile/${currentUserId}`), {
-        nombres: formData.nombres,
-        apellidos: formData.apellidos,
-        departamento: formData.departamento,
-        ciudad: formData.ciudad,
-        celular: formData.celular,
-        direccion: direccionCompleta,
-      });
+      const response = await axios.put(
+        apiUrl(`/api/auth/profile/${currentUserId}`),
+        {
+          nombres: formData.nombres,
+          apellidos: formData.apellidos,
+          departamento: formData.departamento,
+          ciudad: formData.ciudad,
+          celular: formData.celular,
+          direccion: direccionCompleta,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
       localStorage.setItem("user", JSON.stringify({ ...currentUser, ...response.data.user }));
       

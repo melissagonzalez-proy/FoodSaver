@@ -107,6 +107,7 @@ export const DashboardDonorPage = () => {
 
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const userId = storedUser.id || storedUser._id || "";
+  const token = localStorage.getItem("token");
 
   const [formData, setFormData] = useState({
     titulo: "",
@@ -265,11 +266,17 @@ export const DashboardDonorPage = () => {
 
     setPasswordModal((prev) => ({ ...prev, isSubmitting: true }));
     try {
-      const response = await axios.put(apiUrl("/api/auth/change-password"), {
-        userId: userId,
-        passwordActual: passwordModal.actual,
-        passwordNueva: passwordModal.nueva,
-      });
+      const response = await axios.put(
+        apiUrl("/api/auth/change-password"),
+        {
+          userId: userId,
+          passwordActual: passwordModal.actual,
+          passwordNueva: passwordModal.nueva,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       alert(response.data.message);
       setPasswordModal({
         isOpen: false,

@@ -2,9 +2,7 @@ import jwt from "jsonwebtoken";
 
 export const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization || "";
-  const token = authHeader.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : null;
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!token) {
     return res.status(401).json({ message: "Token no proporcionado." });
@@ -20,4 +18,26 @@ export const authenticate = (req, res, next) => {
   } catch (error) {
     return res.status(401).json({ message: "Token invalido o expirado." });
   }
+};
+
+export const authorizeAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== "admin") {
+    return res
+      .status(403)
+      .json({ message: "Acceso restringido a administradores." });
+  }
+  return next();
+};
+
+export const authorizeSelfOrAdmin = (req, res, next) => {
+  const targetId = req.params.id || req.body.userId;
+  if (!req.user || !targetId) {
+    return res.status(403).json({ message: "No autorizado." });
+  }
+
+  if (req.user.role === "admin" || req.user.id === targetId) {
+    return next();
+  }
+
+  return res.status(403).json({ message: "No autorizado." });
 };

@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 
+import authRoutes from "./src/routes/authRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
 import donationRoutes from "./src/routes/donationRoutes.js";
 import ratingRoutes from "./src/routes/ratingRoutes.js";
@@ -37,8 +38,6 @@ app.use((err, req, res, next) => {
     detail: process.env.NODE_ENV === "production" ? undefined : err.message,
   });
 });
-
-app.use("/api/ratings", ratingRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI)

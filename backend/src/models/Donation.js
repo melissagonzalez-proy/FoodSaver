@@ -23,7 +23,7 @@ const donationSchema = new mongoose.Schema(
 
     estado: {
       type: String,
-      enum: ["activo", "asignado", "recolectado"],
+      enum: ["activo", "asignado", "recolectado", "cancelado"],
       default: "activo",
     },
 

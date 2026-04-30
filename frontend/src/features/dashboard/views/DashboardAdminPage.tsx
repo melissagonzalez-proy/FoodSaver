@@ -41,6 +41,7 @@ interface DonationData {
 
 export const DashboardAdminPage = () => {
   const navigate = useNavigate();
+  const token = localStorage.getItem("token");
   
   const [activeTab, setActiveTab] = useState<"solicitudes" | "donaciones" | "usuarios">("solicitudes");
 
@@ -73,7 +74,9 @@ export const DashboardAdminPage = () => {
   const fetchPendingUsers = async () => {
     setIsLoading(true);
     try { 
-      const response = await axios.get(apiUrl("/api/admin/pending-beneficiaries")); 
+      const response = await axios.get(apiUrl("/api/admin/pending-beneficiaries"), {
+        headers: { Authorization: `Bearer ${token}` },
+      }); 
       setPendingUsers(response.data);
     } catch (error) { 
       console.error(error); 
@@ -85,7 +88,9 @@ export const DashboardAdminPage = () => {
   const fetchAllDonations = async () => {
     setIsLoading(true);
     try { 
-      const response = await axios.get(apiUrl("/api/donations/admin/all")); 
+      const response = await axios.get(apiUrl("/api/donations/admin/all"), {
+        headers: { Authorization: `Bearer ${token}` },
+      }); 
       setAllDonations(response.data);
     } catch (error) { 
       console.error(error); 
@@ -97,7 +102,9 @@ export const DashboardAdminPage = () => {
   const fetchMetrics = async () => {
     setIsMetricsLoading(true);
     try { 
-      const response = await axios.get(apiUrl("/api/donations/metrics/total-collected")); 
+      const response = await axios.get(apiUrl("/api/donations/metrics/total-collected"), {
+        headers: { Authorization: `Bearer ${token}` },
+      }); 
       setTotalCollected(response.data.totalRecolectado);
     } catch (error) { 
       console.error(error); 
@@ -109,7 +116,9 @@ export const DashboardAdminPage = () => {
   const fetchUsersList = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(apiUrl("/api/admin/users-ratings"));
+      const response = await axios.get(apiUrl("/api/admin/users-ratings"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setUsersList(response.data);
     } catch (error) {
       console.error("Error al cargar lista de usuarios:", error);
@@ -134,13 +143,21 @@ export const DashboardAdminPage = () => {
 
     try {
       if (modalConfig.type === "approve") {
-        await axios.put(apiUrl(`/api/admin/approve-beneficiary/${modalConfig.userId}`));
+        await axios.put(
+          apiUrl(`/api/admin/approve-beneficiary/${modalConfig.userId}`),
+          {},
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
         setPendingUsers(pendingUsers.filter((user) => user._id !== modalConfig.userId));
       } else if (modalConfig.type === "reject") {
-        await axios.delete(apiUrl(`/api/admin/reject-beneficiary/${modalConfig.userId}`));
+        await axios.delete(apiUrl(`/api/admin/reject-beneficiary/${modalConfig.userId}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setPendingUsers(pendingUsers.filter((user) => user._id !== modalConfig.userId));
       } else if (modalConfig.type === "deleteUser") {
-        await axios.delete(apiUrl(`/api/admin/delete-bad-user/${modalConfig.userId}`));
+        await axios.delete(apiUrl(`/api/admin/delete-bad-user/${modalConfig.userId}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setUsersList(usersList.filter((user) => user._id !== modalConfig.userId));
       }
       setModalConfig({ isOpen: false, type: null, userId: null, userName: "" });
@@ -335,10 +352,13 @@ export const DashboardAdminPage = () => {
                           <td className="py-4 text-center">
                             <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
                               donation.estado === 'activo' ? 'bg-green-500/10 text-green-500' : 
-                              donation.estado === 'asignado' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-gray-500/10 text-gray-400'
+                              donation.estado === 'asignado' ? 'bg-yellow-500/10 text-yellow-500' :
+                              donation.estado === 'cancelado' ? 'bg-red-500/10 text-red-500' :
+                              'bg-gray-500/10 text-gray-400'
                             }`}>
                               {donation.estado === 'activo' && <CheckCircle size={12} />}
                               {donation.estado === 'asignado' && <Clock size={12} />}
+                              {donation.estado === 'cancelado' && <XCircle size={12} />}
                               {donation.estado === 'recolectado' && <Box size={12} />}
                               {donation.estado.toUpperCase()}
                             </span>

@@ -41,6 +41,7 @@ export const DashboardBeneficiaryPage = () => {
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentUserId = currentUser.id || currentUser._id || "";
+  const token = localStorage.getItem("token");
 
   const [feedbackModal, setFeedbackModal] = useState<{ isOpen: boolean; type: "success" | "error"; message: string; pin?: string; }>({ isOpen: false, type: "success", message: "" });
   const [requestModal, setRequestModal] = useState<{ isOpen: boolean; donation: DonationData | null; cantidadSolicitada: number; }>({ isOpen: false, donation: null, cantidadSolicitada: 1 });
@@ -127,11 +128,17 @@ export const DashboardBeneficiaryPage = () => {
     
     setPasswordModal(prev => ({ ...prev, isSubmitting: true }));
     try {
-      const response = await axios.put(apiUrl("/api/auth/change-password"), {
-        userId: currentUserId,
-        passwordActual: passwordModal.actual,
-        passwordNueva: passwordModal.nueva
-      });
+      const response = await axios.put(
+        apiUrl("/api/auth/change-password"),
+        {
+          userId: currentUserId,
+          passwordActual: passwordModal.actual,
+          passwordNueva: passwordModal.nueva,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       alert(response.data.message);
       setPasswordModal({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false });
     } catch (error: any) {

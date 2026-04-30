@@ -8,8 +8,11 @@ import {
   getUsersForAdminRating,
   deleteBadUser,
 } from "../controllers/ratingController.js";
+import { authenticate, authorizeAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+
+router.use(authenticate, authorizeAdmin);
 
 router.get("/pending-beneficiaries", getPendingBeneficiaries);
 router.put("/approve-beneficiary/:id", approveBeneficiary);
