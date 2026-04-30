@@ -1,4 +1,5 @@
 import axios from "axios";
+import { apiUrl } from "../../../lib/api";
 import { AlertCircle, CheckCircle, Leaf } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -133,7 +134,7 @@ export const RegisterBeneficiaryPage = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/beneficiary/pre-register",
+        apiUrl("/api/auth/beneficiary/pre-register"),
         {
           numeroDocumento: formData.numeroDocumento,
           tipoDocumento: formData.tipoDocumento,
@@ -171,7 +172,7 @@ export const RegisterBeneficiaryPage = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/beneficiary/verify",
+        apiUrl("/api/auth/beneficiary/verify"),
         {
           otp,
           beneficiaryData: {
@@ -202,7 +203,7 @@ export const RegisterBeneficiaryPage = () => {
         if (formData.sisben) data.append("sisben", formData.sisben);
 
         await axios.post(
-          "http://localhost:5000/api/auth/register-beneficiary",
+          apiUrl("/api/auth/register-beneficiary"),
           data,
           { headers: { "Content-Type": "multipart/form-data" } },
         );

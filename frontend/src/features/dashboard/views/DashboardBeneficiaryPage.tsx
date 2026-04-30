@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { EditProfile } from "../components/EditProfile"; 
 
-interface DonorInfo { _id: string; nombres: string; apellidos: string; departamento: string; ciudad: string; direccion: string; celular: string; nombreEmpresa?: string; }
+interface DonorInfo { _id: string; nombres: string; apellidos: string; departamento: string; ciudad: string; direccion: string; celular: string; nombreEmpresa?: string; promedioCalificacion?: number; totalEvaluaciones?: number; }
 interface DonationData {
   _id: string; titulo: string; descripcion: string; cantidad: number; unidad?: string;
   fechaCaducidad: string; estado: string; imagenUrl: string; donor: DonorInfo; pickupPin?: string;
@@ -40,6 +40,7 @@ export const DashboardBeneficiaryPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const currentUserId = currentUser.id || currentUser._id || "";
 
   const [feedbackModal, setFeedbackModal] = useState<{ isOpen: boolean; type: "success" | "error"; message: string; pin?: string; }>({ isOpen: false, type: "success", message: "" });
   const [requestModal, setRequestModal] = useState<{ isOpen: boolean; donation: DonationData | null; cantidadSolicitada: number; }>({ isOpen: false, donation: null, cantidadSolicitada: 1 });
@@ -65,11 +66,11 @@ export const DashboardBeneficiaryPage = () => {
     setIsLoading(true);
     try {
       const response = await axios.get(
-        apiUrl(`/api/donations/beneficiary/${currentUser.id}`),
+        apiUrl(`/api/donations/beneficiary/${currentUserId}`),
       );
       setMyReservations(response.data);
     } catch (error) { console.error(error); } finally { setIsLoading(false); }
-  }, [currentUser.id]);
+  }, [currentUserId]);
 
   useEffect(() => { 
     if (activeTab === "galeria") { fetchAvailableDonations(); } 
@@ -89,7 +90,7 @@ export const DashboardBeneficiaryPage = () => {
       const response = await axios.put(
         apiUrl(`/api/donations/request/${requestModal.donation._id}`),
         {
-          beneficiaryId: currentUser.id,
+          beneficiaryId: currentUserId,
           cantidadSolicitada: requestModal.cantidadSolicitada,
         },
       );
@@ -127,7 +128,7 @@ export const DashboardBeneficiaryPage = () => {
     setPasswordModal(prev => ({ ...prev, isSubmitting: true }));
     try {
       const response = await axios.put(apiUrl("/api/auth/change-password"), {
-        userId: currentUser.id,
+        userId: currentUserId,
         passwordActual: passwordModal.actual,
         passwordNueva: passwordModal.nueva
       });
@@ -199,6 +200,16 @@ export const DashboardBeneficiaryPage = () => {
                     <div className="bg-brand-background rounded-xl p-3 mb-4 border border-brand-border/50 text-xs">
                       <div className="flex items-start gap-2 text-brand-text mb-1.5"><Store size={14} className="text-brand-accent mt-0.5" /><span className="font-semibold">{donation.donor.nombreEmpresa || `${donation.donor.nombres}`}</span></div>
                       <div className="flex items-start gap-2 text-brand-muted"><MapPin size={14} className="mt-0.5" /><span>{donation.donor.direccion}, {donation.donor.ciudad}</span></div>
+                      <div className="flex items-center gap-2 text-brand-muted mt-2">
+                        <Star size={12} className="text-yellow-500" />
+                        {donation.donor.totalEvaluaciones && donation.donor.totalEvaluaciones > 0 ? (
+                          <span>
+                            {donation.donor.promedioCalificacion?.toFixed(1)} • {donation.donor.totalEvaluaciones} eval.
+                          </span>
+                        ) : (
+                          <span>Usuario nuevo</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-red-400 mb-5"><Calendar size={14} /><span>Expira: {new Date(donation.fechaCaducidad).toLocaleDateString()}</span></div>
                     <button onClick={() => openRequestModal(donation)} className="w-full py-3 bg-brand-accent text-white rounded-xl font-medium hover:bg-brand-accent-light transition-all shadow-[0_0_15px_rgba(255,0,85,0.15)] mt-auto">Solicitar Recolección</button>
@@ -223,7 +234,18 @@ export const DashboardBeneficiaryPage = () => {
                     myReservations.map((reservation) => (
                       <tr key={reservation._id} className="border-b border-brand-border/50 hover:bg-brand-background/50 transition-colors">
                         <td className="py-4"><p className="font-semibold text-brand-text">{reservation.titulo}</p><p className="text-xs text-brand-muted flex items-center gap-1 mt-1"><Scale size={12}/> {reservation.cantidad} {reservation.unidad || 'uds'}</p></td>
-                        <td className="py-4 text-sm"><p className="font-medium text-brand-text flex items-center gap-1"><Store size={14} className="text-brand-accent"/> {reservation.donor.nombreEmpresa || reservation.donor.nombres}</p><p className="text-xs text-brand-muted flex items-center gap-1 mt-1"><MapPin size={12}/> {reservation.donor.direccion}, {reservation.donor.ciudad}</p></td>
+                        <td className="py-4 text-sm">
+                          <p className="font-medium text-brand-text flex items-center gap-1"><Store size={14} className="text-brand-accent"/> {reservation.donor.nombreEmpresa || reservation.donor.nombres}</p>
+                          <p className="text-xs text-brand-muted flex items-center gap-1 mt-1"><MapPin size={12}/> {reservation.donor.direccion}, {reservation.donor.ciudad}</p>
+                          <p className="text-xs text-brand-muted flex items-center gap-1 mt-1">
+                            <Star size={12} className="text-yellow-500" />
+                            {reservation.donor.totalEvaluaciones && reservation.donor.totalEvaluaciones > 0 ? (
+                              <span>{reservation.donor.promedioCalificacion?.toFixed(1)} • {reservation.donor.totalEvaluaciones} eval.</span>
+                            ) : (
+                              <span>Usuario nuevo</span>
+                            )}
+                          </p>
+                        </td>
                         <td className="py-4 text-center"><span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${reservation.estado === 'asignado' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'}`}>{reservation.estado === 'asignado' ? <Clock size={12} /> : <Box size={12} />}{reservation.estado === 'asignado' ? 'Pendiente' : 'Recolectado'}</span></td>
                         <td className="py-4 text-center">{reservation.estado === "asignado" ? (<div className="inline-flex items-center gap-2 bg-brand-background border border-brand-accent/30 px-4 py-2 rounded-lg text-brand-accent font-bold tracking-[0.2em] shadow-[0_0_10px_rgba(255,0,85,0.1)]"><KeyRound size={16} /> {reservation.pickupPin}</div>) : (<span className="text-brand-muted text-sm">—</span>)}</td>
                         

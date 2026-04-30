@@ -385,7 +385,7 @@ export const DashboardAdminPage = () => {
                           </span>
                         </td>
                         <td className="py-4 text-center">
-                          {user.promedioCalificacion > 0 ? (
+                          {user.totalEvaluaciones > 0 ? (
                             <div className="flex items-center justify-center gap-1 text-yellow-500 font-bold">
                               <Star size={16} fill="currentColor" /> {user.promedioCalificacion}
                             </div>

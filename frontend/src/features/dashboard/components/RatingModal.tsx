@@ -13,7 +13,7 @@ interface RatingModalProps {
 }
 
 export const RatingModal = ({ isOpen, onClose, donationId, toUserId, toUserName, onSuccess }: RatingModalProps) => {
-  const [score, setScore] = useState<number>(0);
+  const [score, setScore] = useState<number>(-1);
   const [hoveredScore, setHoveredScore] = useState<number>(0);
   const [comentario, setComentario] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,8 +26,8 @@ export const RatingModal = ({ isOpen, onClose, donationId, toUserId, toUserName,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (score === 0) {
-      setError("Por favor selecciona una calificación de 1 a 5 estrellas.");
+    if (score < 0) {
+      setError("Por favor selecciona una calificación de 0 a 5 estrellas.");
       return;
     }
     
@@ -94,6 +94,21 @@ export const RatingModal = ({ isOpen, onClose, donationId, toUserId, toUserName,
 
               <form id="rating-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
                 {/* ESTRELLAS INTERACTIVAS */}
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setScore(0)}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+                      score === 0
+                        ? "bg-yellow-500/10 border-yellow-500/40 text-yellow-500"
+                        : "bg-brand-background border-brand-border text-brand-muted hover:text-brand-text"
+                    }`}
+                  >
+                    0
+                  </button>
+                  <span className="text-xs text-brand-muted">Sin estrellas</span>
+                </div>
+
                 <div className="flex justify-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -117,11 +132,13 @@ export const RatingModal = ({ isOpen, onClose, donationId, toUserId, toUserName,
                 </div>
                 <div className="text-center h-4">
                   <span className="text-sm font-medium text-brand-accent">
+                    {score === 0 && "Sin estrellas"}
                     {score === 1 && "Mala"}
                     {score === 2 && "Regular"}
                     {score === 3 && "Buena"}
                     {score === 4 && "Muy Buena"}
                     {score === 5 && "¡Excelente!"}
+                    {score < 0 && "Selecciona una calificacion"}
                   </span>
                 </div>
 
@@ -142,7 +159,7 @@ export const RatingModal = ({ isOpen, onClose, donationId, toUserId, toUserName,
               <button type="button" onClick={onClose} className="flex-1 py-3 font-medium text-brand-text border border-brand-border rounded-xl hover:bg-brand-background transition-colors">
                 Cancelar
               </button>
-              <button type="submit" form="rating-form" disabled={isSubmitting || score === 0} className="flex-1 py-3 font-medium text-white bg-brand-accent rounded-xl hover:bg-brand-accent-light disabled:opacity-50 transition-all shadow-lg shadow-brand-accent/20">
+              <button type="submit" form="rating-form" disabled={isSubmitting || score < 0} className="flex-1 py-3 font-medium text-white bg-brand-accent rounded-xl hover:bg-brand-accent-light disabled:opacity-50 transition-all shadow-lg shadow-brand-accent/20">
                 {isSubmitting ? "Enviando..." : "Calificar"}
               </button>
             </div>

@@ -28,9 +28,11 @@ export const DonationHistory = () => {
       if (!userStr) return; 
       
       const user = JSON.parse(userStr);
+      const userId = user.id || user._id || "";
+      if (!userId) return;
       
       const response = await axios.get(
-        apiUrl(`/api/donations/donor/${user.id}`),
+        apiUrl(`/api/donations/donor/${userId}`),
       );
       setDonations(response.data);
       setLoading(false);
@@ -42,7 +44,7 @@ export const DonationHistory = () => {
 
   const handleCancelDonation = async (id: string) => {
     try {
-      await axios.delete(apiUrl(`/api/donations/${id}/cancel`));
+      await axios.put(apiUrl(`/api/donations/cancel/${id}`));
       fetchDonations();
     } catch (error) {
       console.error("Error al cancelar la donación:", error);
@@ -53,7 +55,7 @@ export const DonationHistory = () => {
   const handleCompleteDelivery = async (id: string, pin: string) => {
     try {
       const response = await axios.put(
-        apiUrl(`/api/donations/${id}/complete`),
+        apiUrl(`/api/donations/complete/${id}`),
         { pin: pin },
       );
       

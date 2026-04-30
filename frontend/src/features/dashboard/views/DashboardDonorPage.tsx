@@ -7,7 +7,7 @@ import { apiUrl, assetUrl } from "../../../lib/api";
 import { LogOut, User, Leaf, PlusCircle, PackageOpen, Image as ImageIcon, Calendar, Scale, CheckCircle, Clock, KeyRound, Lock, XCircle, Box, ListOrdered, Pencil, Star } from "lucide-react";
 import { EditProfile } from "../components/EditProfile";
 
-interface BeneficiaryInfo { _id: string; nombres: string; apellidos: string; }
+interface BeneficiaryInfo { _id: string; nombres: string; apellidos: string; promedioCalificacion?: number; totalEvaluaciones?: number; }
 interface DonationData {
   _id: string; titulo: string; descripcion: string;
   cantidad: number; unidad: string;
@@ -59,13 +59,24 @@ export const DashboardDonorPage = () => {
     toUserName: ""
   });
 
-  const userId = JSON.parse(localStorage.getItem("user") || "{}").id;
+  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const userId = storedUser.id || storedUser._id || "";
 
   const [formData, setFormData] = useState({
     titulo: "", descripcion: "", cantidad: "", unidad: "kg", fechaCaducidad: "", fechaRecogida: "", imagen: null as File | null,
   });
   const [imageName, setImageName] = useState("");
   const [passwordModal, setPasswordModal] = useState({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false });
+
+  const getErrorMessage = (error: unknown): string => {
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.message;
+      const detail = error.response?.data?.detail;
+      if (message && detail) return `${message} (${detail})`;
+      return message || "Hubo un error al crear la publicacion.";
+    }
+    return "Hubo un error al crear la publicacion.";
+  };
 
   const fetchDonations = useCallback(async () => {
     try {
@@ -89,6 +100,11 @@ export const DashboardDonorPage = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setIsSubmitting(true);
+    if (!userId) {
+      alert("Tu sesion no es valida. Por favor inicia sesion de nuevo.");
+      setIsSubmitting(false);
+      return;
+    }
     try {
       const data = new FormData();
       data.append("donorId", userId);
@@ -105,7 +121,10 @@ export const DashboardDonorPage = () => {
       });
       setFormData({ titulo: "", descripcion: "", cantidad: "", unidad: "kg", fechaCaducidad: "", fechaRecogida: "", imagen: null });
       setImageName(""); fetchDonations(); setActiveTab("activo"); setMainView("inventario"); setShowSuccessModal(true);
-    } catch { alert("Hubo un error al crear la publicación."); } finally { setIsSubmitting(false); }
+    } catch (error) {
+      console.error("Error al crear la publicacion:", error);
+      alert(getErrorMessage(error));
+    } finally { setIsSubmitting(false); }
   };
 
   const handleCancel = async (id: string) => {
@@ -268,6 +287,19 @@ export const DashboardDonorPage = () => {
                           <span className="flex items-center gap-1"><Scale size={14} /> {donation.cantidad} {donation.unidad || 'uds'}</span>
                           <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(donation.fechaCaducidad).toLocaleDateString()}</span>
                         </div>
+
+                        {donation.beneficiary && (
+                          <div className="flex items-center gap-2 text-xs text-brand-muted mb-3">
+                            <User size={12} className="text-brand-accent" />
+                            <span>{donation.beneficiary.nombres}</span>
+                            <span>•</span>
+                            {donation.beneficiary.totalEvaluaciones && donation.beneficiary.totalEvaluaciones > 0 ? (
+                              <span>{donation.beneficiary.promedioCalificacion?.toFixed(1)} • {donation.beneficiary.totalEvaluaciones} eval.</span>
+                            ) : (
+                              <span>Usuario nuevo</span>
+                            )}
+                          </div>
+                        )}
                         
                         {donation.estado === "activo" && (
                           <div className="flex gap-2 mt-auto">
@@ -315,7 +347,7 @@ export const DashboardDonorPage = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-brand-border text-brand-muted text-sm">
-                  <th className="pb-3 font-medium">Producto</th><th className="pb-3 font-medium text-center">Cantidad</th><th className="pb-3 font-medium text-center">Estado</th><th className="pb-3 font-medium text-center">PIN</th>
+                  <th className="pb-3 font-medium">Producto</th><th className="pb-3 font-medium text-center">Cantidad</th><th className="pb-3 font-medium text-center">Estado</th><th className="pb-3 font-medium text-center">PIN</th><th className="pb-3 font-medium text-center">Accion</th>
                 </tr>
               </thead>
               <tbody>
@@ -325,6 +357,23 @@ export const DashboardDonorPage = () => {
                     <td className="py-4 text-center text-brand-text font-medium">{d.cantidad} {d.unidad || 'uds'}</td>
                     <td className="py-4 text-center"><span className={`px-3 py-1 rounded-full text-xs font-bold ${d.estado === 'activo' ? 'bg-green-500/10 text-green-500' : d.estado === 'asignado' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-gray-500/10 text-gray-400'}`}>{d.estado.toUpperCase()}</span></td>
                     <td className="py-4 text-center">{d.estado === 'asignado' ? <span className="bg-brand-background border border-brand-accent/30 px-2 py-1 rounded text-brand-accent font-mono font-bold tracking-wider">{d.pickupPin || "----"}</span> : <span className="text-brand-muted">—</span>}</td>
+                    <td className="py-4 text-center">
+                      {d.estado === "recolectado" && d.beneficiary ? (
+                        <button
+                          onClick={() => setRatingModal({
+                            isOpen: true,
+                            donationId: d._id,
+                            toUserId: d.beneficiary!._id,
+                            toUserName: `${d.beneficiary!.nombres} ${d.beneficiary!.apellidos || ""}`.trim(),
+                          })}
+                          className="inline-flex items-center gap-1 text-xs px-3 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors font-medium"
+                        >
+                          <Star size={14} /> Calificar
+                        </button>
+                      ) : (
+                        <span className="text-brand-muted">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Rating from "../models/Rating.js";
 import User from "../models/User.js";
 import Donation from "../models/Donation.js"; 
@@ -10,16 +11,44 @@ export const rateUser = async (req, res) => {
     const { donationId, toUserId, score, comentario } = req.body;
     const fromUserId = req.user.id; 
 
+    if (!mongoose.Types.ObjectId.isValid(donationId)) {
+      return res.status(400).json({ message: "Donacion invalida." });
+    }
+    if (!mongoose.Types.ObjectId.isValid(toUserId)) {
+      return res.status(400).json({ message: "Usuario a calificar invalido." });
+    }
+    const scoreNumber = Number(score);
+    if (!Number.isFinite(scoreNumber) || scoreNumber < 0 || scoreNumber > 5) {
+      return res.status(400).json({ message: "La calificacion debe estar entre 0 y 5." });
+    }
+    if (fromUserId === toUserId) {
+      return res.status(400).json({ message: "No puedes calificarte a ti mismo." });
+    }
+
     const donation = await Donation.findById(donationId);
     if (!donation || donation.estado !== "recolectado") {
       return res.status(400).json({ message: "Solo puedes calificar donaciones completadas." });
+    }
+
+    if (!donation.donor || !donation.beneficiary) {
+      return res.status(400).json({ message: "La donacion no tiene usuarios validos para calificar." });
+    }
+
+    const donorId = donation.donor.toString();
+    const beneficiaryId = donation.beneficiary.toString();
+    const validPair =
+      (fromUserId === donorId && toUserId === beneficiaryId) ||
+      (fromUserId === beneficiaryId && toUserId === donorId);
+
+    if (!validPair) {
+      return res.status(403).json({ message: "No estas autorizado para calificar esta donacion." });
     }
 
     const newRating = new Rating({
       donationId,
       fromUser: fromUserId,
       toUser: toUserId,
-      score,
+      score: scoreNumber,
       comentario
     });
     await newRating.save();
@@ -48,6 +77,9 @@ export const rateUser = async (req, res) => {
 export const getUsersForAdminRating = async (req, res) => {
   try {
     const users = await User.aggregate([
+      {
+        $match: { role: { $ne: "admin" } }
+      },
       {
         $addFields: {
           hasRatings: { $cond: [{ $gt: ["$totalEvaluaciones", 0] }, 1, 0] }

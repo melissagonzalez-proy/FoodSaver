@@ -1,17 +1,41 @@
+import mongoose from "mongoose";
 import Donation from "../models/Donation.js";
 
 // 1. CREAR DONACIÓN
 export const createDonation = async (req, res) => {
   try {
-    const { donorId, titulo, descripcion, cantidad, unidad, fechaCaducidad } =
-      req.body;
+    const {
+      donorId,
+      titulo,
+      descripcion,
+      cantidad,
+      unidad,
+      fechaCaducidad,
+      fechaRecogida,
+    } = req.body;
     const imagenUrl = req.file ? req.file.path : null;
+
+    const cantidadNumber = Number(cantidad);
+    if (
+      !donorId ||
+      !mongoose.Types.ObjectId.isValid(donorId) ||
+      !titulo ||
+      !descripcion ||
+      !fechaCaducidad ||
+      !fechaRecogida ||
+      !Number.isFinite(cantidadNumber) ||
+      cantidadNumber <= 0
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Datos incompletos o invalidos para publicar." });
+    }
 
     const newDonation = new Donation({
       donor: donorId,
       titulo,
       descripcion,
-      cantidad: Number(cantidad),
+      cantidad: cantidadNumber,
       unidad: unidad || "unidades",
       fechaCaducidad,
       fechaRecogida,
@@ -23,9 +47,17 @@ export const createDonation = async (req, res) => {
       .status(201)
       .json({ message: "Publicación creada con éxito", donation: newDonation });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error en el servidor al publicar el alimento." });
+    console.error("Error al crear donacion:", error);
+    if (error?.name === "ValidationError" || error?.name === "CastError") {
+      return res.status(400).json({
+        message: "Datos invalidos al publicar el alimento.",
+        detail: error.message,
+      });
+    }
+    res.status(500).json({
+      message: "Error en el servidor al publicar el alimento.",
+      detail: process.env.NODE_ENV === "production" ? undefined : error?.message,
+    });
   }
 };
 
@@ -35,6 +67,10 @@ export const getDonorDonations = async (req, res) => {
     const { donorId } = req.params;
     const donations = await Donation.find({ donor: donorId }).sort({
       createdAt: -1,
+    });
+    await Donation.populate(donations, {
+      path: "beneficiary",
+      select: "nombres apellidos promedioCalificacion totalEvaluaciones",
     });
     res.status(200).json(donations);
   } catch (error) {
@@ -48,7 +84,7 @@ export const getAvailableDonations = async (req, res) => {
     const availableDonations = await Donation.find({ estado: "activo" })
       .populate(
         "donor",
-        "nombres apellidos nombreEmpresa departamento ciudad direccion celular",
+        "nombres apellidos nombreEmpresa departamento ciudad direccion celular promedioCalificacion totalEvaluaciones",
       )
       .sort({ createdAt: -1 });
     res.status(200).json(availableDonations);
@@ -118,6 +154,7 @@ export const requestDonation = async (req, res) => {
       cantidad: cantSolicitada,
       unidad: donationOriginal.unidad,
       fechaCaducidad: donationOriginal.fechaCaducidad,
+      fechaRecogida: donationOriginal.fechaRecogida,
       imagenUrl: donationOriginal.imagenUrl,
       estado: "asignado",
       pickupPin: generatedPin,
@@ -204,7 +241,7 @@ export const getBeneficiaryDonations = async (req, res) => {
     const donations = await Donation.find({ beneficiary: beneficiaryId })
       .populate(
         "donor",
-        "nombreEmpresa nombres apellidos direccion celular ciudad",
+        "nombreEmpresa nombres apellidos direccion celular ciudad promedioCalificacion totalEvaluaciones",
       )
       .sort({ updatedAt: -1 });
     res.status(200).json(donations);

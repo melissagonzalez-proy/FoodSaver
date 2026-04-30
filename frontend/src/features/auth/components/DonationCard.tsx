@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Clock, Scale, XCircle, Image as ImageIcon, Pencil } from "lucide-react";
-// 1. SOLUCIÓN: Importamos assetUrl para que funcione la imagen
 import { assetUrl } from "../../../lib/api"; 
 
 interface Donation {

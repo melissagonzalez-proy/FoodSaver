@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, UploadCloud, Image as ImageIcon } from 'lucide-react';
 import axios from 'axios';
+import { apiUrl } from '../../../lib/api';
 
 interface Donation {
   _id: string;
@@ -72,7 +73,7 @@ export const EditDonationModal = ({ isOpen, onClose, donation, onSuccess }: Edit
         data.append("imagen", imageFile);
       }
 
-      await axios.put(`http://localhost:5000/api/donations/edit/${donation._id}`, data, {
+      await axios.put(apiUrl(`/api/donations/edit/${donation._id}`), data, {
         headers: { "Content-Type": "multipart/form-data" }
       });
 
@@ -109,22 +110,47 @@ export const EditDonationModal = ({ isOpen, onClose, donation, onSuccess }: Edit
             
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-brand-muted">Título del Alimento</label>
-              <input name="titulo" value={formData.titulo} onChange={handleChange} className="input bg-brand-background" required />
+              <input
+                name="titulo"
+                value={formData.titulo}
+                onChange={handleChange}
+                className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text outline-none focus:border-brand-accent transition-colors"
+                required
+              />
             </div>
 
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-brand-muted">Descripción</label>
-              <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} className="input bg-brand-background min-h-25 resize-none py-3" required />
+              <textarea
+                name="descripcion"
+                value={formData.descripcion}
+                onChange={handleChange}
+                className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text outline-none focus:border-brand-accent transition-colors min-h-[120px] resize-none"
+                required
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted">Cantidad</label>
-                <input type="number" name="cantidad" value={formData.cantidad} onChange={handleChange} className="input bg-brand-background" required min="1" />
+                <input
+                  type="number"
+                  name="cantidad"
+                  value={formData.cantidad}
+                  onChange={handleChange}
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text outline-none focus:border-brand-accent transition-colors"
+                  required
+                  min="1"
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted">Unidad</label>
-                <select name="unidad" value={formData.unidad} onChange={handleChange} className="input bg-brand-background">
+                <select
+                  name="unidad"
+                  value={formData.unidad}
+                  onChange={handleChange}
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-3 py-2.5 text-brand-text outline-none focus:border-brand-accent transition-colors"
+                >
                   <option value="unidades">Unidades</option>
                   <option value="kg">Kilogramos</option>
                   <option value="litros">Litros</option>
@@ -136,11 +162,25 @@ export const EditDonationModal = ({ isOpen, onClose, donation, onSuccess }: Edit
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted">Fecha de Caducidad</label>
-                <input type="date" name="fechaCaducidad" value={formData.fechaCaducidad} onChange={handleChange} className="input bg-brand-background" required />
+                <input
+                  type="date"
+                  name="fechaCaducidad"
+                  value={formData.fechaCaducidad}
+                  onChange={handleChange}
+                  className="w-full bg-brand-background border border-brand-border rounded-xl px-3 py-2.5 text-brand-text outline-none focus:border-brand-accent transition-colors text-sm"
+                  required
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-muted">Fecha de Recogida</label>
-                <input type="date" name="fechaRecogida" value={formData.fechaRecogida} onChange={handleChange} className="input border-brand-accent/30 bg-brand-accent/5" required />
+                <input
+                  type="date"
+                  name="fechaRecogida"
+                  value={formData.fechaRecogida}
+                  onChange={handleChange}
+                  className="w-full bg-brand-background border border-brand-accent/30 rounded-xl px-3 py-2.5 text-brand-text outline-none focus:border-brand-accent transition-colors text-sm"
+                  required
+                />
               </div>
             </div>
 

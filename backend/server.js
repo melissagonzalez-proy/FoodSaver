@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import authRoutes from "./src/routes/authRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
 import donationRoutes from "./src/routes/donationRoutes.js";
+import ratingRoutes from "./src/routes/ratingRoutes.js";
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Hacer que la carpeta uploads sea accesible públicamente desde el navegador
 app.use("/uploads", express.static("uploads"));
@@ -20,6 +22,24 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/donations", donationRoutes);
+app.use("/api/ratings", ratingRoutes);
+
+// Centralized error handler (multer + generic)
+app.use((err, req, res, next) => {
+  if (!err) return next();
+
+  if (err.name === "MulterError") {
+    return res.status(400).json({
+      message: "Error al subir el archivo.",
+      detail: err.message,
+    });
+  }
+
+  return res.status(500).json({
+    message: "Error interno del servidor.",
+    detail: process.env.NODE_ENV === "production" ? undefined : err.message,
+  });
+});
 
 mongoose
   .connect(process.env.MONGO_URI)

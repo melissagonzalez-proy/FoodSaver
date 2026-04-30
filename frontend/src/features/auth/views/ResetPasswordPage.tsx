@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { Leaf, Lock, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { apiUrl } from "../../../lib/api";
 
 export const ResetPasswordPage = () => {
   const { token } = useParams();
@@ -37,7 +38,7 @@ export const ResetPasswordPage = () => {
 
     try {
       const response = await axios.put(
-        `http://localhost:5000/api/auth/reset-password/${token}`,
+        apiUrl(`/api/auth/reset-password/${token}`),
         {
           newPassword: password,
         },

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiUrl } from "../../../lib/api";
 
 // 1. AGREGAMOS EL TERCER PASO
 type Step = "FORM" | "OTP" | "DOCUMENTS";
@@ -84,7 +85,7 @@ export const RegisterDonorPage = () => {
     setError("");
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/auth/donor/pre-register",
+        apiUrl("/api/auth/donor/pre-register"),
         formData,
       );
 
@@ -109,7 +110,7 @@ export const RegisterDonorPage = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/auth/donor/verify",
+        apiUrl("/api/auth/donor/verify"),
         {
           otp,
           donorData: formData,
@@ -158,7 +159,7 @@ export const RegisterDonorPage = () => {
       data.append("camaraComercio", documents.camaraComercio);
       // Endpoint imaginario (debes ajustarlo a la ruta real de tu backend)
       await axios.post(
-        "http://localhost:5000/api/auth/donor/upload-docs",
+        apiUrl("/api/auth/donor/upload-docs"),
         data,
         {
           headers: { "Content-Type": "multipart/form-data" },

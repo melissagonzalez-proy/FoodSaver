@@ -5,6 +5,7 @@ import { CheckCircle, AlertCircle, Save } from "lucide-react";
 
 export const EditProfile = () => {
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const currentUserId = currentUser.id || currentUser._id || "";
 
   const [formData, setFormData] = useState({
     nombres: currentUser.nombres || "",
@@ -52,7 +53,7 @@ export const EditProfile = () => {
     const direccionCompleta = `${formData.tipoVia} ${formData.numeroPrincipal} # ${formData.numeroSecundario}`;
 
     try {
-      const response = await axios.put(apiUrl(`/api/auth/profile/${currentUser.id}`), {
+      const response = await axios.put(apiUrl(`/api/auth/profile/${currentUserId}`), {
         nombres: formData.nombres,
         apellidos: formData.apellidos,
         departamento: formData.departamento,
