@@ -1,8 +1,8 @@
 import axios from "axios";
-import { apiUrl } from "../../../lib/api";
 import { AlertCircle, ArrowRight, Eye, EyeOff, Leaf } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiUrl } from "../../../lib/api";
 
 export const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -22,6 +22,7 @@ export const LoginPage = () => {
     }
 
     try {
+      console.log("ENV:", import.meta.env.VITE_API_URL);
       const response = await axios.post(apiUrl("/api/auth/login"), {
         email,
         password,

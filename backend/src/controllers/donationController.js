@@ -56,7 +56,8 @@ export const createDonation = async (req, res) => {
     }
     res.status(500).json({
       message: "Error en el servidor al publicar el alimento.",
-      detail: process.env.NODE_ENV === "production" ? undefined : error?.message,
+      detail:
+        process.env.NODE_ENV === "production" ? undefined : error?.message,
     });
   }
 };
@@ -108,12 +109,10 @@ export const requestDonation = async (req, res) => {
     });
 
     if (activeRequest) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Ya tienes una reserva activa. Debes recolectarla antes de pedir otra.",
-        });
+      return res.status(400).json({
+        message:
+          "Ya tienes una reserva activa. Debes recolectarla antes de pedir otra.",
+      });
     }
 
     const donationOriginal = await Donation.findById(id);
@@ -133,12 +132,10 @@ export const requestDonation = async (req, res) => {
       donationOriginal.beneficiary = beneficiaryId;
       donationOriginal.pickupPin = generatedPin;
       await donationOriginal.save();
-      return res
-        .status(200)
-        .json({
-          message: "Reserva total realizada con éxito",
-          donation: donationOriginal,
-        });
+      return res.status(200).json({
+        message: "Reserva total realizada con éxito",
+        donation: donationOriginal,
+      });
     }
 
     // CASO B: FRACCIONAMIENTO (Se lleva solo una parte)
@@ -202,33 +199,27 @@ export const completeDonation = async (req, res) => {
     const donation = await Donation.findById(id);
 
     if (donation.failedPinAttempts >= 3) {
-      return res
-        .status(403)
-        .json({
-          message: "Entrega bloqueada por demasiados intentos fallidos.",
-        });
+      return res.status(403).json({
+        message: "Entrega bloqueada por demasiados intentos fallidos.",
+      });
     }
 
     if (donation.pickupPin !== pin) {
       donation.failedPinAttempts += 1;
       await donation.save();
-      return res
-        .status(400)
-        .json({
-          message: `PIN incorrecto. Intentos: ${donation.failedPinAttempts}/3`,
-        });
+      return res.status(400).json({
+        message: `PIN incorrecto. Intentos: ${donation.failedPinAttempts}/3`,
+      });
     }
 
     donation.estado = "recolectado";
     donation.pickupPin = null;
     await donation.save();
 
-    res
-      .status(200)
-      .json({
-        message: "¡PIN Validado! Alimento entregado con éxito.",
-        donation,
-      });
+    res.status(200).json({
+      message: "¡PIN Validado! Alimento entregado con éxito.",
+      donation,
+    });
   } catch (error) {
     res.status(500).json({ message: "Error al finalizar la entrega." });
   }
@@ -279,14 +270,20 @@ export const getAllDonationsAdmin = async (req, res) => {
   }
 };
 
-
 /* 
   10. EDITAR UNA DONACIÓN (ACTUALIZAR DATOS/IMAGEN)
 */
 export const updateDonation = async (req, res) => {
   try {
     const { id } = req.params;
-    const { titulo, descripcion, cantidad, unidad, fechaCaducidad, fechaRecogida } = req.body;
+    const {
+      titulo,
+      descripcion,
+      cantidad,
+      unidad,
+      fechaCaducidad,
+      fechaRecogida,
+    } = req.body;
 
     // 1. Construimos el objeto con los datos a actualizar
     const updateData = {
@@ -295,7 +292,7 @@ export const updateDonation = async (req, res) => {
       cantidad,
       unidad,
       fechaCaducidad,
-      fechaRecogida
+      fechaRecogida,
     };
 
     // 2. Si el usuario subió una nueva imagen en la edición, la agregamos
@@ -307,17 +304,24 @@ export const updateDonation = async (req, res) => {
     const updatedDonation = await Donation.findByIdAndUpdate(
       id,
       updateData,
-      { new: true } // Esto hace que Mongoose nos devuelva el documento ya modificado
+      { new: true }, // Esto hace que Mongoose nos devuelva el documento ya modificado
     );
 
     if (!updatedDonation) {
       return res.status(404).json({ message: "Donación no encontrada." });
     }
 
-    res.status(200).json({ message: "Publicación actualizada con éxito", donation: updatedDonation });
+    res
+      .status(200)
+      .json({
+        message: "Publicación actualizada con éxito",
+        donation: updatedDonation,
+      });
   } catch (error) {
     console.error("Error al editar la donación:", error);
-    res.status(500).json({ message: "Error interno al actualizar la publicación." });
+    res
+      .status(500)
+      .json({ message: "Error interno al actualizar la publicación." });
   }
 };
 
@@ -328,12 +332,12 @@ export const getCollectedMetrics = async (req, res) => {
   try {
     const metrics = await Donation.aggregate([
       { $match: { estado: "recolectado" } },
-      { 
+      {
         $group: {
           _id: null,
-          totalAlimentos: { $sum: "$cantidad" }
-        }
-      }
+          totalAlimentos: { $sum: "$cantidad" },
+        },
+      },
     ]);
 
     const total = metrics.length > 0 ? metrics[0].totalAlimentos : 0;

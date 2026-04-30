@@ -23,7 +23,7 @@ export const ForgotPasswordPage = () => {
         { email },
       );
       setFeedback({ type: "success", message: response.data.message });
-      setEmail(""); // Limpiamos el campo
+      setEmail("");
     } catch (error: any) {
       setFeedback({
         type: "error",
