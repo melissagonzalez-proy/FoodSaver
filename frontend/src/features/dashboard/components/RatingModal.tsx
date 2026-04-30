@@ -181,7 +181,7 @@ export const RatingModal = ({
                     placeholder="Escribe cómo fue tu experiencia..."
                     value={comentario}
                     onChange={(e) => setComentario(e.target.value)}
-                    className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text outline-none focus:border-brand-accent min-h-[100px] resize-none"
+                    className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text outline-none focus:border-brand-accent min-h-25 resize-none"
                   />
                 </div>
               </form>

@@ -104,7 +104,6 @@ export const EditDonationModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4">
       <div className="bg-brand-card w-full max-w-lg rounded-3xl shadow-2xl border border-brand-border overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header del Modal */}
         <div className="flex items-center justify-between p-6 border-b border-brand-border">
           <h2 className="text-xl font-semibold text-brand-text font-jakarta">
             Editar Publicación
@@ -117,7 +116,6 @@ export const EditDonationModal = ({
           </button>
         </div>
 
-        {/* Cuerpo (Scrollable) */}
         <div className="overflow-y-auto p-6 custom-scrollbar">
           {error && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-500 rounded-xl text-sm">
@@ -151,7 +149,7 @@ export const EditDonationModal = ({
                 name="descripcion"
                 value={formData.descripcion}
                 onChange={handleChange}
-                className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text outline-none focus:border-brand-accent transition-colors min-h-[120px] resize-none"
+                className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text outline-none focus:border-brand-accent transition-colors min-h-30 resize-none"
                 required
               />
             </div>
@@ -244,8 +242,7 @@ export const EditDonationModal = ({
           </form>
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-brand-border bg-brand-background/50 flex gap-4">
+        <footer className="p-6 border-t border-brand-border bg-brand-background/50 flex gap-4">
           <button
             type="button"
             onClick={onClose}
@@ -261,7 +258,7 @@ export const EditDonationModal = ({
           >
             {loading ? "Guardando..." : "Guardar Cambios"}
           </button>
-        </div>
+        </footer>
       </div>
     </div>
   );
