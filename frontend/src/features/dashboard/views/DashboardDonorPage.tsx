@@ -32,6 +32,13 @@ interface BeneficiaryInfo {
   promedioCalificacion?: number;
   totalEvaluaciones?: number;
 }
+interface NotificationLog {
+  canal: "email";
+  destinatario: string;
+  estadoEntrega: "enviado" | "fallido";
+  fechaHora: string;
+  error?: string | null;
+}
 interface DonationData {
   _id: string;
   titulo: string;
@@ -45,6 +52,7 @@ interface DonationData {
   imagenUrl: string;
   pickupPin?: string;
   beneficiary?: BeneficiaryInfo;
+  notificaciones?: NotificationLog[];
   createdAt: string;
 }
 
@@ -136,6 +144,16 @@ export const DashboardDonorPage = () => {
     }
     return "Hubo un error al crear la publicacion.";
   };
+
+  const getLatestNotification = (donation: DonationData) => {
+    if (!donation.notificaciones || donation.notificaciones.length === 0) {
+      return null;
+    }
+    return donation.notificaciones[donation.notificaciones.length - 1];
+  };
+
+  const formatNotificationDate = (value: string) =>
+    new Date(value).toLocaleString();
 
   const fetchDonations = useCallback(async () => {
     try {
@@ -360,7 +378,10 @@ export const DashboardDonorPage = () => {
         </header>
 
         {mainView === "inventario" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div
+            id="mis-publicaciones"
+            className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+          >
             <div className="lg:col-span-1 bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl h-fit">
               <div className="flex items-center gap-2 mb-6">
                 <PlusCircle className="text-brand-accent" size={24} />
@@ -507,7 +528,9 @@ export const DashboardDonorPage = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-max">
-                  {filteredDonations.map((donation) => (
+                  {filteredDonations.map((donation) => {
+                    const latestNotification = getLatestNotification(donation);
+                    return (
                     <div
                       key={donation._id}
                       className={`bg-brand-card border border-brand-border rounded-2xl overflow-hidden transition-colors flex flex-col ${donation.estado === "recolectado" ? "opacity-60 grayscale" : "hover:border-brand-accent/50"}`}
@@ -569,6 +592,19 @@ export const DashboardDonorPage = () => {
                             ) : (
                               <span>Usuario nuevo</span>
                             )}
+                          </div>
+                        )}
+
+                        {latestNotification && (
+                          <div className="flex items-center gap-2 text-[11px] text-brand-muted mb-3">
+                            <span
+                              className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${latestNotification.estadoEntrega === "enviado" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}`}
+                            >
+                              {latestNotification.estadoEntrega === "enviado"
+                                ? "Email enviado"
+                                : "Email fallido"}
+                            </span>
+                            <span>{formatNotificationDate(latestNotification.fechaHora)}</span>
                           </div>
                         )}
 
@@ -650,7 +686,8 @@ export const DashboardDonorPage = () => {
                           )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -666,15 +703,18 @@ export const DashboardDonorPage = () => {
                   <th className="pb-3 font-medium text-center">Cantidad</th>
                   <th className="pb-3 font-medium text-center">Estado</th>
                   <th className="pb-3 font-medium text-center">PIN</th>
+                  <th className="pb-3 font-medium text-center">Notificación</th>
                   <th className="pb-3 font-medium text-center">Accion</th>
                 </tr>
               </thead>
               <tbody>
-                {donations.map((d) => (
-                  <tr
-                    key={d._id}
-                    className="border-b border-brand-border/50 hover:bg-brand-background/50 transition-colors"
-                  >
+                {donations.map((d) => {
+                  const latestNotification = getLatestNotification(d);
+                  return (
+                    <tr
+                      key={d._id}
+                      className="border-b border-brand-border/50 hover:bg-brand-background/50 transition-colors"
+                    >
                     <td className="py-4">
                       <p className="font-semibold text-brand-text">
                         {d.titulo}
@@ -705,6 +745,24 @@ export const DashboardDonorPage = () => {
                       )}
                     </td>
                     <td className="py-4 text-center">
+                      {latestNotification ? (
+                        <div className="flex flex-col items-center gap-1 text-xs">
+                          <span
+                            className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${latestNotification.estadoEntrega === "enviado" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}`}
+                          >
+                            {latestNotification.estadoEntrega === "enviado"
+                              ? "Email enviado"
+                              : "Email fallido"}
+                          </span>
+                          <span className="text-brand-muted">
+                            {formatNotificationDate(latestNotification.fechaHora)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-brand-muted">—</span>
+                      )}
+                    </td>
+                    <td className="py-4 text-center">
                       {d.estado === "recolectado" && d.beneficiary ? (
                         <button
                           onClick={() =>
@@ -724,8 +782,9 @@ export const DashboardDonorPage = () => {
                         <span className="text-brand-muted">—</span>
                       )}
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

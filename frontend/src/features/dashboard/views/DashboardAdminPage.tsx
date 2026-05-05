@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { apiUrl, assetUrl } from "../../../lib/api";
+import { apiUrl } from "../../../lib/api";
 import {
   Users,
-  FileText,
   CheckCircle,
   XCircle,
   LogOut,
@@ -18,7 +17,7 @@ import {
   RefreshCw,
   Star,
   UserCog,
-  Trash2
+  Trash2,
 } from "lucide-react";
 
 interface UserShort { 
@@ -39,82 +38,108 @@ interface DonationData {
   createdAt: string; 
 }
 
+interface CollectedMetric {
+  unidad: string;
+  total: number;
+  count: number;
+}
+
+interface CollectedMetricsResponse {
+  totalRecolectado: number;
+  totalDonacionesRecolectadas: number;
+  totalPorUnidad: CollectedMetric[];
+}
+
 export const DashboardAdminPage = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   
-  const [activeTab, setActiveTab] = useState<"solicitudes" | "donaciones" | "usuarios">("solicitudes");
+  const [activeTab, setActiveTab] = useState<
+    "dashboard" | "donaciones" | "usuarios"
+  >("dashboard");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [allDonations, setAllDonations] = useState<DonationData[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [usersList, setUsersList] = useState<any[]>([]); 
-  
-  const [totalCollected, setTotalCollected] = useState<number>(0);
+  const [usersList, setUsersList] = useState<any[]>([]);
+
+  const [collectedMetrics, setCollectedMetrics] =
+    useState<CollectedMetricsResponse>({
+      totalRecolectado: 0,
+      totalDonacionesRecolectadas: 0,
+      totalPorUnidad: [],
+    });
   const [isMetricsLoading, setIsMetricsLoading] = useState(false);
+  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
-    type: "approve" | "reject" | "deleteUser" | null; 
     userId: string | null;
     userName: string;
-    rating?: number; 
+    rating?: number;
     totalReviews?: number;
-  }>({ isOpen: false, type: null, userId: null, userName: "" });
+  }>({
+    isOpen: false,
+    userId: null,
+    userName: "",
+    rating: 0,
+    totalReviews: 0,
+  });
 
   useEffect(() => {
-    if (activeTab === "solicitudes") fetchPendingUsers();
-    else if (activeTab === "donaciones") { fetchAllDonations(); fetchMetrics(); }
-    else if (activeTab === "usuarios") fetchUsersList(); 
+    if (activeTab === "dashboard") {
+      refreshDashboard();
+    } else if (activeTab === "donaciones") {
+      fetchAllDonations();
+      fetchMetrics();
+    } else if (activeTab === "usuarios") {
+      fetchUsersList();
+    }
   }, [activeTab]);
 
-  const fetchPendingUsers = async () => {
-    setIsLoading(true);
-    try { 
-      const response = await axios.get(apiUrl("/api/admin/pending-beneficiaries"), {
-        headers: { Authorization: `Bearer ${token}` },
-      }); 
-      setPendingUsers(response.data);
-    } catch (error) { 
-      console.error(error); 
-    } finally { 
-      setIsLoading(false); 
-    }
-  };
-
-  const fetchAllDonations = async () => {
-    setIsLoading(true);
-    try { 
+  const fetchAllDonations = async (options?: { setLoading?: boolean }) => {
+    const shouldSetLoading = options?.setLoading !== false;
+    if (shouldSetLoading) setIsLoading(true);
+    try {
       const response = await axios.get(apiUrl("/api/donations/admin/all"), {
         headers: { Authorization: `Bearer ${token}` },
-      }); 
+      });
       setAllDonations(response.data);
-    } catch (error) { 
-      console.error(error); 
-    } finally { 
-      setIsLoading(false); 
+    } catch (error) {
+      console.error(error);
+    } finally {
+      if (shouldSetLoading) setIsLoading(false);
     }
   };
 
   const fetchMetrics = async () => {
     setIsMetricsLoading(true);
-    try { 
-      const response = await axios.get(apiUrl("/api/donations/metrics/total-collected"), {
-        headers: { Authorization: `Bearer ${token}` },
-      }); 
-      setTotalCollected(response.data.totalRecolectado);
-    } catch (error) { 
-      console.error(error); 
-    } finally { 
-      setIsMetricsLoading(false); 
+    try {
+      const response = await axios.get(
+        apiUrl("/api/donations/metrics/total-collected"),
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      const data = response.data || {};
+      setCollectedMetrics({
+        totalRecolectado: data.totalRecolectado || 0,
+        totalDonacionesRecolectadas: data.totalDonacionesRecolectadas || 0,
+        totalPorUnidad: Array.isArray(data.totalPorUnidad)
+          ? data.totalPorUnidad
+          : [],
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsMetricsLoading(false);
     }
   };
 
-  const fetchUsersList = async () => {
-    setIsLoading(true);
+  const fetchUsersList = async (options?: { setLoading?: boolean }) => {
+    const shouldSetLoading = options?.setLoading !== false;
+    if (shouldSetLoading) setIsLoading(true);
     try {
       const response = await axios.get(apiUrl("/api/admin/users-ratings"), {
         headers: { Authorization: `Bearer ${token}` },
@@ -123,56 +148,132 @@ export const DashboardAdminPage = () => {
     } catch (error) {
       console.error("Error al cargar lista de usuarios:", error);
     } finally {
-      setIsLoading(false);
+      if (shouldSetLoading) setIsLoading(false);
     }
   };
 
-  const confirmApprove = (id: string, name: string) => setModalConfig({ isOpen: true, type: "approve", userId: id, userName: name });
-  const confirmReject = (id: string, name: string) => setModalConfig({ isOpen: true, type: "reject", userId: id, userName: name });
+  const refreshDashboard = async () => {
+    setIsDashboardLoading(true);
+    try {
+      await Promise.all([
+        fetchAllDonations({ setLoading: false }),
+        fetchUsersList({ setLoading: false }),
+        fetchMetrics(),
+      ]);
+    } finally {
+      setIsDashboardLoading(false);
+    }
+  };
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const confirmDelete = (user: any) => {
-    setModalConfig({ 
-      isOpen: true, type: "deleteUser", userId: user._id, 
-      userName: `${user.nombres} ${user.apellidos}`, rating: user.promedioCalificacion, totalReviews: user.totalEvaluaciones 
+    setModalConfig({
+      isOpen: true,
+      userId: user._id,
+      userName: `${user.nombres} ${user.apellidos}`,
+      rating: user.promedioCalificacion,
+      totalReviews: user.totalEvaluaciones,
     });
   };
 
   const executeAction = async () => {
-    if (!modalConfig.userId || !modalConfig.type) return;
+    if (!modalConfig.userId) return;
 
     try {
-      if (modalConfig.type === "approve") {
-        await axios.put(
-          apiUrl(`/api/admin/approve-beneficiary/${modalConfig.userId}`),
-          {},
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        setPendingUsers(pendingUsers.filter((user) => user._id !== modalConfig.userId));
-      } else if (modalConfig.type === "reject") {
-        await axios.delete(apiUrl(`/api/admin/reject-beneficiary/${modalConfig.userId}`), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setPendingUsers(pendingUsers.filter((user) => user._id !== modalConfig.userId));
-      } else if (modalConfig.type === "deleteUser") {
-        await axios.delete(apiUrl(`/api/admin/delete-bad-user/${modalConfig.userId}`), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUsersList(usersList.filter((user) => user._id !== modalConfig.userId));
-      }
-      setModalConfig({ isOpen: false, type: null, userId: null, userName: "" });
+      await axios.delete(apiUrl(`/api/admin/delete-bad-user/${modalConfig.userId}`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsersList(usersList.filter((user) => user._id !== modalConfig.userId));
+      setModalConfig({
+        isOpen: false,
+        userId: null,
+        userName: "",
+        rating: 0,
+        totalReviews: 0,
+      });
     } catch (error: any) {
       alert(error.response?.data?.message || "Hubo un error al ejecutar la acción.");
-      setModalConfig({ isOpen: false, type: null, userId: null, userName: "" });
+      setModalConfig({
+        isOpen: false,
+        userId: null,
+        userName: "",
+        rating: 0,
+        totalReviews: 0,
+      });
     }
   };
-
-  const openFile = (path: string) => { if (!path) return; window.open(assetUrl(path.replace(/\\/g, "/")), "_blank"); };
   const handleLogout = () => { localStorage.removeItem("token"); localStorage.removeItem("user"); navigate("/login"); };
 
-  const filteredUsers = pendingUsers.filter(user => user.nombres.toLowerCase().includes(searchTerm.toLowerCase()) || user.email.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredDonations = allDonations.filter(don => don.titulo.toLowerCase().includes(searchTerm.toLowerCase()) || don.donor?.nombres.toLowerCase().includes(searchTerm.toLowerCase()) || don.beneficiary?.nombres.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredUsersList = usersList.filter(user => user.nombres.toLowerCase().includes(searchTerm.toLowerCase()) || user.email.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredDonations = allDonations.filter((don) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      don.titulo.toLowerCase().includes(term) ||
+      (don.donor?.nombres || "").toLowerCase().includes(term) ||
+      (don.beneficiary?.nombres || "").toLowerCase().includes(term)
+    );
+  });
+  const filteredUsersList = usersList.filter((user) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      (user.nombres || "").toLowerCase().includes(term) ||
+      (user.email || "").toLowerCase().includes(term)
+    );
+  });
+
+  const donationStats = allDonations.reduce(
+    (acc, donation) => {
+      acc.total += 1;
+      if (donation.estado === "activo") acc.activo += 1;
+      if (donation.estado === "asignado") acc.asignado += 1;
+      if (donation.estado === "recolectado") acc.recolectado += 1;
+      if (donation.estado === "cancelado") acc.cancelado += 1;
+      return acc;
+    },
+    {
+      total: 0,
+      activo: 0,
+      asignado: 0,
+      recolectado: 0,
+      cancelado: 0,
+    },
+  );
+
+  const totalUsers = usersList.length;
+  const donorCount = usersList.filter((user) => user.role === "donor").length;
+  const beneficiaryCount = usersList.filter(
+    (user) => user.role === "beneficiary",
+  ).length;
+  const adminCount = usersList.filter((user) => user.role === "admin").length;
+  const totalEvaluations = usersList.reduce(
+    (acc, user) => acc + (user.totalEvaluaciones || 0),
+    0,
+  );
+  const weightedRatingSum = usersList.reduce(
+    (acc, user) =>
+      acc + (user.promedioCalificacion || 0) * (user.totalEvaluaciones || 0),
+    0,
+  );
+  const averageRating =
+    totalEvaluations > 0
+      ? (weightedRatingSum / totalEvaluations).toFixed(2)
+      : "—";
+
+  const completionRate =
+    donationStats.total > 0
+      ? Math.round((donationStats.recolectado / donationStats.total) * 100)
+      : 0;
+
+  const recentDonations = [...allDonations]
+    .sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, 5);
+
+  const unitMetrics = collectedMetrics.totalPorUnidad || [];
+  const maxUnitTotal = Math.max(
+    ...unitMetrics.map((metric) => metric.total),
+    1,
+  );
 
   return (
     <div className="h-screen overflow-hidden bg-brand-background font-sans flex flex-col md:flex-row relative">
@@ -184,13 +285,22 @@ export const DashboardAdminPage = () => {
         </div>
 
         <nav className="flex-1 flex flex-col gap-2">
-          <button onClick={() => setActiveTab("solicitudes")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "solicitudes" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}>
-            <Users size={20} /> Solicitudes Pendientes
+          <button
+            onClick={() => setActiveTab("dashboard")}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "dashboard" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}
+          >
+            <TrendingUp size={20} /> Dashboard
           </button>
-          <button onClick={() => setActiveTab("donaciones")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "donaciones" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}>
+          <button
+            onClick={() => setActiveTab("donaciones")}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "donaciones" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}
+          >
             <PackageOpen size={20} /> Monitoreo Alimentos
           </button>
-          <button onClick={() => setActiveTab("usuarios")} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "usuarios" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}>
+          <button
+            onClick={() => setActiveTab("usuarios")}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "usuarios" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}
+          >
             <UserCog size={20} /> Gestión Usuarios
           </button>
         </nav>
@@ -206,74 +316,336 @@ export const DashboardAdminPage = () => {
           <div>
             <h1 className="text-3xl font-bold text-brand-text font-jakarta mb-2">Panel de Administración</h1>
             <p className="text-brand-muted">
-              {activeTab === "solicitudes" ? "Revisa y gestiona las solicitudes de nuevos beneficiarios." 
-               : activeTab === "donaciones" ? "Supervisa todas las donaciones activas e histórico del sistema."
-               : "Supervisa la reputación y mantén la seguridad de la comunidad."}
+              {activeTab === "dashboard"
+                ? "Visualiza el pulso del sistema y la interacción de la comunidad."
+                : activeTab === "donaciones"
+                  ? "Supervisa todas las donaciones activas e histórico del sistema."
+                  : "Supervisa la reputación y mantén la seguridad de la comunidad."}
             </p>
           </div>
 
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" size={18} />
-            <input 
-              type="text" 
-              placeholder="Buscar..." 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-              className="w-full bg-brand-card border border-brand-border rounded-xl pl-10 pr-4 py-3 text-sm text-brand-text focus:outline-none focus:border-brand-accent transition-colors shadow-sm" 
-            />
-          </div>
+          {activeTab !== "dashboard" && (
+            <div className="relative w-full md:w-72">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted"
+                size={18}
+              />
+              <input
+                type="text"
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-brand-card border border-brand-border rounded-xl pl-10 pr-4 py-3 text-sm text-brand-text focus:outline-none focus:border-brand-accent transition-colors shadow-sm"
+              />
+            </div>
+          )}
         </header>
 
-        {/* --- VISTA 1: SOLICITUDES PENDIENTES --- */}
-        {activeTab === "solicitudes" && (
-           <div className="bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl">
-             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-brand-border text-brand-muted text-sm">
-                    <th className="pb-3 font-medium min-w-50">Nombre y Correo</th>
-                    <th className="pb-3 font-medium min-w-37.5">Documento</th>
-                    <th className="pb-3 font-medium min-w-50">Archivos Adjuntos</th>
-                    <th className="pb-3 font-medium text-center min-w-25">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    <tr><td colSpan={4} className="text-center py-10 text-brand-muted">Cargando solicitudes...</td></tr>
-                  ) : filteredUsers.length === 0 ? (
-                    <tr><td colSpan={4} className="text-center py-10 text-brand-muted">No hay solicitudes pendientes.</td></tr>
-                  ) : (
-                    filteredUsers.map((user) => (
-                      <tr key={user._id} className="border-b border-brand-border/50 hover:bg-brand-background/50 transition-colors">
-                        <td className="py-4">
-                          <p className="font-medium text-brand-text">{user.nombres} {user.apellidos}</p>
-                          <p className="text-xs text-brand-muted">{user.email}</p>
-                        </td>
-                        <td className="py-4 text-sm text-brand-text">
-                          {user.tipoDocumento} <br />
-                          <span className="text-brand-muted">{user.numeroDocumento}</span>
-                        </td>
-                        <td className="py-4">
-                          <div className="flex flex-wrap gap-2">
-                            <button onClick={() => openFile(user.documentoIdentidadUrl)} className="flex items-center gap-1 text-xs px-3 py-1.5 bg-brand-background border border-brand-border rounded-lg text-brand-text hover:border-brand-accent transition-colors">
-                              <FileText size={14} /> Cédula
-                            </button>
-                            <button onClick={() => openFile(user.sisbenUrl)} className="flex items-center gap-1 text-xs px-3 py-1.5 bg-brand-background border border-brand-border rounded-lg text-brand-text hover:border-brand-accent transition-colors">
-                              <FileText size={14} /> SISBEN
-                            </button>
-                          </div>
-                        </td>
-                        <td className="py-4 flex justify-center gap-2">
-                          <button onClick={() => confirmApprove(user._id, `${user.nombres} ${user.apellidos}`)} className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-colors" title="Aprobar"><CheckCircle size={20} /></button>
-                          <button onClick={() => confirmReject(user._id, `${user.nombres} ${user.apellidos}`)} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors" title="Rechazar"><XCircle size={20} /></button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+        {/* --- VISTA 1: DASHBOARD --- */}
+        {activeTab === "dashboard" && (
+          <div className="flex flex-col gap-6">
+            <div className="flex justify-end">
+              <button
+                onClick={refreshDashboard}
+                disabled={isDashboardLoading}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-card border border-brand-border text-sm font-medium text-brand-text hover:border-brand-accent transition-colors disabled:opacity-50"
+              >
+                <RefreshCw
+                  size={16}
+                  className={isDashboardLoading ? "animate-spin" : ""}
+                />
+                Actualizar datos
+              </button>
             </div>
-           </div>
+
+            {isDashboardLoading ? (
+              <div className="bg-brand-card border border-brand-border rounded-4xl p-10 text-center text-brand-muted">
+                Cargando dashboard...
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                  <div className="bg-brand-card border border-brand-border rounded-3xl p-6 shadow-md">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider">
+                        Usuarios
+                      </p>
+                      <div className="w-12 h-12 rounded-2xl bg-brand-accent/10 text-brand-accent flex items-center justify-center">
+                        <Users size={22} />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-brand-text font-jakarta">
+                      {totalUsers}
+                    </div>
+                    <p className="text-xs text-brand-muted mt-2">
+                      Donadores {donorCount} • Beneficiarios {beneficiaryCount} •
+                      Admin {adminCount}
+                    </p>
+                  </div>
+
+                  <div className="bg-brand-card border border-brand-border rounded-3xl p-6 shadow-md">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider">
+                        Entregas completadas
+                      </p>
+                      <div className="w-12 h-12 rounded-2xl bg-green-500/10 text-green-500 flex items-center justify-center">
+                        <Box size={22} />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-brand-text font-jakarta">
+                      {donationStats.recolectado}
+                    </div>
+                    <p className="text-xs text-brand-muted mt-2">
+                      Tasa de entrega {completionRate}%
+                    </p>
+                    <div className="mt-3 h-2 bg-brand-background rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-green-500"
+                        style={{ width: `${completionRate}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-brand-card border border-brand-border rounded-3xl p-6 shadow-md">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider">
+                        Reservas activas
+                      </p>
+                      <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 text-yellow-500 flex items-center justify-center">
+                        <Clock size={22} />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-brand-text font-jakarta">
+                      {donationStats.asignado}
+                    </div>
+                    <p className="text-xs text-brand-muted mt-2">
+                      Publicaciones activas {donationStats.activo}
+                    </p>
+                  </div>
+
+                  <div className="bg-brand-card border border-brand-border rounded-3xl p-6 shadow-md">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider">
+                        Evaluaciones
+                      </p>
+                      <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 text-yellow-500 flex items-center justify-center">
+                        <Star size={22} />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-brand-text font-jakarta">
+                      {totalEvaluations}
+                    </div>
+                    <p className="text-xs text-brand-muted mt-2">
+                      Promedio comunidad {averageRating} ★
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                  <div className="xl:col-span-2 bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl">
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider">
+                          Impacto por unidad
+                        </p>
+                        <p className="text-xs text-brand-muted">
+                          Suma de cantidades recolectadas por tipo de medida.
+                        </p>
+                      </div>
+                      <button
+                        onClick={fetchMetrics}
+                        disabled={isMetricsLoading}
+                        className="p-3 text-brand-muted hover:text-brand-accent hover:bg-brand-background rounded-full transition-all disabled:opacity-50"
+                        title="Actualizar Métrica"
+                      >
+                        <RefreshCw
+                          size={18}
+                          className={isMetricsLoading ? "animate-spin" : ""}
+                        />
+                      </button>
+                    </div>
+
+                    {unitMetrics.length === 0 ? (
+                      <div className="text-brand-muted text-center py-10">
+                        Sin datos recolectados todavía.
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        {unitMetrics.map((metric) => (
+                          <div key={metric.unidad} className="flex items-center gap-4">
+                            <span className="w-20 text-xs font-semibold uppercase text-brand-muted">
+                              {metric.unidad}
+                            </span>
+                            <div className="flex-1 h-3 bg-brand-background rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-brand-accent"
+                                style={{
+                                  width: `${(metric.total / maxUnitTotal) * 100}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="min-w-22.5 text-right text-sm font-semibold text-brand-text">
+                              {metric.total.toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-4 text-xs text-brand-muted">
+                      Donaciones recolectadas: {collectedMetrics.totalDonacionesRecolectadas}
+                    </div>
+                  </div>
+
+                  <div className="bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl">
+                    <div className="flex items-center justify-between mb-6">
+                      <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider">
+                        Estado de donaciones
+                      </p>
+                      <span className="text-xs text-brand-muted">
+                        Total {donationStats.total}
+                      </span>
+                    </div>
+
+                    {[
+                      {
+                        label: "Activas",
+                        count: donationStats.activo,
+                        color: "bg-green-500",
+                      },
+                      {
+                        label: "Asignadas",
+                        count: donationStats.asignado,
+                        color: "bg-yellow-500",
+                      },
+                      {
+                        label: "Recolectadas",
+                        count: donationStats.recolectado,
+                        color: "bg-gray-500",
+                      },
+                      {
+                        label: "Canceladas",
+                        count: donationStats.cancelado,
+                        color: "bg-red-500",
+                      },
+                    ].map((item) => {
+                      const percent =
+                        donationStats.total > 0
+                          ? Math.round((item.count / donationStats.total) * 100)
+                          : 0;
+                      return (
+                        <div key={item.label} className="mb-4">
+                          <div className="flex items-center justify-between text-xs text-brand-muted mb-1">
+                            <span>{item.label}</span>
+                            <span>
+                              {item.count} • {percent}%
+                            </span>
+                          </div>
+                          <div className="h-2 bg-brand-background rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${item.color}`}
+                              style={{ width: `${percent}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider">
+                        Actividad reciente
+                      </p>
+                      <p className="text-xs text-brand-muted">
+                        Últimas donaciones registradas.
+                      </p>
+                    </div>
+                    <span className="text-xs text-brand-muted">
+                      {recentDonations.length} registros
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-brand-border text-brand-muted text-sm">
+                          <th className="pb-3 font-medium">Alimento</th>
+                          <th className="pb-3 font-medium">Donador</th>
+                          <th className="pb-3 font-medium text-center">Estado</th>
+                          <th className="pb-3 font-medium text-right">Fecha</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentDonations.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="text-center py-10 text-brand-muted"
+                            >
+                              No hay actividad reciente.
+                            </td>
+                          </tr>
+                        ) : (
+                          recentDonations.map((donation) => (
+                            <tr
+                              key={donation._id}
+                              className="border-b border-brand-border/50 hover:bg-brand-background/50 transition-colors"
+                            >
+                              <td className="py-4">
+                                <p className="font-semibold text-brand-text">
+                                  {donation.titulo}
+                                </p>
+                                <p className="text-xs text-brand-muted">
+                                  {donation.cantidad} {donation.unidad || "uds"}
+                                </p>
+                              </td>
+                              <td className="py-4 text-sm text-brand-text">
+                                {donation.donor?.nombreEmpresa ||
+                                  `${donation.donor?.nombres} ${donation.donor?.apellidos}`}
+                              </td>
+                              <td className="py-4 text-center">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
+                                    donation.estado === "activo"
+                                      ? "bg-green-500/10 text-green-500"
+                                      : donation.estado === "asignado"
+                                        ? "bg-yellow-500/10 text-yellow-500"
+                                        : donation.estado === "cancelado"
+                                          ? "bg-red-500/10 text-red-500"
+                                          : "bg-gray-500/10 text-gray-400"
+                                  }`}
+                                >
+                                  {donation.estado === "activo" && (
+                                    <CheckCircle size={12} />
+                                  )}
+                                  {donation.estado === "asignado" && (
+                                    <Clock size={12} />
+                                  )}
+                                  {donation.estado === "cancelado" && (
+                                    <XCircle size={12} />
+                                  )}
+                                  {donation.estado === "recolectado" && (
+                                    <Box size={12} />
+                                  )}
+                                  {donation.estado.toUpperCase()}
+                                </span>
+                              </td>
+                              <td className="py-4 text-right text-xs text-brand-muted">
+                                {new Date(donation.createdAt).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {/* --- VISTA 2: MONITOREO DE DONACIONES --- */}
@@ -281,31 +653,59 @@ export const DashboardAdminPage = () => {
            <div className="flex flex-col gap-6">
              {/* TARJETA DE MÉTRICAS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-brand-card border border-brand-border rounded-3xl p-6 shadow-md flex items-center justify-between group">
-                <div className="flex items-center gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 border border-green-500/20">
-                    <TrendingUp size={32} />
-                  </div>
+              <div className="md:col-span-2 bg-brand-card border border-brand-border rounded-3xl p-6 shadow-md">
+                <div className="flex items-center justify-between mb-6">
                   <div>
-                    <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider mb-1">Impacto Positivo</p>
-                    <div className="flex items-baseline gap-2">
-                      <h3 className="text-4xl font-bold text-brand-text font-jakarta">
-                        {isMetricsLoading ? "..." : totalCollected.toLocaleString()}
-                      </h3>
-                      <span className="text-sm font-medium text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">
-                        Raciones/kg Salvados
-                      </span>
-                    </div>
+                    <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider">
+                      Impacto por unidad
+                    </p>
+                    <p className="text-xs text-brand-muted">
+                      Suma de cantidades recolectadas por tipo de medida.
+                    </p>
                   </div>
+                  <button
+                    onClick={fetchMetrics}
+                    disabled={isMetricsLoading}
+                    className="p-3 text-brand-muted hover:text-brand-accent hover:bg-brand-background rounded-full transition-all disabled:opacity-50"
+                    title="Actualizar Métrica"
+                  >
+                    <RefreshCw
+                      size={20}
+                      className={isMetricsLoading ? "animate-spin" : ""}
+                    />
+                  </button>
                 </div>
-                <button 
-                  onClick={fetchMetrics} 
-                  disabled={isMetricsLoading}
-                  className="p-3 text-brand-muted hover:text-brand-accent hover:bg-brand-background rounded-full transition-all disabled:opacity-50"
-                  title="Actualizar Métrica"
-                >
-                  <RefreshCw size={20} className={isMetricsLoading ? "animate-spin" : ""} />
-                </button>
+
+                {unitMetrics.length === 0 ? (
+                  <div className="text-brand-muted text-center py-8">
+                    Sin datos recolectados todavía.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {unitMetrics.map((metric) => (
+                      <div key={metric.unidad} className="flex items-center gap-4">
+                        <span className="w-20 text-xs font-semibold uppercase text-brand-muted">
+                          {metric.unidad}
+                        </span>
+                        <div className="flex-1 h-3 bg-brand-background rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-brand-accent"
+                            style={{
+                              width: `${(metric.total / maxUnitTotal) * 100}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="min-w-22.5 text-right text-sm font-semibold text-brand-text">
+                          {metric.total.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-4 text-xs text-brand-muted">
+                  Donaciones recolectadas: {collectedMetrics.totalDonacionesRecolectadas}
+                </div>
               </div>
             </div>
 
@@ -439,34 +839,51 @@ export const DashboardAdminPage = () => {
       {modalConfig.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-md p-8 shadow-2xl scale-in-95">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 ${modalConfig.type === "approve" ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}`}>
-              {modalConfig.type === "approve" ? <CheckCircle size={32} /> : <AlertTriangle size={32} />}
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 bg-red-500/10 text-red-500">
+              <AlertTriangle size={32} />
             </div>
             <h3 className="text-2xl font-bold text-center text-brand-text mb-2 font-jakarta">
-              {modalConfig.type === "approve" ? "Aprobar Solicitud" : modalConfig.type === "reject" ? "Rechazar Solicitud" : "Eliminar Usuario"}
+              Eliminar Usuario
             </h3>
-            
+
             <p className="text-center text-brand-muted mb-8">
-              {modalConfig.type === "deleteUser" ? (
-                <>
-                  ¿Estás seguro de eliminar a <span className="font-semibold text-brand-text">{modalConfig.userName}</span>?<br/><br/>
-                  Este usuario tiene un promedio de <strong className="text-red-500">{modalConfig.rating} estrellas</strong> tras {modalConfig.totalReviews} evaluaciones. <br/>
-                  <span className="text-xs text-red-400 mt-2 block uppercase tracking-wider font-bold">⚠️ Acción irreversible. Sus reservas serán canceladas.</span>
-                </>
-              ) : (
-                <>
-                  ¿Estás seguro de que deseas {modalConfig.type === "approve" ? "aprobar" : "rechazar"} a <span className="font-semibold text-brand-text">{modalConfig.userName}</span>?
-                  {modalConfig.type === "reject" && " Esta acción eliminará su registro de forma permanente."}
-                </>
-              )}
+              ¿Estás seguro de eliminar a{" "}
+              <span className="font-semibold text-brand-text">
+                {modalConfig.userName}
+              </span>
+              ?<br />
+              <br />
+              Este usuario tiene un promedio de{" "}
+              <strong className="text-red-500">
+                {modalConfig.rating} estrellas
+              </strong>{" "}
+              tras {modalConfig.totalReviews} evaluaciones.
+              <br />
+              <span className="text-xs text-red-400 mt-2 block uppercase tracking-wider font-bold">
+                ⚠️ Acción irreversible. Sus reservas serán canceladas.
+              </span>
             </p>
-            
+
             <div className="flex gap-4">
-              <button onClick={() => setModalConfig({ isOpen: false, type: null, userId: null, userName: "" })} className="flex-1 py-3 font-medium border border-brand-border text-brand-text rounded-xl hover:bg-brand-background transition-colors">
+              <button
+                onClick={() =>
+                  setModalConfig({
+                    isOpen: false,
+                    userId: null,
+                    userName: "",
+                    rating: 0,
+                    totalReviews: 0,
+                  })
+                }
+                className="flex-1 py-3 font-medium border border-brand-border text-brand-text rounded-xl hover:bg-brand-background transition-colors"
+              >
                 Cancelar
               </button>
-              <button onClick={executeAction} className={`flex-1 py-3 font-medium text-white rounded-xl transition-all shadow-lg ${modalConfig.type === "approve" ? "bg-green-600 hover:bg-green-500 shadow-green-500/20" : "bg-red-600 hover:bg-red-500 shadow-red-500/20"}`}>
-                Sí, {modalConfig.type === "approve" ? "Aprobar" : "Eliminar"}
+              <button
+                onClick={executeAction}
+                className="flex-1 py-3 font-medium text-white rounded-xl transition-all shadow-lg bg-red-600 hover:bg-red-500 shadow-red-500/20"
+              >
+                Sí, eliminar
               </button>
             </div>
           </div>

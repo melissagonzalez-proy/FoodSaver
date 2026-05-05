@@ -1,5 +1,33 @@
 import mongoose from "mongoose";
 
+const notificationSchema = new mongoose.Schema(
+  {
+    canal: {
+      type: String,
+      enum: ["email"],
+      required: true,
+    },
+    destinatario: {
+      type: String,
+      required: true,
+    },
+    estadoEntrega: {
+      type: String,
+      enum: ["enviado", "fallido"],
+      required: true,
+    },
+    fechaHora: {
+      type: Date,
+      default: Date.now,
+    },
+    error: {
+      type: String,
+      default: null,
+    },
+  },
+  { _id: false },
+);
+
 const donationSchema = new mongoose.Schema(
   {
     donor: {
@@ -28,6 +56,11 @@ const donationSchema = new mongoose.Schema(
     },
 
     imagenUrl: { type: String, required: false },
+
+    notificaciones: {
+      type: [notificationSchema],
+      default: [],
+    },
 
     // El código secreto de 4 dígitos
     pickupPin: {

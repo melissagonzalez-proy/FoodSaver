@@ -1,5 +1,85 @@
 import mongoose from "mongoose";
 import Donation from "../models/Donation.js";
+import User from "../models/User.js";
+import { sendDonationInterestEmail } from "../services/emailService.js";
+
+const buildDashboardUrl = () => {
+  const baseUrl = process.env.FRONTEND_BASE_URL || "http://localhost:5173";
+  return `${baseUrl.replace(/\/$/, "")}/dashboard-donor#mis-publicaciones`;
+};
+
+const getErrorMessage = (error) => {
+  if (error instanceof Error) return error.message;
+  return "Error al enviar correo.";
+};
+
+const formatUserName = (user, fallback) => {
+  if (!user) return fallback;
+  const fullName = `${user.nombres || ""} ${user.apellidos || ""}`.trim();
+  if (fullName) return fullName;
+  if (user.nombreEmpresa) return user.nombreEmpresa;
+  return fallback;
+};
+
+const logNotification = (donation, { to, status, error }) => {
+  if (!donation) return;
+  donation.notificaciones = donation.notificaciones || [];
+  donation.notificaciones.push({
+    canal: "email",
+    destinatario: to || "sin-email",
+    estadoEntrega: status === "sent" ? "enviado" : "fallido",
+    fechaHora: new Date(),
+    error: error || null,
+  });
+};
+
+const notifyDonorAboutRequest = async ({ donation, beneficiaryId }) => {
+  if (!donation) return;
+
+  try {
+    const [donor, beneficiary] = await Promise.all([
+      User.findById(donation.donor),
+      User.findById(beneficiaryId),
+    ]);
+
+    const donorEmail = donor?.email;
+    if (!donorEmail || !beneficiary) {
+      logNotification(donation, {
+        to: donorEmail || "sin-email",
+        status: "failed",
+        error: "No se pudo obtener la informacion de donador o beneficiario.",
+      });
+      await donation.save();
+      return;
+    }
+
+    const donorName = formatUserName(donor, "Donador");
+    const beneficiaryName = formatUserName(beneficiary, "Beneficiario");
+    const dashboardUrl = buildDashboardUrl();
+
+    await sendDonationInterestEmail({
+      to: donorEmail,
+      donorName,
+      beneficiaryName,
+      foodName: donation.titulo,
+      dashboardUrl,
+    });
+
+    logNotification(donation, { to: donorEmail, status: "sent" });
+    await donation.save();
+  } catch (error) {
+    logNotification(donation, {
+      to: "sin-email",
+      status: "failed",
+      error: getErrorMessage(error),
+    });
+    try {
+      await donation.save();
+    } catch (saveError) {
+      console.error("Error guardando notificacion:", saveError);
+    }
+  }
+};
 
 // 1. CREAR DONACIÓN
 export const createDonation = async (req, res) => {
@@ -102,8 +182,22 @@ export const requestDonation = async (req, res) => {
     const { id } = req.params;
     const { beneficiaryId, cantidadSolicitada } = req.body;
 
-    if (cantidadSolicitada !== undefined && Number(cantidadSolicitada) <= 0) {
-      return res.status(400).json({ message: "La cantidad solicitada debe ser mayor a 0." });
+    if (!beneficiaryId || !mongoose.Types.ObjectId.isValid(beneficiaryId)) {
+      return res
+        .status(400)
+        .json({ message: "Beneficiario invalido o no proporcionado." });
+    }
+
+    const cantidadNumber =
+      cantidadSolicitada !== undefined ? Number(cantidadSolicitada) : undefined;
+
+    if (
+      cantidadNumber !== undefined &&
+      (!Number.isFinite(cantidadNumber) || cantidadNumber <= 0)
+    ) {
+      return res.status(400).json({
+        message: "La cantidad solicitada debe ser mayor a 0.",
+      });
     }
 
     // Regla Anti-Acaparamiento
@@ -125,9 +219,10 @@ export const requestDonation = async (req, res) => {
     }
 
     // Si el frontend no manda cantidad (por ahora), asume que se lleva todo
-    const cantSolicitada = cantidadSolicitada
-      ? Number(cantidadSolicitada)
-      : donationOriginal.cantidad;
+    const cantSolicitada =
+      cantidadNumber !== undefined
+        ? cantidadNumber
+        : donationOriginal.cantidad;
 
     // CASO A: Se lleva TODO lo que hay
     if (cantSolicitada >= donationOriginal.cantidad) {
@@ -136,6 +231,10 @@ export const requestDonation = async (req, res) => {
       donationOriginal.beneficiary = beneficiaryId;
       donationOriginal.pickupPin = generatedPin;
       await donationOriginal.save();
+      void notifyDonorAboutRequest({
+        donation: donationOriginal,
+        beneficiaryId,
+      });
       return res.status(200).json({
         message: "Reserva total realizada con éxito",
         donation: donationOriginal,
@@ -163,6 +262,10 @@ export const requestDonation = async (req, res) => {
     });
 
     await newReservation.save();
+    void notifyDonorAboutRequest({
+      donation: newReservation,
+      beneficiaryId,
+    });
     res.status(200).json({
       message: `Has reservado ${cantSolicitada}. El resto sigue disponible para otros.`,
       donation: newReservation,
@@ -342,15 +445,40 @@ export const getCollectedMetrics = async (req, res) => {
       { $match: { estado: "recolectado" } },
       {
         $group: {
-          _id: null,
-          totalAlimentos: { $sum: "$cantidad" },
+          _id: {
+            $toLower: {
+              $ifNull: ["$unidad", "unidades"],
+            },
+          },
+          total: { $sum: "$cantidad" },
+          count: { $sum: 1 },
         },
       },
+      {
+        $project: {
+          _id: 0,
+          unidad: "$_id",
+          total: 1,
+          count: 1,
+        },
+      },
+      { $sort: { total: -1 } },
     ]);
 
-    const total = metrics.length > 0 ? metrics[0].totalAlimentos : 0;
+    const totalRecolectado = metrics.reduce(
+      (acc, item) => acc + item.total,
+      0,
+    );
+    const totalDonacionesRecolectadas = metrics.reduce(
+      (acc, item) => acc + item.count,
+      0,
+    );
 
-    res.status(200).json({ totalRecolectado: total });
+    res.status(200).json({
+      totalRecolectado,
+      totalDonacionesRecolectadas,
+      totalPorUnidad: metrics,
+    });
   } catch (error) {
     console.error("Error al calcular métricas:", error);
     res.status(500).json({ message: "Error interno al calcular métricas." });
