@@ -30,6 +30,8 @@ export const RegisterBeneficiaryPage = () => {
   );
   const [otp, setOtp] = useState("");
 
+  
+
   const documentTypes = [
     "Registro Civil",
     "Tarjeta de Identidad",

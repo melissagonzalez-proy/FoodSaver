@@ -23,7 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { apiUrl, assetUrl } from "../../../lib/api";
 import { EditDonationModal } from "../components/EditDonationModal";
 import { EditProfile } from "../components/EditProfile";
-import { RatingModal } from "../components/RatingModal";
+import { UserProfileModal } from "../components/UserProfileModal";
 
 interface BeneficiaryInfo {
   _id: string;
@@ -111,6 +111,7 @@ export const DashboardDonorPage = () => {
     donationId: "",
     toUserId: "",
     toUserName: "",
+    canRate: true,
   });
 
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -531,161 +532,165 @@ export const DashboardDonorPage = () => {
                   {filteredDonations.map((donation) => {
                     const latestNotification = getLatestNotification(donation);
                     return (
-                    <div
-                      key={donation._id}
-                      className={`bg-brand-card border border-brand-border rounded-2xl overflow-hidden transition-colors flex flex-col ${donation.estado === "recolectado" ? "opacity-60 grayscale" : "hover:border-brand-accent/50"}`}
-                    >
-                      <div className="h-40 w-full overflow-hidden bg-brand-background relative group">
-                        {donation.imagenUrl ? (
-                          <img
-                            src={assetUrl(
-                              donation.imagenUrl.replace(/\\/g, "/"),
-                            )}
-                            alt={donation.titulo}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <ImageIcon
-                              size={32}
-                              className="text-brand-muted opacity-50"
+                      <div
+                        key={donation._id}
+                        className={`bg-brand-card border border-brand-border rounded-2xl overflow-hidden transition-colors flex flex-col ${donation.estado === "recolectado" ? "opacity-60 grayscale" : "hover:border-brand-accent/50"}`}
+                      >
+                        <div className="h-40 w-full overflow-hidden bg-brand-background relative group">
+                          {donation.imagenUrl ? (
+                            <img
+                              src={assetUrl(
+                                donation.imagenUrl.replace(/\\/g, "/"),
+                              )}
+                              alt={donation.titulo}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             />
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-5 flex flex-col flex-1">
-                        <div className="flex justify-between items-start mb-2 gap-2">
-                          <h3 className="font-semibold text-brand-text text-lg line-clamp-1">
-                            {donation.titulo}
-                          </h3>
-                          <CountdownTimer expiresAt={donation.fechaCaducidad} />
-                        </div>
-                        <p className="text-sm text-brand-muted line-clamp-2 mb-4 flex-1">
-                          {donation.descripcion}
-                        </p>
-                        <div className="flex justify-between items-center text-xs text-brand-muted mb-4 pt-4 border-t border-brand-border">
-                          <span className="flex items-center gap-1">
-                            <Scale size={14} /> {donation.cantidad}{" "}
-                            {donation.unidad || "uds"}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar size={14} />{" "}
-                            {new Date(
-                              donation.fechaCaducidad,
-                            ).toLocaleDateString()}
-                          </span>
-                        </div>
-
-                        {donation.beneficiary && (
-                          <div className="flex items-center gap-2 text-xs text-brand-muted mb-3">
-                            <User size={12} className="text-brand-accent" />
-                            <span>{donation.beneficiary.nombres}</span>
-                            <span>•</span>
-                            {donation.beneficiary.totalEvaluaciones &&
-                            donation.beneficiary.totalEvaluaciones > 0 ? (
-                              <span>
-                                {donation.beneficiary.promedioCalificacion?.toFixed(
-                                  1,
-                                )}{" "}
-                                • {donation.beneficiary.totalEvaluaciones} eval.
-                              </span>
-                            ) : (
-                              <span>Usuario nuevo</span>
-                            )}
-                          </div>
-                        )}
-
-                        {latestNotification && (
-                          <div className="flex items-center gap-2 text-[11px] text-brand-muted mb-3">
-                            <span
-                              className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${latestNotification.estadoEntrega === "enviado" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}`}
-                            >
-                              {latestNotification.estadoEntrega === "enviado"
-                                ? "Email enviado"
-                                : "Email fallido"}
-                            </span>
-                            <span>{formatNotificationDate(latestNotification.fechaHora)}</span>
-                          </div>
-                        )}
-
-                        {donation.estado === "activo" && (
-                          <div className="flex gap-2 mt-auto">
-                            <button
-                              onClick={() => setEditingDonation(donation)}
-                              className="flex-1 py-2 border border-brand-accent/30 text-brand-accent hover:bg-brand-accent/10 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
-                            >
-                              <Pencil size={16} /> Editar
-                            </button>
-                          </div>
-                        )}
-
-                        {donation.estado === "asignado" && (
-                          <div className="flex flex-col gap-3 mt-auto">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[10px] font-bold text-brand-muted uppercase tracking-widest">
-                                PIN de Seguridad
-                              </label>
-                              <input
-                                type="text"
-                                maxLength={4}
-                                placeholder="0000"
-                                value={pinInputs[donation._id] || ""}
-                                onChange={(e) =>
-                                  setPinInputs({
-                                    ...pinInputs,
-                                    [donation._id]: e.target.value.replace(
-                                      /\D/g,
-                                      "",
-                                    ),
-                                  })
-                                }
-                                className="bg-brand-background border border-brand-border rounded-lg py-2 text-center font-bold tracking-[0.5em] text-brand-accent outline-none focus:border-brand-accent/50"
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <ImageIcon
+                                size={32}
+                                className="text-brand-muted opacity-50"
                               />
                             </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleCancel(donation._id)}
-                                className="flex-1 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
-                              >
-                                <XCircle size={16} /> Cancelar
-                              </button>
-                              <button
-                                onClick={() => handleComplete(donation._id)}
-                                className="flex-1 py-2 bg-green-600 text-white hover:bg-green-500 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 shadow-lg shadow-green-500/20"
-                              >
-                                <CheckCircle size={16} /> Validar
-                              </button>
-                            </div>
+                          )}
+                        </div>
+                        <div className="p-5 flex flex-col flex-1">
+                          <div className="flex justify-between items-start mb-2 gap-2">
+                            <h3 className="font-semibold text-brand-text text-lg line-clamp-1">
+                              {donation.titulo}
+                            </h3>
+                            <CountdownTimer
+                              expiresAt={donation.fechaCaducidad}
+                            />
                           </div>
-                        )}
+                          <p className="text-sm text-brand-muted line-clamp-2 mb-4 flex-1">
+                            {donation.descripcion}
+                          </p>
+                          <div className="flex justify-between items-center text-xs text-brand-muted mb-4 pt-4 border-t border-brand-border">
+                            <span className="flex items-center gap-1">
+                              <Scale size={14} /> {donation.cantidad}{" "}
+                              {donation.unidad || "uds"}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar size={14} />{" "}
+                              {new Date(
+                                donation.fechaCaducidad,
+                              ).toLocaleDateString()}
+                            </span>
+                          </div>
 
-                        {/* NUEVO BOTÓN DE CALIFICAR PARA EL DONADOR */}
-                        {donation.estado === "recolectado" &&
-                          donation.beneficiary && (
-                            <div className="flex gap-2 mt-auto pt-2">
-                              <button
-                                onClick={() => {
-                                  console.log(
-                                    "BENEFICIARY:",
-                                    donation.beneficiary?.nombres,
-                                  );
-                                  setRatingModal({
-                                    isOpen: true,
-                                    donationId: donation._id,
-                                    toUserId: donation.beneficiary!._id,
-                                    toUserName:
-                                      donation.beneficiary!.nombres ||
-                                      "Usuario",
-                                  });
-                                }}
-                                className="flex-1 py-2 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                          {donation.beneficiary && (
+                            <div className="flex items-center gap-2 text-xs text-brand-muted mb-3">
+                              <User size={12} className="text-brand-accent" />
+                              <span>{donation.beneficiary.nombres}</span>
+                              <span>•</span>
+                              {donation.beneficiary.totalEvaluaciones &&
+                              donation.beneficiary.totalEvaluaciones > 0 ? (
+                                <span>
+                                  {donation.beneficiary.promedioCalificacion?.toFixed(
+                                    1,
+                                  )}{" "}
+                                  • {donation.beneficiary.totalEvaluaciones}{" "}
+                                  eval.
+                                </span>
+                              ) : (
+                                <span>Usuario nuevo</span>
+                              )}
+                            </div>
+                          )}
+
+                          {latestNotification && (
+                            <div className="flex items-center gap-2 text-[11px] text-brand-muted mb-3">
+                              <span
+                                className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${latestNotification.estadoEntrega === "enviado" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}`}
                               >
-                                <Star size={16} /> Evaluar Beneficiario
+                                {latestNotification.estadoEntrega === "enviado"
+                                  ? "Email enviado"
+                                  : "Email fallido"}
+                              </span>
+                              <span>
+                                {formatNotificationDate(
+                                  latestNotification.fechaHora,
+                                )}
+                              </span>
+                            </div>
+                          )}
+
+                          {donation.estado === "activo" && (
+                            <div className="flex gap-2 mt-auto">
+                              <button
+                                onClick={() => setEditingDonation(donation)}
+                                className="flex-1 py-2 border border-brand-accent/30 text-brand-accent hover:bg-brand-accent/10 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                              >
+                                <Pencil size={16} /> Editar
                               </button>
                             </div>
                           )}
+
+                          {donation.estado === "asignado" && (
+                            <div className="flex flex-col gap-3 mt-auto">
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] font-bold text-brand-muted uppercase tracking-widest">
+                                  PIN de Seguridad
+                                </label>
+                                <input
+                                  type="text"
+                                  maxLength={4}
+                                  placeholder="0000"
+                                  value={pinInputs[donation._id] || ""}
+                                  onChange={(e) =>
+                                    setPinInputs({
+                                      ...pinInputs,
+                                      [donation._id]: e.target.value.replace(
+                                        /\D/g,
+                                        "",
+                                      ),
+                                    })
+                                  }
+                                  className="bg-brand-background border border-brand-border rounded-lg py-2 text-center font-bold tracking-[0.5em] text-brand-accent outline-none focus:border-brand-accent/50"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleCancel(donation._id)}
+                                  className="flex-1 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                                >
+                                  <XCircle size={16} /> Cancelar
+                                </button>
+                                <button
+                                  onClick={() => handleComplete(donation._id)}
+                                  className="flex-1 py-2 bg-green-600 text-white hover:bg-green-500 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 shadow-lg shadow-green-500/20"
+                                >
+                                  <CheckCircle size={16} /> Validar
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* NUEVO BOTÓN DE CALIFICAR PARA EL DONADOR */}
+                          {donation.estado === "recolectado" &&
+                            donation.beneficiary && (
+                              <div className="flex gap-2 mt-auto pt-2">
+                                <button
+                                  onClick={() =>
+                                    setRatingModal({
+                                      isOpen: true,
+                                      donationId: donation._id,
+                                      toUserId: donation.beneficiary!._id,
+                                      toUserName:
+                                        donation.beneficiary!.nombres ||
+                                        "Usuario",
+                                      canRate: true,
+                                    })
+                                  }
+                                  className="flex-1 py-2 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                                >
+                                  <Star size={16} /> Ver / Evaluar
+                                </button>
+                              </div>
+                            )}
+                        </div>
                       </div>
-                    </div>
                     );
                   })}
                 </div>
@@ -715,73 +720,76 @@ export const DashboardDonorPage = () => {
                       key={d._id}
                       className="border-b border-brand-border/50 hover:bg-brand-background/50 transition-colors"
                     >
-                    <td className="py-4">
-                      <p className="font-semibold text-brand-text">
-                        {d.titulo}
-                      </p>
-                      <p className="text-xs text-brand-muted">
-                        {new Date(
-                          d.createdAt || Date.now(),
-                        ).toLocaleDateString()}
-                      </p>
-                    </td>
-                    <td className="py-4 text-center text-brand-text font-medium">
-                      {d.cantidad} {d.unidad || "uds"}
-                    </td>
-                    <td className="py-4 text-center">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${d.estado === "activo" ? "bg-green-500/10 text-green-500" : d.estado === "asignado" ? "bg-yellow-500/10 text-yellow-500" : "bg-gray-500/10 text-gray-400"}`}
-                      >
-                        {d.estado.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="py-4 text-center">
-                      {d.estado === "asignado" ? (
-                        <span className="bg-brand-background border border-brand-accent/30 px-2 py-1 rounded text-brand-accent font-mono font-bold tracking-wider">
-                          {d.pickupPin || "----"}
-                        </span>
-                      ) : (
-                        <span className="text-brand-muted">—</span>
-                      )}
-                    </td>
-                    <td className="py-4 text-center">
-                      {latestNotification ? (
-                        <div className="flex flex-col items-center gap-1 text-xs">
-                          <span
-                            className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${latestNotification.estadoEntrega === "enviado" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}`}
-                          >
-                            {latestNotification.estadoEntrega === "enviado"
-                              ? "Email enviado"
-                              : "Email fallido"}
-                          </span>
-                          <span className="text-brand-muted">
-                            {formatNotificationDate(latestNotification.fechaHora)}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-brand-muted">—</span>
-                      )}
-                    </td>
-                    <td className="py-4 text-center">
-                      {d.estado === "recolectado" && d.beneficiary ? (
-                        <button
-                          onClick={() =>
-                            setRatingModal({
-                              isOpen: true,
-                              donationId: d._id,
-                              toUserId: d.beneficiary!._id,
-                              toUserName:
-                                `${d.beneficiary!.nombres} ${d.beneficiary!.apellidos || ""}`.trim(),
-                            })
-                          }
-                          className="inline-flex items-center gap-1 text-xs px-3 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors font-medium"
+                      <td className="py-4">
+                        <p className="font-semibold text-brand-text">
+                          {d.titulo}
+                        </p>
+                        <p className="text-xs text-brand-muted">
+                          {new Date(
+                            d.createdAt || Date.now(),
+                          ).toLocaleDateString()}
+                        </p>
+                      </td>
+                      <td className="py-4 text-center text-brand-text font-medium">
+                        {d.cantidad} {d.unidad || "uds"}
+                      </td>
+                      <td className="py-4 text-center">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-bold ${d.estado === "activo" ? "bg-green-500/10 text-green-500" : d.estado === "asignado" ? "bg-yellow-500/10 text-yellow-500" : "bg-gray-500/10 text-gray-400"}`}
                         >
-                          <Star size={14} /> Calificar
-                        </button>
-                      ) : (
-                        <span className="text-brand-muted">—</span>
-                      )}
-                    </td>
+                          {d.estado.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="py-4 text-center">
+                        {d.estado === "asignado" ? (
+                          <span className="bg-brand-background border border-brand-accent/30 px-2 py-1 rounded text-brand-accent font-mono font-bold tracking-wider">
+                            {d.pickupPin || "----"}
+                          </span>
+                        ) : (
+                          <span className="text-brand-muted">—</span>
+                        )}
+                      </td>
+                      <td className="py-4 text-center">
+                        {latestNotification ? (
+                          <div className="flex flex-col items-center gap-1 text-xs">
+                            <span
+                              className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${latestNotification.estadoEntrega === "enviado" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}`}
+                            >
+                              {latestNotification.estadoEntrega === "enviado"
+                                ? "Email enviado"
+                                : "Email fallido"}
+                            </span>
+                            <span className="text-brand-muted">
+                              {formatNotificationDate(
+                                latestNotification.fechaHora,
+                              )}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-brand-muted">—</span>
+                        )}
+                      </td>
+                      <td className="py-4 text-center">
+                        {d.estado === "recolectado" && d.beneficiary ? (
+                          <button
+                            onClick={() =>
+                              setRatingModal({
+                                isOpen: true,
+                                donationId: d._id,
+                                toUserId: d.beneficiary!._id,
+                                toUserName:
+                                  `${d.beneficiary!.nombres} ${d.beneficiary!.apellidos || ""}`.trim(),
+                                canRate: true,
+                              })
+                            }
+                            className="inline-flex items-center gap-1 text-xs px-3 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors font-medium"
+                          >
+                            <Star size={14} /> Ver / Evaluar
+                          </button>
+                        ) : (
+                          <span className="text-brand-muted">—</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -927,12 +935,13 @@ export const DashboardDonorPage = () => {
       />
 
       {/* MODAL DE CALIFICACIÓN */}
-      <RatingModal
+      <UserProfileModal
         isOpen={ratingModal.isOpen}
-        onClose={() => setRatingModal({ ...ratingModal, isOpen: false })}
+        onClose={() => setRatingModal((prev) => ({ ...prev, isOpen: false }))}
         donationId={ratingModal.donationId}
         toUserId={ratingModal.toUserId}
         toUserName={ratingModal.toUserName}
+        canRate={ratingModal.canRate}
         onSuccess={fetchDonations}
       />
     </div>

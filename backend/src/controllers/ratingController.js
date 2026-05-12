@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
+import Donation from "../models/Donation.js";
 import Rating from "../models/Rating.js";
 import User from "../models/User.js";
-import Donation from "../models/Donation.js";
 
 /* 
   CREAR CALIFICACIÓN Y ACTUALIZAR PROMEDIO
@@ -163,5 +163,37 @@ export const deleteBadUser = async (req, res) => {
       });
   } catch (error) {
     res.status(500).json({ message: "Error al eliminar el usuario." });
+  }
+
+};
+
+/* OBTENER PERFIL PÚBLICO DE USUARIO */
+  export const getUserPublicProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+ 
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "ID de usuario inválido." });
+    }
+ 
+    // Perfil sin datos sensibles
+    const user = await User.findById(userId).select(
+      "nombres apellidos nombreEmpresa ciudad direccion role promedioCalificacion totalEvaluaciones createdAt"
+    );
+ 
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+ 
+    // Calificaciones recibidas, con datos básicos del emisor
+    const ratings = await Rating.find({ toUser: userId })
+      .populate("fromUser", "nombres apellidos nombreEmpresa role")
+      .sort({ createdAt: -1 })
+      .lean();
+ 
+    res.status(200).json({ user, ratings });
+  } catch (error) {
+    console.error("Error al obtener perfil público:", error);
+    res.status(500).json({ message: "Error al obtener el perfil." });
   }
 };
