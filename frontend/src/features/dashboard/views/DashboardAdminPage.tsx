@@ -1,7 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { apiUrl } from "../../../lib/api";
+import {
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  PointElement,
+  Tooltip,
+  TooltipItem,
+} from "chart.js";
+import { Bar } from "react-chartjs-2";
 import {
   Users,
   CheckCircle,
@@ -19,6 +30,15 @@ import {
   UserCog,
   Trash2,
 } from "lucide-react";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  Tooltip,
+  Legend,
+);
 
 interface UserShort { 
   nombres: string; 
@@ -44,10 +64,25 @@ interface CollectedMetric {
   count: number;
 }
 
+interface CollectedSeriesPoint {
+  mes: string;
+  unidad: string;
+  total: number;
+  count: number;
+}
+
 interface CollectedMetricsResponse {
   totalRecolectado: number;
   totalDonacionesRecolectadas: number;
   totalPorUnidad: CollectedMetric[];
+  seriePorUnidad: CollectedSeriesPoint[];
+}
+
+interface DateRange {
+  start: Date;
+  end: Date;
+  label: string;
+  params: { startDate: string; endDate: string };
 }
 
 export const DashboardAdminPage = () => {
@@ -67,11 +102,18 @@ export const DashboardAdminPage = () => {
       totalRecolectado: 0,
       totalDonacionesRecolectadas: 0,
       totalPorUnidad: [],
+      seriePorUnidad: [],
     });
   const [isMetricsLoading, setIsMetricsLoading] = useState(false);
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState<
+    "month" | "last6" | "last12"
+  >("last6");
+  const [selectedMonth, setSelectedMonth] = useState(() =>
+    new Date().toISOString().slice(0, 7),
+  );
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -96,14 +138,61 @@ export const DashboardAdminPage = () => {
     } else if (activeTab === "usuarios") {
       fetchUsersList();
     }
-  }, [activeTab]);
+  }, [activeTab, dateFilter, selectedMonth]);
 
-  const fetchAllDonations = async (options?: { setLoading?: boolean }) => {
+  const dashboardRange = useMemo<DateRange>(() => {
+    const now = new Date();
+
+    if (dateFilter === "month") {
+      const [yearValue, monthValue] = selectedMonth.split("-").map(Number);
+      const safeYear = Number.isFinite(yearValue) ? yearValue : now.getFullYear();
+      const safeMonth = Number.isFinite(monthValue) ? monthValue : now.getMonth() + 1;
+      const start = new Date(safeYear, safeMonth - 1, 1);
+      const end = new Date(safeYear, safeMonth, 1);
+      const label = start.toLocaleString("es-ES", {
+        month: "long",
+        year: "numeric",
+      });
+
+      return {
+        start,
+        end,
+        label,
+        params: {
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+        },
+      };
+    }
+
+    const monthsBack = dateFilter === "last6" ? 6 : 12;
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const start = new Date(end);
+    start.setMonth(start.getMonth() - monthsBack);
+    const label =
+      dateFilter === "last6" ? "Últimos 6 meses" : "Último año";
+
+    return {
+      start,
+      end,
+      label,
+      params: {
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+      },
+    };
+  }, [dateFilter, selectedMonth]);
+
+  const fetchAllDonations = async (options?: {
+    setLoading?: boolean;
+    dateParams?: { startDate: string; endDate: string };
+  }) => {
     const shouldSetLoading = options?.setLoading !== false;
     if (shouldSetLoading) setIsLoading(true);
     try {
       const response = await axios.get(apiUrl("/api/donations/admin/all"), {
         headers: { Authorization: `Bearer ${token}` },
+        params: options?.dateParams,
       });
       setAllDonations(response.data);
     } catch (error) {
@@ -113,13 +202,17 @@ export const DashboardAdminPage = () => {
     }
   };
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = async (dateParams?: {
+    startDate: string;
+    endDate: string;
+  }) => {
     setIsMetricsLoading(true);
     try {
       const response = await axios.get(
         apiUrl("/api/donations/metrics/total-collected"),
         {
           headers: { Authorization: `Bearer ${token}` },
+          params: dateParams,
         },
       );
       const data = response.data || {};
@@ -128,6 +221,9 @@ export const DashboardAdminPage = () => {
         totalDonacionesRecolectadas: data.totalDonacionesRecolectadas || 0,
         totalPorUnidad: Array.isArray(data.totalPorUnidad)
           ? data.totalPorUnidad
+          : [],
+        seriePorUnidad: Array.isArray(data.seriePorUnidad)
+          ? data.seriePorUnidad
           : [],
       });
     } catch (error) {
@@ -155,10 +251,11 @@ export const DashboardAdminPage = () => {
   const refreshDashboard = async () => {
     setIsDashboardLoading(true);
     try {
+      const dateParams = dashboardRange.params;
       await Promise.all([
-        fetchAllDonations({ setLoading: false }),
+        fetchAllDonations({ setLoading: false, dateParams }),
         fetchUsersList({ setLoading: false }),
-        fetchMetrics(),
+        fetchMetrics(dateParams),
       ]);
     } finally {
       setIsDashboardLoading(false);
@@ -238,17 +335,27 @@ export const DashboardAdminPage = () => {
     },
   );
 
-  const totalUsers = usersList.length;
-  const donorCount = usersList.filter((user) => user.role === "donor").length;
-  const beneficiaryCount = usersList.filter(
+  const usersForDashboard = usersList.filter((user) => {
+    if (!user.createdAt) return true;
+    const date = new Date(user.createdAt);
+    return date >= dashboardRange.start && date < dashboardRange.end;
+  });
+
+  const totalUsers = usersForDashboard.length;
+  const donorCount = usersForDashboard.filter(
+    (user) => user.role === "donor",
+  ).length;
+  const beneficiaryCount = usersForDashboard.filter(
     (user) => user.role === "beneficiary",
   ).length;
-  const adminCount = usersList.filter((user) => user.role === "admin").length;
-  const totalEvaluations = usersList.reduce(
+  const adminCount = usersForDashboard.filter(
+    (user) => user.role === "admin",
+  ).length;
+  const totalEvaluations = usersForDashboard.reduce(
     (acc, user) => acc + (user.totalEvaluaciones || 0),
     0,
   );
-  const weightedRatingSum = usersList.reduce(
+  const weightedRatingSum = usersForDashboard.reduce(
     (acc, user) =>
       acc + (user.promedioCalificacion || 0) * (user.totalEvaluaciones || 0),
     0,
@@ -273,6 +380,112 @@ export const DashboardAdminPage = () => {
   const maxUnitTotal = Math.max(
     ...unitMetrics.map((metric) => metric.total),
     1,
+  );
+
+  const seriesByUnit = collectedMetrics.seriePorUnidad || [];
+  const chartLabels = useMemo(() => {
+    const labels = Array.from(
+      new Set(seriesByUnit.map((point) => point.mes)),
+    ).sort();
+    return labels;
+  }, [seriesByUnit]);
+
+  const chartDatasets = useMemo(() => {
+    const palette = [
+      "#16a34a",
+      "#f59e0b",
+      "#3b82f6",
+      "#ef4444",
+      "#8b5cf6",
+      "#14b8a6",
+    ];
+    const unitKeys = Array.from(
+      new Set(seriesByUnit.map((point) => point.unidad)),
+    ).sort();
+
+    return unitKeys.map((unit, index) => {
+      const data = chartLabels.map((label) => {
+        const match = seriesByUnit.find(
+          (point) => point.unidad === unit && point.mes === label,
+        );
+        return match ? match.total : 0;
+      });
+
+      const color = palette[index % palette.length];
+
+      return {
+        label: unit,
+        data,
+        backgroundColor: color,
+        borderColor: color,
+        borderWidth: 1,
+        borderRadius: 6,
+      };
+    });
+  }, [chartLabels, seriesByUnit]);
+
+  const chartLabelNames = useMemo(
+    () =>
+      chartLabels.map((label) => {
+        const [yearValue, monthValue] = label.split("-").map(Number);
+        const safeYear = Number.isFinite(yearValue) ? yearValue : 2000;
+        const safeMonth = Number.isFinite(monthValue) ? monthValue - 1 : 0;
+        const date = new Date(safeYear, safeMonth, 1);
+        return date.toLocaleString("es-ES", {
+          month: "short",
+          year: "2-digit",
+        });
+      }),
+    [chartLabels],
+  );
+
+  const chartData = useMemo(
+    () => ({
+      labels: chartLabelNames,
+      datasets: chartDatasets,
+    }),
+    [chartLabelNames, chartDatasets],
+  );
+
+  const chartOptions = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "bottom" as const,
+          labels: {
+            color: "#94a3b8",
+            usePointStyle: true,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: (context: TooltipItem<"bar">) =>
+              `${context.dataset.label || "Unidad"}: ${context.raw}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: "#94a3b8",
+          },
+          grid: {
+            display: false,
+          },
+        },
+        y: {
+          ticks: {
+            color: "#94a3b8",
+          },
+          grid: {
+            color: "rgba(148, 163, 184, 0.2)",
+          },
+        },
+      },
+    }),
+    [],
   );
 
   return (
@@ -344,18 +557,64 @@ export const DashboardAdminPage = () => {
         {/* --- VISTA 1: DASHBOARD --- */}
         {activeTab === "dashboard" && (
           <div className="flex flex-col gap-6">
-            <div className="flex justify-end">
-              <button
-                onClick={refreshDashboard}
-                disabled={isDashboardLoading}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-card border border-brand-border text-sm font-medium text-brand-text hover:border-brand-accent transition-colors disabled:opacity-50"
-              >
-                <RefreshCw
-                  size={16}
-                  className={isDashboardLoading ? "animate-spin" : ""}
-                />
-                Actualizar datos
-              </button>
+            <div className="bg-brand-card border border-brand-border rounded-3xl p-4 flex flex-col xl:flex-row xl:items-center gap-4 justify-between">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setDateFilter("month")}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    dateFilter === "month"
+                      ? "bg-brand-accent/10 text-brand-accent"
+                      : "text-brand-muted hover:text-brand-text hover:bg-brand-background"
+                  }`}
+                >
+                  Por mes
+                </button>
+                <button
+                  onClick={() => setDateFilter("last6")}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    dateFilter === "last6"
+                      ? "bg-brand-accent/10 text-brand-accent"
+                      : "text-brand-muted hover:text-brand-text hover:bg-brand-background"
+                  }`}
+                >
+                  Últimos 6 meses
+                </button>
+                <button
+                  onClick={() => setDateFilter("last12")}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    dateFilter === "last12"
+                      ? "bg-brand-accent/10 text-brand-accent"
+                      : "text-brand-muted hover:text-brand-text hover:bg-brand-background"
+                  }`}
+                >
+                  Último año
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                {dateFilter === "month" && (
+                  <input
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(event) => setSelectedMonth(event.target.value)}
+                    className="bg-brand-background border border-brand-border rounded-xl px-3 py-2 text-sm text-brand-text focus:border-brand-accent outline-none"
+                  />
+                )}
+                <span className="text-xs text-brand-muted">
+                  Rango: {dashboardRange.label}
+                </span>
+                <button
+                  onClick={refreshDashboard}
+                  disabled={isDashboardLoading}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-background border border-brand-border text-sm font-medium text-brand-text hover:border-brand-accent transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw
+                    size={16}
+                    className={isDashboardLoading ? "animate-spin" : ""}
+                  />
+                  Actualizar datos
+                </button>
+              </div>
             </div>
 
             {isDashboardLoading ? (
@@ -368,7 +627,7 @@ export const DashboardAdminPage = () => {
                   <div className="bg-brand-card border border-brand-border rounded-3xl p-6 shadow-md">
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider">
-                        Usuarios
+                        Usuarios nuevos
                       </p>
                       <div className="w-12 h-12 rounded-2xl bg-brand-accent/10 text-brand-accent flex items-center justify-center">
                         <Users size={22} />
@@ -449,7 +708,8 @@ export const DashboardAdminPage = () => {
                           Impacto por unidad
                         </p>
                         <p className="text-xs text-brand-muted">
-                          Suma de cantidades recolectadas por tipo de medida.
+                          Suma de cantidades recolectadas por tipo de medida en
+                          {" "}{dashboardRange.label}.
                         </p>
                       </div>
                       <button
@@ -554,13 +814,36 @@ export const DashboardAdminPage = () => {
                 </div>
 
                 <div className="bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider">
+                        Tendencia recolectada por mes
+                      </p>
+                      <p className="text-xs text-brand-muted">
+                        Comparativo por unidad en {dashboardRange.label}.
+                      </p>
+                    </div>
+                  </div>
+
+                  {chartLabels.length === 0 ? (
+                    <div className="text-brand-muted text-center py-10">
+                      No hay datos para graficar en este rango.
+                    </div>
+                  ) : (
+                    <div className="h-72">
+                      <Bar data={chartData} options={chartOptions} />
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl">
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="text-sm font-semibold text-brand-muted uppercase tracking-wider">
                         Actividad reciente
                       </p>
                       <p className="text-xs text-brand-muted">
-                        Últimas donaciones registradas.
+                        Últimas donaciones registradas en {dashboardRange.label}.
                       </p>
                     </div>
                     <span className="text-xs text-brand-muted">
@@ -660,7 +943,7 @@ export const DashboardAdminPage = () => {
                       Impacto por unidad
                     </p>
                     <p className="text-xs text-brand-muted">
-                      Suma de cantidades recolectadas por tipo de medida.
+                      Suma de cantidades recolectadas por tipo de medida (histórico).
                     </p>
                   </div>
                   <button

@@ -21,6 +21,35 @@ const formatUserName = (user, fallback) => {
   return fallback;
 };
 
+const normalizeDateParam = (value) => {
+  if (Array.isArray(value)) return value[0];
+  return value;
+};
+
+const buildDateRangeFilter = (startDate, endDate, fieldName) => {
+  const range = {};
+
+  const startValue = normalizeDateParam(startDate);
+  const endValue = normalizeDateParam(endDate);
+
+  if (startValue) {
+    const start = new Date(startValue);
+    if (!Number.isNaN(start.getTime())) {
+      range.$gte = start;
+    }
+  }
+
+  if (endValue) {
+    const end = new Date(endValue);
+    if (!Number.isNaN(end.getTime())) {
+      range.$lt = end;
+    }
+  }
+
+  if (Object.keys(range).length === 0) return {};
+  return { [fieldName]: range };
+};
+
 const logNotification = (donation, { to, status, error }) => {
   if (!donation) return;
   donation.notificaciones = donation.notificaciones || [];
@@ -368,8 +397,11 @@ export const getDonorHistory = async (req, res) => {
 // 9. OBTENER TODAS LAS DONACIONES (Para el Administrador)
 export const getAllDonationsAdmin = async (req, res) => {
   try {
+    const { startDate, endDate } = req.query;
+    const dateFilter = buildDateRangeFilter(startDate, endDate, "updatedAt");
+
     // Buscamos absolutamente todas las donaciones y traemos info del donador y beneficiario
-    const allDonations = await Donation.find()
+    const allDonations = await Donation.find(dateFilter)
       .populate("donor", "nombres apellidos nombreEmpresa email")
       .populate("beneficiary", "nombres apellidos email")
       .sort({ createdAt: -1 }); // Las más recientes primero
@@ -441,8 +473,11 @@ export const updateDonation = async (req, res) => {
 */
 export const getCollectedMetrics = async (req, res) => {
   try {
+    const { startDate, endDate } = req.query;
+    const dateFilter = buildDateRangeFilter(startDate, endDate, "updatedAt");
+
     const metrics = await Donation.aggregate([
-      { $match: { estado: "recolectado" } },
+      { $match: { estado: "recolectado", ...dateFilter } },
       {
         $group: {
           _id: {
@@ -465,6 +500,39 @@ export const getCollectedMetrics = async (req, res) => {
       { $sort: { total: -1 } },
     ]);
 
+    const seriePorUnidad = await Donation.aggregate([
+      { $match: { estado: "recolectado", ...dateFilter } },
+      {
+        $group: {
+          _id: {
+            mes: {
+              $dateToString: {
+                format: "%Y-%m",
+                date: "$updatedAt",
+              },
+            },
+            unidad: {
+              $toLower: {
+                $ifNull: ["$unidad", "unidades"],
+              },
+            },
+          },
+          total: { $sum: "$cantidad" },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          mes: "$_id.mes",
+          unidad: "$_id.unidad",
+          total: 1,
+          count: 1,
+        },
+      },
+      { $sort: { mes: 1, unidad: 1 } },
+    ]);
+
     const totalRecolectado = metrics.reduce(
       (acc, item) => acc + item.total,
       0,
@@ -478,6 +546,7 @@ export const getCollectedMetrics = async (req, res) => {
       totalRecolectado,
       totalDonacionesRecolectadas,
       totalPorUnidad: metrics,
+      seriePorUnidad,
     });
   } catch (error) {
     console.error("Error al calcular métricas:", error);
