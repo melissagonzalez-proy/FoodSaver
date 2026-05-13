@@ -117,6 +117,7 @@ export const createDonation = async (req, res) => {
       donorId,
       titulo,
       descripcion,
+      categoria,
       cantidad,
       unidad,
       fechaCaducidad,
@@ -144,6 +145,7 @@ export const createDonation = async (req, res) => {
       donor: donorId,
       titulo,
       descripcion,
+      categoria: categoria || "otros",
       cantidad: cantidadNumber,
       unidad: unidad || "unidades",
       fechaCaducidad,
@@ -191,12 +193,78 @@ export const getDonorDonations = async (req, res) => {
 // 3. OBTENER GALERÍA PARA BENEFICIARIOS (¡La que se había borrado!)
 export const getAvailableDonations = async (req, res) => {
   try {
-    const availableDonations = await Donation.find({ estado: "activo" })
-      .populate(
-        "donor",
-        "nombres apellidos nombreEmpresa departamento ciudad direccion celular promedioCalificacion totalEvaluaciones",
-      )
-      .sort({ createdAt: -1 });
+    const nearExpiryDays = 2;
+    const now = new Date();
+    const nearExpiryDate = new Date(
+      now.getTime() + nearExpiryDays * 24 * 60 * 60 * 1000,
+    );
+
+    const availableDonations = await Donation.aggregate([
+      { $match: { estado: "activo" } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "donor",
+          foreignField: "_id",
+          as: "donor",
+        },
+      },
+      { $unwind: "$donor" },
+      { $match: { "donor.isSuspended": { $ne: true } } },
+      {
+        $addFields: {
+          donorStatus: { $ifNull: ["$donor.reputationStatus", "green"] },
+          nearExpiry: { $lte: ["$fechaCaducidad", nearExpiryDate] },
+        },
+      },
+      {
+        $addFields: {
+          sortBucket: {
+            $switch: {
+              branches: [
+                { case: { $eq: ["$donorStatus", "green"] }, then: 0 },
+                { case: "$nearExpiry", then: 1 },
+                { case: { $eq: ["$donorStatus", "yellow"] }, then: 2 },
+                { case: { $eq: ["$donorStatus", "red"] }, then: 3 },
+              ],
+              default: 4,
+            },
+          },
+        },
+      },
+      { $sort: { sortBucket: 1, fechaCaducidad: 1, createdAt: -1 } },
+      {
+        $project: {
+          _id: 1,
+          titulo: 1,
+          descripcion: 1,
+          categoria: 1,
+          cantidad: 1,
+          unidad: 1,
+          fechaCaducidad: 1,
+          fechaRecogida: 1,
+          estado: 1,
+          imagenUrl: 1,
+          pickupPin: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          donor: {
+            _id: "$donor._id",
+            nombres: "$donor.nombres",
+            apellidos: "$donor.apellidos",
+            nombreEmpresa: "$donor.nombreEmpresa",
+            departamento: "$donor.departamento",
+            ciudad: "$donor.ciudad",
+            direccion: "$donor.direccion",
+            celular: "$donor.celular",
+            promedioCalificacion: "$donor.promedioCalificacion",
+            totalEvaluaciones: "$donor.totalEvaluaciones",
+            reputationStatus: "$donor.reputationStatus",
+          },
+        },
+      },
+    ]);
+
     res.status(200).json(availableDonations);
   } catch (error) {
     res
@@ -422,6 +490,7 @@ export const updateDonation = async (req, res) => {
     const {
       titulo,
       descripcion,
+      categoria,
       cantidad,
       unidad,
       fechaCaducidad,
@@ -432,6 +501,7 @@ export const updateDonation = async (req, res) => {
     const updateData = {
       titulo,
       descripcion,
+      categoria,
       cantidad,
       unidad,
       fechaCaducidad,

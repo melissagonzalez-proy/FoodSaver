@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Donation from "../models/Donation.js";
 import Rating from "../models/Rating.js";
 import User from "../models/User.js";
+import { evaluateUserReputation } from "../services/reputationService.js";
 
 /* 
   CREAR CALIFICACIÓN Y ACTUALIZAR PROMEDIO
@@ -72,6 +73,11 @@ export const rateUser = async (req, res) => {
     await User.findByIdAndUpdate(toUserId, {
       promedioCalificacion: parseFloat(newAverage.toFixed(1)),
       totalEvaluaciones: allRatings.length,
+    });
+
+    await evaluateUserReputation({
+      userId: toUserId,
+      average: parseFloat(newAverage.toFixed(1)),
     });
 
     res.status(201).json({ message: "Calificación enviada con éxito." });

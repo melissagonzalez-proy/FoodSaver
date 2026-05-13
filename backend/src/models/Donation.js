@@ -44,6 +44,7 @@ const donationSchema = new mongoose.Schema(
 
     titulo: { type: String, required: true },
     descripcion: { type: String, required: true },
+    categoria: { type: String, default: "otros" },
     cantidad: { type: Number, required: true },
     unidad: { type: String, default: "unidades" },
     fechaCaducidad: { type: Date, required: true },

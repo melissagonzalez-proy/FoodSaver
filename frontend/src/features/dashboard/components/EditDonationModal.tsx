@@ -7,6 +7,7 @@ interface Donation {
   _id: string;
   titulo: string;
   descripcion: string;
+  categoria?: string;
   cantidad: number;
   unidad: string;
   fechaCaducidad: string;
@@ -21,6 +22,17 @@ interface EditModalProps {
   onSuccess: () => void;
 }
 
+const FOOD_CATEGORIES = [
+  { value: "frutas", label: "Frutas" },
+  { value: "verduras", label: "Verduras" },
+  { value: "lacteos", label: "Lacteos" },
+  { value: "panaderia", label: "Panaderia" },
+  { value: "carnes", label: "Carnes" },
+  { value: "granos", label: "Granos" },
+  { value: "bebidas", label: "Bebidas" },
+  { value: "otros", label: "Otros" },
+];
+
 export const EditDonationModal = ({
   isOpen,
   onClose,
@@ -34,6 +46,7 @@ export const EditDonationModal = ({
   const [formData, setFormData] = useState({
     titulo: "",
     descripcion: "",
+    categoria: "otros",
     cantidad: 0,
     unidad: "unidades",
     fechaCaducidad: "",
@@ -45,6 +58,7 @@ export const EditDonationModal = ({
       setFormData({
         titulo: donation.titulo,
         descripcion: donation.descripcion,
+        categoria: donation.categoria || "otros",
         cantidad: donation.cantidad,
         unidad: donation.unidad,
         fechaCaducidad: donation.fechaCaducidad
@@ -77,6 +91,7 @@ export const EditDonationModal = ({
       const data = new FormData();
       data.append("titulo", formData.titulo);
       data.append("descripcion", formData.descripcion);
+      data.append("categoria", formData.categoria);
       data.append("cantidad", formData.cantidad.toString());
       data.append("unidad", formData.unidad);
       data.append("fechaCaducidad", formData.fechaCaducidad);
@@ -152,6 +167,24 @@ export const EditDonationModal = ({
                 className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text outline-none focus:border-brand-accent transition-colors min-h-30 resize-none"
                 required
               />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-brand-muted">
+                Categoría
+              </label>
+              <select
+                name="categoria"
+                value={formData.categoria}
+                onChange={handleChange}
+                className="w-full bg-brand-background border border-brand-border rounded-xl px-3 py-2.5 text-brand-text outline-none focus:border-brand-accent transition-colors"
+              >
+                {FOOD_CATEGORIES.map((category) => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -10,6 +10,7 @@ import {
   ListOrdered,
   Lock,
   LogOut,
+  MessageSquare,
   PackageOpen,
   Pencil,
   PlusCircle,
@@ -24,6 +25,7 @@ import { apiUrl, assetUrl } from "../../../lib/api";
 import { EditDonationModal } from "../components/EditDonationModal";
 import { EditProfile } from "../components/EditProfile";
 import { UserProfileModal } from "../components/UserProfileModal";
+import { UserCommentsPanel } from "../components/UserCommentsPanel";
 
 interface BeneficiaryInfo {
   _id: string;
@@ -43,6 +45,7 @@ interface DonationData {
   _id: string;
   titulo: string;
   descripcion: string;
+  categoria?: string;
   cantidad: number;
   unidad: string;
   nombres: string;
@@ -55,6 +58,17 @@ interface DonationData {
   notificaciones?: NotificationLog[];
   createdAt: string;
 }
+
+const FOOD_CATEGORIES = [
+  { value: "frutas", label: "Frutas" },
+  { value: "verduras", label: "Verduras" },
+  { value: "lacteos", label: "Lacteos" },
+  { value: "panaderia", label: "Panaderia" },
+  { value: "carnes", label: "Carnes" },
+  { value: "granos", label: "Granos" },
+  { value: "bebidas", label: "Bebidas" },
+  { value: "otros", label: "Otros" },
+];
 
 const CountdownTimer = ({ expiresAt }: { expiresAt: string }) => {
   const calculateTime = (expiration: string) => {
@@ -121,6 +135,7 @@ export const DashboardDonorPage = () => {
   const [formData, setFormData] = useState({
     titulo: "",
     descripcion: "",
+    categoria: "otros",
     cantidad: "",
     unidad: "kg",
     fechaCaducidad: "",
@@ -173,6 +188,28 @@ export const DashboardDonorPage = () => {
     if (userId) fetchDonations();
   }, [userId, fetchDonations]);
 
+  const scrollToComments = useCallback(() => {
+    setMainView("perfil");
+    setTimeout(() => {
+      document.getElementById("comentarios")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 100);
+  }, []);
+
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === "#comentarios") {
+        scrollToComments();
+      }
+    };
+
+    handleHash();
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, [scrollToComments]);
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -202,6 +239,7 @@ export const DashboardDonorPage = () => {
       data.append("donorId", String(userId));
       data.append("titulo", formData.titulo);
       data.append("descripcion", formData.descripcion);
+      data.append("categoria", formData.categoria);
       data.append("cantidad", formData.cantidad);
       data.append("unidad", formData.unidad);
       data.append("fechaCaducidad", formData.fechaCaducidad);
@@ -214,6 +252,7 @@ export const DashboardDonorPage = () => {
       setFormData({
         titulo: "",
         descripcion: "",
+        categoria: "otros",
         cantidad: "",
         unidad: "kg",
         fechaCaducidad: "",
@@ -342,6 +381,12 @@ export const DashboardDonorPage = () => {
           >
             <User size={20} /> Mi Perfil
           </button>
+          <button
+            onClick={scrollToComments}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left text-brand-muted hover:bg-brand-background hover:text-brand-text"
+          >
+            <MessageSquare size={20} /> Comentarios
+          </button>
         </nav>
 
         <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-brand-border/50">
@@ -408,6 +453,19 @@ export const DashboardDonorPage = () => {
                   rows={2}
                   className="bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text focus:border-brand-accent outline-none resize-none"
                 />
+
+                <select
+                  name="categoria"
+                  value={formData.categoria}
+                  onChange={handleChange}
+                  className="bg-brand-background border border-brand-border rounded-xl px-4 py-2.5 text-brand-text focus:border-brand-accent outline-none"
+                >
+                  {FOOD_CATEGORIES.map((category) => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
 
                 <div className="flex gap-2">
                   <input
@@ -798,7 +856,14 @@ export const DashboardDonorPage = () => {
           </div>
         )}
 
-        {mainView === "perfil" && <EditProfile />}
+        {mainView === "perfil" && (
+          <div className="flex flex-col gap-8">
+            <EditProfile />
+            <div id="comentarios">
+              <UserCommentsPanel userId={userId} title="Mis Comentarios" />
+            </div>
+          </div>
+        )}
       </main>
 
       {/* MODALES */}

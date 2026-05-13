@@ -24,6 +24,7 @@ import { useNavigate } from "react-router-dom";
 import { apiUrl, assetUrl } from "../../../lib/api";
 import { EditProfile } from "../components/EditProfile";
 import { UserProfileModal } from "../components/UserProfileModal";
+import { UserCommentsPanel } from "../components/UserCommentsPanel";
 
 interface DonorInfo {
   _id: string;
@@ -36,6 +37,7 @@ interface DonorInfo {
   nombreEmpresa?: string;
   promedioCalificacion?: number;
   totalEvaluaciones?: number;
+  reputationStatus?: "green" | "yellow" | "red";
 }
 interface DonationData {
   _id: string;
@@ -127,6 +129,28 @@ export const DashboardBeneficiaryPage = () => {
       fetchMyReservations();
     }
   }, [activeTab, fetchAvailableDonations, fetchMyReservations]);
+
+  const scrollToComments = useCallback(() => {
+    setActiveTab("perfil");
+    setTimeout(() => {
+      document.getElementById("comentarios")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 100);
+  }, []);
+
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === "#comentarios") {
+        scrollToComments();
+      }
+    };
+
+    handleHash();
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, [scrollToComments]);
 
   const getErrorMessage = (error: unknown): string => {
     if (axios.isAxiosError(error)) {
@@ -236,6 +260,21 @@ export const DashboardBeneficiaryPage = () => {
       d.donor.ciudad.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  const reputationConfig = {
+    green: {
+      label: "Verde",
+      className: "bg-green-500/10 text-green-500 border-green-500/30",
+    },
+    yellow: {
+      label: "Amarillo",
+      className: "bg-yellow-500/10 text-yellow-500 border-yellow-500/30",
+    },
+    red: {
+      label: "Rojo",
+      className: "bg-red-500/10 text-red-500 border-red-500/30",
+    },
+  };
+
   return (
     <div className="h-screen overflow-hidden bg-brand-background font-sans flex flex-col md:flex-row relative">
       <aside className="w-full md:w-64 bg-brand-card border-r border-brand-border p-6 flex flex-col z-10">
@@ -318,7 +357,12 @@ export const DashboardBeneficiaryPage = () => {
         </header>
 
         {activeTab === "perfil" ? (
-          <EditProfile />
+          <div className="flex flex-col gap-8">
+            <EditProfile />
+            <div id="comentarios">
+              <UserCommentsPanel userId={currentUserId} title="Mis Comentarios" />
+            </div>
+          </div>
         ) : isLoading ? (
           <div className="text-center py-20 flex flex-col items-center">
             <div className="w-10 h-10 border-4 border-brand-accent border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -361,6 +405,17 @@ export const DashboardBeneficiaryPage = () => {
                       <Scale size={12} className="text-brand-accent" />{" "}
                       {donation.cantidad} {donation.unidad || "uds"}
                     </div>
+                    {(() => {
+                      const status = donation.donor.reputationStatus || "green";
+                      const badge = reputationConfig[status];
+                      return (
+                        <div
+                          className={`absolute top-3 left-3 px-3 py-1 rounded-full border text-xs font-semibold ${badge.className}`}
+                        >
+                          {badge.label}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="p-6 flex flex-col flex-1">
                     <h3 className="font-bold text-brand-text text-lg mb-1 line-clamp-1">

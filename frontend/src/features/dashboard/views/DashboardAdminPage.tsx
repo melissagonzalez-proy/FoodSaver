@@ -30,6 +30,7 @@ import {
   UserCog,
   Trash2,
 } from "lucide-react";
+import { AdminReviewModal } from "../components/AdminReviewModal";
 
 ChartJS.register(
   CategoryScale,
@@ -78,6 +79,28 @@ interface CollectedMetricsResponse {
   seriePorUnidad: CollectedSeriesPoint[];
 }
 
+interface ReputationNotification {
+  tipo: "warning" | "probation" | "final" | "message";
+  estadoEntrega: "enviado" | "fallido";
+  fechaHora: string;
+  error?: string | null;
+}
+
+interface TrialUser {
+  _id: string;
+  nombres?: string;
+  apellidos?: string;
+  nombreEmpresa?: string;
+  email: string;
+  role: "donor" | "beneficiary" | "admin";
+  promedioCalificacion: number;
+  totalEvaluaciones: number;
+  reputationStatus: "green" | "yellow" | "red";
+  diasRestantes?: number | null;
+  isSuspended?: boolean;
+  reputationNotifications?: ReputationNotification[];
+}
+
 interface DateRange {
   start: Date;
   end: Date;
@@ -90,7 +113,7 @@ export const DashboardAdminPage = () => {
   const token = localStorage.getItem("token");
   
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "donaciones" | "usuarios"
+    "dashboard" | "donaciones" | "usuarios" | "trial"
   >("dashboard");
 
   const [allDonations, setAllDonations] = useState<DonationData[]>([]);
@@ -108,6 +131,12 @@ export const DashboardAdminPage = () => {
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [trialUsers, setTrialUsers] = useState<TrialUser[]>([]);
+  const [isTrialLoading, setIsTrialLoading] = useState(false);
+  const [reviewModal, setReviewModal] = useState({
+    isOpen: false,
+    userId: "",
+  });
   const [dateFilter, setDateFilter] = useState<
     "month" | "last6" | "last12"
   >("last6");
@@ -135,6 +164,8 @@ export const DashboardAdminPage = () => {
     } else if (activeTab === "donaciones") {
       fetchAllDonations();
       fetchMetrics();
+    } else if (activeTab === "trial") {
+      fetchTrialUsers();
     } else if (activeTab === "usuarios") {
       fetchUsersList();
     }
@@ -245,6 +276,48 @@ export const DashboardAdminPage = () => {
       console.error("Error al cargar lista de usuarios:", error);
     } finally {
       if (shouldSetLoading) setIsLoading(false);
+    }
+  };
+
+  const fetchTrialUsers = async () => {
+    setIsTrialLoading(true);
+    try {
+      const response = await axios.get(apiUrl("/api/admin/trial-users"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTrialUsers(response.data || []);
+    } catch (error) {
+      console.error("Error al cargar periodo de prueba:", error);
+    } finally {
+      setIsTrialLoading(false);
+    }
+  };
+
+  const handleSuspendUser = async (userId: string) => {
+    try {
+      await axios.put(
+        apiUrl(`/api/admin/trial-users/${userId}/suspend`),
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      fetchTrialUsers();
+    } catch (error) {
+      console.error("Error suspendiendo usuario:", error);
+      alert("No se pudo suspender el usuario.");
+    }
+  };
+
+  const handleRestoreUser = async (userId: string) => {
+    try {
+      await axios.put(
+        apiUrl(`/api/admin/trial-users/${userId}/restore`),
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      fetchTrialUsers();
+    } catch (error) {
+      console.error("Error restaurando usuario:", error);
+      alert("No se pudo restaurar el usuario.");
     }
   };
 
@@ -488,6 +561,20 @@ export const DashboardAdminPage = () => {
     [],
   );
 
+  const reputationBadge = {
+    green: "bg-green-500/10 text-green-500 border-green-500/20",
+    yellow: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+    red: "bg-red-500/10 text-red-500 border-red-500/20",
+  };
+
+  const hasNotification = (
+    notifications: ReputationNotification[] | undefined,
+    type: ReputationNotification["tipo"],
+  ) =>
+    notifications?.some(
+      (entry) => entry.tipo === type && entry.estadoEntrega === "enviado",
+    );
+
   return (
     <div className="h-screen overflow-hidden bg-brand-background font-sans flex flex-col md:flex-row relative">
       {/* SIDEBAR */}
@@ -509,6 +596,12 @@ export const DashboardAdminPage = () => {
             className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "donaciones" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}
           >
             <PackageOpen size={20} /> Monitoreo Alimentos
+          </button>
+          <button
+            onClick={() => setActiveTab("trial")}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "trial" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}
+          >
+            <AlertTriangle size={20} /> Periodo de Prueba
           </button>
           <button
             onClick={() => setActiveTab("usuarios")}
@@ -533,11 +626,13 @@ export const DashboardAdminPage = () => {
                 ? "Visualiza el pulso del sistema y la interacción de la comunidad."
                 : activeTab === "donaciones"
                   ? "Supervisa todas las donaciones activas e histórico del sistema."
+                  : activeTab === "trial"
+                    ? "Monitorea usuarios en estado amarillo o rojo."
                   : "Supervisa la reputación y mantén la seguridad de la comunidad."}
             </p>
           </div>
 
-          {activeTab !== "dashboard" && (
+          {(activeTab === "donaciones" || activeTab === "usuarios") && (
             <div className="relative w-full md:w-72">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted"
@@ -931,6 +1026,146 @@ export const DashboardAdminPage = () => {
           </div>
         )}
 
+        {/* --- VISTA: PERIODO DE PRUEBA --- */}
+        {activeTab === "trial" && (
+          <div className="bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-brand-border text-brand-muted text-sm">
+                    <th className="pb-3 font-medium">Usuario</th>
+                    <th className="pb-3 font-medium text-center">Rol</th>
+                    <th className="pb-3 font-medium text-center">Calificación</th>
+                    <th className="pb-3 font-medium text-center">Días restantes</th>
+                    <th className="pb-3 font-medium text-center">Acción</th>
+                    <th className="pb-3 font-medium text-center">Notificaciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isTrialLoading ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-10 text-brand-muted">
+                        Cargando usuarios en prueba...
+                      </td>
+                    </tr>
+                  ) : trialUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-10 text-brand-muted">
+                        No hay usuarios en estado amarillo o rojo.
+                      </td>
+                    </tr>
+                  ) : (
+                    trialUsers.map((user) => (
+                      <tr
+                        key={user._id}
+                        className="border-b border-brand-border/50 hover:bg-brand-background/50 transition-colors"
+                      >
+                        <td className="py-4">
+                          <p className="font-medium text-brand-text">
+                            {user.nombreEmpresa ||
+                              `${user.nombres ?? ""} ${user.apellidos ?? ""}`.trim() ||
+                              "Usuario"}
+                          </p>
+                          <p className="text-xs text-brand-muted">{user.email}</p>
+                          <span
+                            className={`inline-flex items-center mt-2 px-2 py-0.5 rounded-full border text-[10px] font-semibold ${
+                              reputationBadge[user.reputationStatus || "green"]
+                            }`}
+                          >
+                            {user.reputationStatus === "yellow"
+                              ? "Amarillo"
+                              : user.reputationStatus === "red"
+                                ? "Rojo"
+                                : "Verde"}
+                          </span>
+                        </td>
+                        <td className="py-4 text-center">
+                          <span className="px-3 py-1 bg-brand-background border border-brand-border rounded-lg text-xs font-medium uppercase text-brand-muted">
+                            {user.role === "donor" ? "Donador" : "Beneficiario"}
+                          </span>
+                        </td>
+                        <td className="py-4 text-center">
+                          <div className="flex items-center justify-center gap-1 text-yellow-500 font-bold">
+                            <Star size={16} fill="currentColor" />
+                            {user.promedioCalificacion?.toFixed(1) || "0.0"}
+                          </div>
+                        </td>
+                        <td className="py-4 text-center text-sm text-brand-text">
+                          {user.reputationStatus === "red"
+                            ? user.diasRestantes ?? 0
+                            : "-"}
+                        </td>
+                        <td className="py-4 text-center">
+                          {user.reputationStatus === "red" ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleSuspendUser(user._id)}
+                                className="px-3 py-2 text-xs font-medium rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+                                disabled={user.isSuspended}
+                              >
+                                Suspender
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRestoreUser(user._id)}
+                                className="px-3 py-2 text-xs font-medium rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white transition-colors"
+                              >
+                                Restaurar
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setReviewModal({
+                                  isOpen: true,
+                                  userId: user._id,
+                                })
+                              }
+                              className="px-3 py-2 text-xs font-medium rounded-lg bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition-colors"
+                            >
+                              Revisión Comentarios
+                            </button>
+                          )}
+                        </td>
+                        <td className="py-4 text-center">
+                          <div className="flex flex-col items-center gap-2">
+                            {hasNotification(
+                              user.reputationNotifications,
+                              "probation",
+                            ) && (
+                              <span className="px-3 py-1 rounded-full text-[10px] font-semibold bg-green-500/10 text-green-500 border border-green-500/20">
+                                Correo de finalización enviada
+                              </span>
+                            )}
+                            {hasNotification(
+                              user.reputationNotifications,
+                              "warning",
+                            ) && (
+                              <span className="px-3 py-1 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                Advertencia enviada
+                              </span>
+                            )}
+                            {!hasNotification(
+                              user.reputationNotifications,
+                              "warning",
+                            ) &&
+                              !hasNotification(
+                                user.reputationNotifications,
+                                "probation",
+                              ) && <span className="text-xs text-brand-muted">—</span>}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* --- VISTA 2: MONITOREO DE DONACIONES --- */}
         {activeTab === "donaciones" && (
            <div className="flex flex-col gap-6">
@@ -1172,6 +1407,13 @@ export const DashboardAdminPage = () => {
           </div>
         </div>
       )}
+
+      <AdminReviewModal
+        isOpen={reviewModal.isOpen}
+        userId={reviewModal.userId}
+        onClose={() => setReviewModal({ isOpen: false, userId: "" })}
+        onMessageSent={fetchTrialUsers}
+      />
     </div>
   );
 };

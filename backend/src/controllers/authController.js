@@ -358,6 +358,12 @@ export const login = async (req, res) => {
       });
     }
 
+    if (user.isSuspended) {
+      return res.status(403).json({
+        message: "Tu cuenta está suspendida. Contacta con soporte.",
+      });
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({

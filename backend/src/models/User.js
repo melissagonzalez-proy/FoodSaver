@@ -1,5 +1,34 @@
 import mongoose from "mongoose";
 
+const reputationNotificationSchema = new mongoose.Schema(
+  {
+    tipo: {
+      type: String,
+      enum: ["warning", "probation", "final", "message"],
+      required: true,
+    },
+    canal: {
+      type: String,
+      enum: ["email"],
+      default: "email",
+    },
+    estadoEntrega: {
+      type: String,
+      enum: ["enviado", "fallido"],
+      required: true,
+    },
+    fechaHora: {
+      type: Date,
+      default: Date.now,
+    },
+    error: {
+      type: String,
+      default: null,
+    },
+  },
+  { _id: false },
+);
+
 const userSchema = new mongoose.Schema(
   {
     // --- Campos compartidos por todos los roles ---
@@ -18,6 +47,23 @@ const userSchema = new mongoose.Schema(
     camaraComercioUrl: { type: String, required: false },
     promedioCalificacion: { type: Number, default: 0 },
     totalEvaluaciones: { type: Number, default: 0 },
+
+    reputationStatus: {
+      type: String,
+      enum: ["green", "yellow", "red"],
+      default: "green",
+    },
+    reputationUpdatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    reputationNotifications: {
+      type: [reputationNotificationSchema],
+      default: [],
+    },
+    probationStart: { type: Date, default: null },
+    probationEnd: { type: Date, default: null },
+    isSuspended: { type: Boolean, default: false },
 
     role: {
       type: String,
