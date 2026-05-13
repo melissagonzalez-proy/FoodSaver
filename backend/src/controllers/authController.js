@@ -23,7 +23,6 @@ const splitNombreCompleto = (nombreCompleto = "") => {
     apellidos: partes.slice(-2).join(" "),
   };
 };
-
 /* =====================================================
    DONADOR — PRE REGISTRO (NIT + ENVÍO OTP)
 ===================================================== */
@@ -49,21 +48,13 @@ export const preRegisterDonorWithValidation = async (req, res) => {
       });
     }
 
-    // Ejecutar validaciones en n8n (NIT + OTP)
-    const [nitRes, phoneRes] = await Promise.all([
-      axios.post(
-        process.env.N8N_NIT_WEBHOOK,
-        { nit, nombreEmpresa },
-        { timeout: 60000 },
-      ),
-      axios.post(
-        process.env.N8N_PHONE_WEBHOOK,
-        { celular },
-        { timeout: 60000 },
-      ),
-    ]);
+    // ─── PASO 1: Validar NIT primero ───────────────────────────
+    const nitRes = await axios.post(
+      process.env.N8N_NIT_WEBHOOK,
+      { nit, nombreEmpresa },
+      { timeout: 60000 },
+    );
 
-    // Validar NIT
     if (!nitRes.data || nitRes.data.aprobado !== true) {
       return res.status(400).json({
         nitValid: false,
@@ -72,11 +63,19 @@ export const preRegisterDonorWithValidation = async (req, res) => {
       });
     }
 
+    // ─── PASO 2: Solo si NIT es válido, enviar OTP por email ───
+    const otpRes = await axios.post(
+      process.env.N8N_PHONE_WEBHOOK,
+      { email, nombre: nombreEncargado },  // 👈 email + nombre en vez de celular
+      { timeout: 60000 },
+    );
+
     return res.status(200).json({
       nitValid: true,
-      otpSent: phoneRes.data?.success == true,
+      otpSent: otpRes.data?.success === true,
       razonSocial: nitRes.data.razonSocial,
     });
+
   } catch (error) {
     console.error(
       "❌ Error en preRegister:",
@@ -96,21 +95,19 @@ export const verifyDonorOtpAndCreate = async (req, res) => {
     const { donorData } = req.body;
     const otp = req.body.otp || req.body.http;
 
-    // Verificar OTP en n8n
+    // Verificar OTP en n8n (ahora con email en vez de celular)
     const otpRes = await axios.post(
       process.env.N8N_VERIFY_OTP_WEBHOOK,
       {
-        celular: donorData.celular,
+        email: donorData.email,  // 👈 email en vez de celular
         otp,
       },
       { timeout: 60000 },
     );
 
-    console.log("OtpRest ", otpRes.data);
-
     const otpResult = Array.isArray(otpRes.data) ? otpRes.data[0] : otpRes.data;
 
-    console.log(" OTP RESULT:", otpResult);
+    console.log("OTP RESULT:", otpResult);
 
     if (!otpResult || otpResult.success !== true) {
       return res.status(400).json({
@@ -152,6 +149,7 @@ export const verifyDonorOtpAndCreate = async (req, res) => {
       message: "Donador registrado con éxito",
       userId: newDonor._id,
     });
+
   } catch (error) {
     console.error(
       "❌ Error en verify OTP:",
@@ -159,6 +157,145 @@ export const verifyDonorOtpAndCreate = async (req, res) => {
     );
     return res.status(500).json({
       message: "Error creando el donador",
+    });
+  }
+};
+
+/* =====================================================
+   BENEFICIARIO — PRE REGISTRO (SISBÉN + ENVÍO OTP)
+===================================================== */
+export const preRegisterBeneficiaryWithValidation = async (req, res) => {
+  try {
+    const {
+      numeroDocumento,
+      tipoDocumento,
+      nombre,
+      sisbenGrupo,
+      municipio,
+      celular,
+      email,
+      password,
+      departamento,
+      ciudad,
+      direccion,
+    } = req.body;
+
+    console.log("numero documento", numeroDocumento, "sisben", sisbenGrupo);
+
+    // Verificar si ya existe el usuario
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(400).json({
+        message: "El correo ya está registrado",
+      });
+    }
+
+    // ─── PASO 1: Validar SISBÉN primero ────────────────────────
+    const sisbenRes = await axios.post(
+      process.env.N8N_SISBEN_WEBHOOK,
+      {
+        numeroDocumento,
+        tipoDocumento,
+        nombre,
+        sisbenGrupo,
+        municipio,
+      },
+      { timeout: 60000 },
+    );
+
+    if (!sisbenRes.data || sisbenRes.data.aprobado !== true) {
+      console.log(
+        "!sisbenRes.data || sisbenRes.data.aprobado !== true",
+        sisbenRes.data,
+        sisbenRes.data.aprobado !== true,
+      );
+      return res.status(400).json({
+        sisbenValid: false,
+        message: "SISBÉN no válido",
+      });
+    }
+
+    // ─── PASO 2: Solo si SISBÉN es válido, enviar OTP por email ─
+    const otpRes = await axios.post(
+      process.env.N8N_PHONE_WEBHOOK,
+      { email, nombre },  // 👈 email + nombre en vez de celular
+      { timeout: 60000 },
+    );
+
+    return res.status(200).json({
+      sisbenValid: true,
+      otpSent: otpRes.data?.success === true,
+    });
+
+  } catch (error) {
+    console.error("❌ Error preRegisterBeneficiary:", error);
+    return res.status(500).json({
+      message: "Error validando beneficiario",
+    });
+  }
+};
+
+/* =====================================================
+   BENEFICIARIO — VERIFICAR OTP Y CREAR CUENTA
+===================================================== */
+export const verifyBeneficiaryOtpAndCreate = async (req, res) => {
+  try {
+    const { beneficiaryData, otp } = req.body;
+
+    if (!beneficiaryData || !otp) {
+      return res.status(400).json({
+        message: "Información incompleta",
+      });
+    }
+
+    // Verificar OTP en n8n (ahora con email en vez de celular)
+    const otpRes = await axios.post(
+      process.env.N8N_VERIFY_OTP_WEBHOOK,
+      {
+        email: beneficiaryData.email,  // 👈 email en vez de celular
+        otp,
+      },
+      { timeout: 60000 },
+    );
+
+    const otpResult = Array.isArray(otpRes.data) ? otpRes.data[0] : otpRes.data;
+
+    if (!otpResult || otpResult.success !== true) {
+      return res.status(400).json({
+        message: "OTP inválido o expirado",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(beneficiaryData.password, 10);
+
+    const newUser = new User({
+      role: "beneficiary",
+      nombres: beneficiaryData.nombres,
+      apellidos: beneficiaryData.apellidos,
+      email: beneficiaryData.email,
+      password: hashedPassword,
+      celular: beneficiaryData.celular,
+      departamento: beneficiaryData.departamento,
+      ciudad: beneficiaryData.ciudad,
+      direccion: beneficiaryData.direccion,
+      tipoDocumento: beneficiaryData.tipoDocumento,
+      numeroDocumento: beneficiaryData.numeroDocumento,
+      sisbenGrupo: beneficiaryData.sisbenGrupo,
+      isVerified: false,
+    });
+
+    console.log(newUser);
+    await newUser.save();
+
+    return res.status(201).json({
+      message: "Beneficiario registrado correctamente",
+      userId: newUser._id,
+    });
+
+  } catch (error) {
+    console.error("❌ Error verifyBeneficiary:", error);
+    return res.status(500).json({
+      message: "Error creando beneficiario",
     });
   }
 };
@@ -210,136 +347,6 @@ export const registerBeneficiary = async (req, res) => {
     console.error("Error en subida de documentos de beneficiario:", error);
     res.status(500).json({
       message: "Error en el servidor al guardar los documentos.",
-    });
-  }
-};
-
-export const preRegisterBeneficiaryWithValidation = async (req, res) => {
-  try {
-    const {
-      numeroDocumento,
-      tipoDocumento,
-      nombre,
-      sisbenGrupo,
-      municipio,
-      celular,
-      email,
-      password,
-      departamento,
-      ciudad,
-      direccion,
-    } = req.body;
-
-    console.log("numero documento", numeroDocumento, "sisben", sisbenGrupo);
-    // Email único
-    const exists = await User.findOne({ email });
-    if (exists) {
-      return res.status(400).json({
-        message: "El correo ya está registrado",
-      });
-    }
-
-    // Validaciones en paralelo (SISBÉN + OTP)
-    const [sisbenRes, phoneRes] = await Promise.all([
-      axios.post(
-        process.env.N8N_SISBEN_WEBHOOK,
-        {
-          numeroDocumento,
-          tipoDocumento,
-          nombre,
-          sisbenGrupo,
-          municipio,
-        },
-        { timeout: 60000 },
-      ),
-      axios.post(
-        process.env.N8N_PHONE_WEBHOOK,
-        { celular },
-        { timeout: 60000 },
-      ),
-    ]);
-
-    if (!sisbenRes.data || sisbenRes.data.aprobado !== true) {
-      console.log(
-        "!sisbenRes.data || sisbenRes.data.aprobado !== true",
-        sisbenRes.data,
-        sisbenRes.data.aprobado !== true,
-      );
-      return res.status(400).json({
-        sisbenValid: false,
-        message: "SISBÉN no válido",
-      });
-    }
-
-    return res.status(200).json({
-      sisbenValid: true,
-      otpSent: phoneRes.data?.success == true,
-    });
-  } catch (error) {
-    console.error("❌ Error preRegisterBeneficiary:", error);
-    return res.status(500).json({
-      message: "Error validando beneficiario",
-    });
-  }
-};
-
-export const verifyBeneficiaryOtpAndCreate = async (req, res) => {
-  try {
-    const { beneficiaryData, otp } = req.body;
-
-    if (!beneficiaryData || !otp) {
-      return res.status(400).json({
-        message: "Información incompleta",
-      });
-    }
-
-    //  Verificar OTP (MISMO workflow que donador)
-    const otpRes = await axios.post(
-      process.env.N8N_VERIFY_OTP_WEBHOOK,
-      {
-        celular: beneficiaryData.celular,
-        otp,
-      },
-      { timeout: 60000 },
-    );
-
-    const otpResult = Array.isArray(otpRes.data) ? otpRes.data[0] : otpRes.data;
-
-    if (!otpResult || otpResult.success !== true) {
-      return res.status(400).json({
-        message: "OTP inválido o expirado",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(beneficiaryData.password, 10);
-
-    const newUser = new User({
-      role: "beneficiary",
-      nombres: beneficiaryData.nombres,
-      apellidos: beneficiaryData.apellidos,
-      email: beneficiaryData.email,
-      password: hashedPassword,
-      celular: beneficiaryData.celular,
-      departamento: beneficiaryData.departamento,
-      ciudad: beneficiaryData.ciudad,
-      direccion: beneficiaryData.direccion,
-      tipoDocumento: beneficiaryData.tipoDocumento,
-      numeroDocumento: beneficiaryData.numeroDocumento,
-      sisbenGrupo: beneficiaryData.sisbenGrupo,
-      isVerified: false, 
-    });
-
-    console.log(newUser);
-    await newUser.save();
-
-    return res.status(201).json({
-      message: "Beneficiario registrado correctamente",
-      userId: newUser._id,
-    });
-  } catch (error) {
-    console.error("❌ Error verifyBeneficiary:", error);
-    return res.status(500).json({
-      message: "Error creando beneficiario",
     });
   }
 };
