@@ -218,7 +218,7 @@ export const preRegisterBeneficiaryWithValidation = async (req, res) => {
     // ─── PASO 2: Solo si SISBÉN es válido, enviar OTP por email ─
     const otpRes = await axios.post(
       process.env.N8N_PHONE_WEBHOOK,
-      { email, nombre },  // 👈 email + nombre en vez de celular
+      { email, nombre },
       { timeout: 60000 },
     );
 
@@ -248,11 +248,11 @@ export const verifyBeneficiaryOtpAndCreate = async (req, res) => {
       });
     }
 
-    // Verificar OTP en n8n (ahora con email en vez de celular)
+    // Verificar OTP en n8n 
     const otpRes = await axios.post(
       process.env.N8N_VERIFY_OTP_WEBHOOK,
       {
-        email: beneficiaryData.email,  // 👈 email en vez de celular
+        email: beneficiaryData.email,
         otp,
       },
       { timeout: 60000 },

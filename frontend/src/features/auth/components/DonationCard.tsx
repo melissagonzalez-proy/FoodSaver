@@ -1,6 +1,6 @@
+import { AlertTriangle, Clock, Image as ImageIcon, Pencil, Scale, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Clock, Scale, XCircle, Image as ImageIcon, Pencil } from "lucide-react";
-import { assetUrl } from "../../../lib/api"; 
+import { assetUrl } from "../../../lib/api";
 
 interface Donation {
   _id: string;
@@ -22,6 +22,13 @@ interface Props {
 export const DonationCard = ({ donation, onCancel, onComplete, onEdit }: Props) => {
   const [timeLeft, setTimeLeft] = useState("");
   const [pinInput, setPinInput] = useState("");
+
+  
+  const isNearExpiry = () => {
+    const difference = new Date(donation.fechaCaducidad).getTime() - new Date().getTime();
+    const days = difference / (1000 * 60 * 60 * 24);
+    return days > 0 && days <= 3;
+  };
 
   useEffect(() => {
     const calculateTime = () => {
@@ -60,10 +67,24 @@ export const DonationCard = ({ donation, onCancel, onComplete, onEdit }: Props) 
             alt={donation.titulo}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
+          {/* Etiqueta "Próximo a vencer" sobre la imagen */}
+          {isNearExpiry() && (
+            <div className="absolute top-2 left-2 flex items-center gap-1 bg-orange-500/90 text-white text-xs font-semibold px-2 py-1 rounded-md backdrop-blur-sm">
+              <AlertTriangle size={12} />
+              Próximo a vencer
+            </div>
+          )}
         </div>
       ) : (
-        <div className="h-40 w-full bg-brand-background flex items-center justify-center border-b border-brand-border/50">
+        <div className="h-40 w-full bg-brand-background flex items-center justify-center border-b border-brand-border/50 relative">
           <ImageIcon size={32} className="text-brand-muted opacity-50" />
+          {/* Etiqueta cuando no hay imagen */}
+          {isNearExpiry() && (
+            <div className="absolute top-2 left-2 flex items-center gap-1 bg-orange-500/90 text-white text-xs font-semibold px-2 py-1 rounded-md">
+              <AlertTriangle size={12} />
+              Próximo a vencer
+            </div>
+          )}
         </div>
       )}
 
@@ -91,7 +112,6 @@ export const DonationCard = ({ donation, onCancel, onComplete, onEdit }: Props) 
           </div>
         </div>
 
-        {/* ACTUALIZADO: Botones de Editar y Cancelar si está 'activo' */}
         {donation.estado === "activo" && (
           <div className="mt-auto pt-3 flex gap-2">
             {onEdit && (
@@ -113,7 +133,6 @@ export const DonationCard = ({ donation, onCancel, onComplete, onEdit }: Props) 
           </div>
         )}
 
-        {/* SECTOR SAFE-PICKUP */}
         {donation.estado === "asignado" && (
           <div className="mt-auto pt-4 border-t border-brand-border/50 flex flex-col gap-2">
             <label className="text-xs font-semibold text-brand-text uppercase tracking-wider">
