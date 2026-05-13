@@ -23,8 +23,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiUrl, assetUrl } from "../../../lib/api";
 import { EditProfile } from "../components/EditProfile";
-import { UserProfileModal } from "../components/UserProfileModal";
 import { UserCommentsPanel } from "../components/UserCommentsPanel";
+import { UserProfileModal } from "../components/UserProfileModal";
 
 interface DonorInfo {
   _id: string;
@@ -260,19 +260,22 @@ export const DashboardBeneficiaryPage = () => {
       d.donor.ciudad.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const reputationConfig = {
-    green: {
-      label: "Verde",
-      className: "bg-green-500/10 text-green-500 border-green-500/30",
-    },
-    yellow: {
-      label: "Amarillo",
-      className: "bg-yellow-500/10 text-yellow-500 border-yellow-500/30",
-    },
-    red: {
-      label: "Rojo",
-      className: "bg-red-500/10 text-red-500 border-red-500/30",
-    },
+  const getReputation = (avg?: number, total?: number) => {
+    if (!total || total === 0) return null; // sin evaluaciones = sin badge
+    if (avg! >= 4)
+      return {
+        label: "⭐ Excelente",
+        className: "bg-green-500/10 text-green-400 border-green-500/30",
+      };
+    if (avg! >= 3)
+      return {
+        label: "👍 Regular",
+        className: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30",
+      };
+    return {
+      label: "⚠️ Bajo",
+      className: "bg-red-500/10 text-red-400 border-red-500/30",
+    };
   };
 
   return (
@@ -360,7 +363,10 @@ export const DashboardBeneficiaryPage = () => {
           <div className="flex flex-col gap-8">
             <EditProfile />
             <div id="comentarios">
-              <UserCommentsPanel userId={currentUserId} title="Mis Comentarios" />
+              <UserCommentsPanel
+                userId={currentUserId}
+                title="Mis Comentarios"
+              />
             </div>
           </div>
         ) : isLoading ? (
@@ -406,11 +412,14 @@ export const DashboardBeneficiaryPage = () => {
                       {donation.cantidad} {donation.unidad || "uds"}
                     </div>
                     {(() => {
-                      const status = donation.donor.reputationStatus || "green";
-                      const badge = reputationConfig[status];
+                      const badge = getReputation(
+                        donation.donor.promedioCalificacion,
+                        donation.donor.totalEvaluaciones,
+                      );
+                      if (!badge) return null;
                       return (
                         <div
-                          className={`absolute top-3 left-3 px-3 py-1 rounded-full border text-xs font-semibold ${badge.className}`}
+                          className={`absolute top-3 left-3 px-2.5 py-1 rounded-full border text-xs font-semibold backdrop-blur-sm ${badge.className}`}
                         >
                           {badge.label}
                         </div>
@@ -446,21 +455,42 @@ export const DashboardBeneficiaryPage = () => {
                               toUserName:
                                 donation.donor.nombreEmpresa ||
                                 donation.donor.nombres,
-                              canRate: false, // en galería aún no hay recolección
+                              canRate: false,
                             })
                           }
-                          className="text-xs text-brand-muted hover:text-brand-accent flex items-center gap-1 mt-1 transition-colors"
+                          className="flex items-center gap-1 mt-1 transition-colors hover:opacity-80"
                         >
-                          <Star size={12} className="text-yellow-500" />
-                          {donation.donor.totalEvaluaciones &&
-                          donation.donor.totalEvaluaciones > 0 ? (
-                            <span>
-                              {donation.donor.promedioCalificacion?.toFixed(1)}{" "}
-                              • {donation.donor.totalEvaluaciones} eval.
-                            </span>
-                          ) : (
-                            <span>Usuario nuevo</span>
-                          )}
+                          {(() => {
+                            const badge = getReputation(
+                              donation.donor.promedioCalificacion,
+                              donation.donor.totalEvaluaciones,
+                            );
+                            const starClass =
+                              badge?.className
+                                .split(" ")
+                                .find((c) => c.startsWith("text-")) ||
+                              "text-brand-muted";
+                            return <Star size={12} className={starClass} />;
+                          })()}
+                          <span
+                            className={`text-xs ${
+                              !donation.donor.totalEvaluaciones ||
+                              donation.donor.totalEvaluaciones === 0
+                                ? "text-brand-muted"
+                                : (donation.donor.promedioCalificacion ?? 0) >=
+                                    4
+                                  ? "text-green-400"
+                                  : (donation.donor.promedioCalificacion ??
+                                        0) >= 3
+                                    ? "text-yellow-400"
+                                    : "text-red-400"
+                            }`}
+                          >
+                            {donation.donor.totalEvaluaciones &&
+                            donation.donor.totalEvaluaciones > 0
+                              ? `${donation.donor.promedioCalificacion?.toFixed(1)} • ${donation.donor.totalEvaluaciones} eval.`
+                              : "Usuario nuevo"}
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -538,19 +568,45 @@ export const DashboardBeneficiaryPage = () => {
                             <MapPin size={12} /> {reservation.donor.direccion},{" "}
                             {reservation.donor.ciudad}
                           </p>
-                          <p className="text-xs text-brand-muted flex items-center gap-1 mt-1">
-                            <Star size={12} className="text-yellow-500" />
-                            {reservation.donor.totalEvaluaciones &&
-                            reservation.donor.totalEvaluaciones > 0 ? (
-                              <span>
-                                {reservation.donor.promedioCalificacion?.toFixed(
-                                  1,
-                                )}{" "}
-                                • {reservation.donor.totalEvaluaciones} eval.
-                              </span>
-                            ) : (
-                              <span>Usuario nuevo</span>
-                            )}
+                          <p className="flex items-center gap-1 mt-1">
+                            {(() => {
+                              const badge = getReputation(
+                                reservation.donor.promedioCalificacion,
+                                reservation.donor.totalEvaluaciones,
+                              );
+                              if (!badge)
+                                return (
+                                  <span className="text-xs text-brand-muted flex items-center gap-1">
+                                    <Star
+                                      size={12}
+                                      className="text-brand-muted"
+                                    />{" "}
+                                    Usuario nuevo
+                                  </span>
+                                );
+                              const starClass =
+                                badge.className
+                                  .split(" ")
+                                  .find((c) => c.startsWith("text-")) ||
+                                "text-brand-muted";
+                              const textClass = starClass;
+                              return (
+                                <span
+                                  className={`text-xs flex items-center gap-1 ${textClass}`}
+                                >
+                                  <Star size={12} className={starClass} />
+                                  {reservation.donor.promedioCalificacion?.toFixed(
+                                    1,
+                                  )}{" "}
+                                  • {reservation.donor.totalEvaluaciones} eval.
+                                  <span
+                                    className={`ml-1 px-1.5 py-0.5 rounded-full border text-[10px] font-semibold ${badge.className}`}
+                                  >
+                                    {badge.label}
+                                  </span>
+                                </span>
+                              );
+                            })()}
                           </p>
                         </td>
                         <td className="py-4 text-center">

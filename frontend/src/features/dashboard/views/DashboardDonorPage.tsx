@@ -24,8 +24,8 @@ import { useNavigate } from "react-router-dom";
 import { apiUrl, assetUrl } from "../../../lib/api";
 import { EditDonationModal } from "../components/EditDonationModal";
 import { EditProfile } from "../components/EditProfile";
-import { UserProfileModal } from "../components/UserProfileModal";
 import { UserCommentsPanel } from "../components/UserCommentsPanel";
+import { UserProfileModal } from "../components/UserProfileModal";
 
 interface BeneficiaryInfo {
   _id: string;
@@ -352,6 +352,23 @@ export const DashboardDonorPage = () => {
   const filteredDonations = donations.filter((d) => d.estado === activeTab);
   const today = new Date().toISOString().split("T")[0];
 
+  const getReputation = (avg?: number, total?: number) => {
+    if (!total || total === 0) return null;
+    if (avg! >= 4)
+      return {
+        label: "⭐ Excelente",
+        className: "bg-green-500/10 text-green-400 border-green-500/30",
+      };
+    if (avg! >= 3)
+      return {
+        label: "👍 Regular",
+        className: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30",
+      };
+    return {
+      label: "⚠️ Bajo",
+      className: "bg-red-500/10 text-red-400 border-red-500/30",
+    };
+  };
   return (
     <div className="h-screen overflow-hidden bg-brand-background font-sans flex flex-col md:flex-row relative">
       <aside className="w-full md:w-64 bg-brand-card border-r border-brand-border p-6 flex flex-col z-10">
@@ -638,22 +655,33 @@ export const DashboardDonorPage = () => {
                           </div>
 
                           {donation.beneficiary && (
-                            <div className="flex items-center gap-2 text-xs text-brand-muted mb-3">
-                              <User size={12} className="text-brand-accent" />
-                              <span>{donation.beneficiary.nombres}</span>
-                              <span>•</span>
-                              {donation.beneficiary.totalEvaluaciones &&
-                              donation.beneficiary.totalEvaluaciones > 0 ? (
-                                <span>
-                                  {donation.beneficiary.promedioCalificacion?.toFixed(
-                                    1,
-                                  )}{" "}
-                                  • {donation.beneficiary.totalEvaluaciones}{" "}
-                                  eval.
-                                </span>
-                              ) : (
-                                <span>Usuario nuevo</span>
-                              )}
+                            <div className="flex items-center gap-2 text-xs mb-3">
+                              <User
+                                size={12}
+                                className="text-brand-accent shrink-0"
+                              />
+                              <span className="text-brand-muted">
+                                {donation.beneficiary.nombres}
+                              </span>
+                              {(() => {
+                                const badge = getReputation(
+                                  donation.beneficiary.promedioCalificacion,
+                                  donation.beneficiary.totalEvaluaciones,
+                                );
+                                if (!badge)
+                                  return (
+                                    <span className="text-brand-muted">
+                                      • Usuario nuevo
+                                    </span>
+                                  );
+                                return (
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badge.className}`}
+                                  >
+                                    {badge.label}
+                                  </span>
+                                );
+                              })()}
                             </div>
                           )}
 
@@ -840,9 +868,30 @@ export const DashboardDonorPage = () => {
                                 canRate: true,
                               })
                             }
-                            className="inline-flex items-center gap-1 text-xs px-3 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors font-medium"
+                            className="inline-flex flex-col items-center gap-1 text-xs px-3 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors font-medium"
                           >
-                            <Star size={14} /> Ver / Evaluar
+                            <span className="flex items-center gap-1">
+                              <Star size={14} /> Ver / Evaluar
+                            </span>
+                            {(() => {
+                              const badge = getReputation(
+                                d.beneficiary!.promedioCalificacion,
+                                d.beneficiary!.totalEvaluaciones,
+                              );
+                              if (!badge)
+                                return (
+                                  <span className="text-[10px] opacity-70">
+                                    Usuario nuevo
+                                  </span>
+                                );
+                              return (
+                                <span
+                                  className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badge.className}`}
+                                >
+                                  {badge.label}
+                                </span>
+                              );
+                            })()}
                           </button>
                         ) : (
                           <span className="text-brand-muted">—</span>
