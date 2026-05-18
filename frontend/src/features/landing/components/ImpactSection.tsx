@@ -2,69 +2,33 @@ import { useEffect, useRef, useState } from "react";
 import { Leaf, Recycle, Users, TrendingUp } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Card } from "@/components/ui/card";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const metrics = [
-  {
-    icon: Leaf,
-    value: 12450,
-    suffix: "kg",
-    label: "Alimentos Rescatados",
-    description: "Comida salvada del desperdicio",
-  },
-  {
-    icon: TrendingUp,
-    value: 94,
-    suffix: "%",
-    label: "Tasa de Éxito",
-    description: "Recolectados antes de vencer",
-  },
-  {
-    icon: Users,
-    value: 3200,
-    suffix: "+",
-    label: "Familias Beneficiadas",
-    description: "Hogares que reciben apoyo",
-  },
-  {
-    icon: Recycle,
-    value: 8.5,
-    suffix: "t",
-    label: "CO₂ Evitado",
-    description: "Toneladas de emisiones reducidas",
-  },
+  { icon: Leaf, value: 12450, suffix: "kg", label: "Alimentos Rescatados", description: "Comida salvada del desperdicio" },
+  { icon: TrendingUp, value: 94, suffix: "%", label: "Tasa de Éxito", description: "Recolectados antes de vencer" },
+  { icon: Users, value: 3200, suffix: "+", label: "Familias Beneficiadas", description: "Hogares que reciben apoyo" },
+  { icon: Recycle, value: 8.5, suffix: "t", label: "CO₂ Evitado", description: "Toneladas de emisiones reducidas" },
 ];
 
 function AnimatedCounter({
-  value,
-  suffix,
-  shouldAnimate,
-}: {
-  value: number;
-  suffix: string;
-  shouldAnimate: boolean;
-}) {
+  value, suffix, shouldAnimate,
+}: { value: number; suffix: string; shouldAnimate: boolean }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (!shouldAnimate) return;
-
     const duration = 2000;
     const steps = 60;
     const increment = value / steps;
     let current = 0;
-
     const timer = setInterval(() => {
       current += increment;
-      if (current >= value) {
-        setCount(value);
-        clearInterval(timer);
-      } else {
-        setCount(Math.floor(current * 10) / 10);
-      }
+      if (current >= value) { setCount(value); clearInterval(timer); }
+      else { setCount(Math.floor(current * 10) / 10); }
     }, duration / steps);
-
     return () => clearInterval(timer);
   }, [value, shouldAnimate]);
 
@@ -72,12 +36,7 @@ function AnimatedCounter({
     ? Math.floor(count).toLocaleString()
     : count.toFixed(1);
 
-  return (
-    <span>
-      {displayValue}
-      {suffix}
-    </span>
-  );
+  return <span>{displayValue}{suffix}</span>;
 }
 
 export function ImpactSection() {
@@ -93,15 +52,8 @@ export function ImpactSection() {
         titleRef.current,
         { y: 40, opacity: 0 },
         {
-          y: 0,
-          opacity: 1,
-          duration: 0.8,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: titleRef.current,
-            start: "top 85%",
-            once: true,
-          },
+          y: 0, opacity: 1, duration: 0.8, ease: "power3.out",
+          scrollTrigger: { trigger: titleRef.current, start: "top 85%", once: true },
         },
       );
 
@@ -116,17 +68,8 @@ export function ImpactSection() {
         metricsRef.current?.children || [],
         { y: 30, opacity: 0, scale: 0.95 },
         {
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: metricsRef.current,
-            start: "top 80%",
-            once: true,
-          },
+          y: 0, opacity: 1, scale: 1, duration: 0.6, stagger: 0.1, ease: "power2.out",
+          scrollTrigger: { trigger: metricsRef.current, start: "top 80%", once: true },
         },
       );
 
@@ -134,15 +77,8 @@ export function ImpactSection() {
         bentoRef.current,
         { y: 40, opacity: 0 },
         {
-          y: 0,
-          opacity: 1,
-          duration: 0.8,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: bentoRef.current,
-            start: "top 85%",
-            once: true,
-          },
+          y: 0, opacity: 1, duration: 0.8, ease: "power3.out",
+          scrollTrigger: { trigger: bentoRef.current, start: "top 85%", once: true },
         },
       );
     }, sectionRef);
@@ -151,12 +87,20 @@ export function ImpactSection() {
   }, []);
 
   return (
-    <section ref={sectionRef} id="impacto" className="pt-20 lg:pt-32">
+    <section
+      ref={sectionRef}
+      id="impacto"
+      aria-labelledby="impact-title"
+      className="pt-20 lg:pt-32 scroll-mt-24"
+    >
       <div ref={titleRef} className="text-center mb-12 lg:mb-16">
         <span className="inline-block px-4 py-1.5 bg-brand-accent/10 text-brand-accent rounded-full text-sm font-medium mb-4">
           Nuestro Impacto
         </span>
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-brand-text font-jakarta mb-4 text-balance">
+        <h2
+          id="impact-title"
+          className="text-3xl md:text-4xl lg:text-5xl font-semibold text-brand-text font-jakarta mb-4 text-balance"
+        >
           Reduciendo la huella ecológica
         </h2>
         <p className="text-brand-muted text-base lg:text-lg max-w-2xl mx-auto">
@@ -165,67 +109,81 @@ export function ImpactSection() {
         </p>
       </div>
 
-      <div
+      <ul
         ref={metricsRef}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8"
+        aria-label="Métricas de impacto"
+        className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 lg:mb-8 list-none p-0"
       >
-        {metrics.map((metric) => (
-          <div
-            key={metric.label}
-            className="bg-brand-card border border-brand-border rounded-2xl lg:rounded-3xl p-6 lg:p-8 text-center hover:border-brand-accent/50 transition-colors group"
-          >
-            <div className="w-12 h-12 bg-brand-accent/10 text-brand-accent rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:bg-brand-accent group-hover:text-white transition-colors">
-              <metric.icon size={22} />
-            </div>
-            <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-brand-text font-jakarta mb-2">
-              <AnimatedCounter
-                value={metric.value}
-                suffix={metric.suffix}
-                shouldAnimate={shouldAnimate}
-              />
-            </div>
-            <h4 className="text-sm lg:text-base font-medium text-brand-text mb-1">
-              {metric.label}
-            </h4>
-            <p className="text-xs lg:text-sm text-brand-muted">
-              {metric.description}
-            </p>
-          </div>
-        ))}
-      </div>
+        {metrics.map((metric) => {
+          const Icon = metric.icon;
+          return (
+            <li key={metric.label}>
+              <Card className="h-full bg-brand-card border-brand-border rounded-2xl lg:rounded-3xl p-4 sm:p-6 lg:p-8 text-center hover:border-brand-accent/50 transition-colors group shadow-none">
+                <div className="w-12 h-12 bg-brand-accent/10 text-brand-accent rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:bg-brand-accent group-hover:text-white transition-colors">
+                  <Icon size={22} aria-hidden="true" />
+                </div>
+                <div
+                  className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-brand-text font-jakarta mb-2"
+                  aria-label={`${metric.value}${metric.suffix} ${metric.label}`}
+                >
+                  <AnimatedCounter
+                    value={metric.value}
+                    suffix={metric.suffix}
+                    shouldAnimate={shouldAnimate}
+                  />
+                </div>
+                <h3 className="text-sm lg:text-base font-medium text-brand-text mb-1">
+                  {metric.label}
+                </h3>
+                <p className="text-xs lg:text-sm text-brand-muted">
+                  {metric.description}
+                </p>
+              </Card>
+            </li>
+          );
+        })}
+      </ul>
 
       <div
         ref={bentoRef}
         className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6"
       >
-        <div className="lg:col-span-2 bg-brand-card border border-brand-border rounded-2xl lg:rounded-3xl p-8 lg:p-10 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-brand-accent/10 to-transparent rounded-full blur-3xl" />
-          <h3 className="text-2xl lg:text-3xl font-medium text-brand-text font-jakarta mb-4 relative z-10">
+        <Card className="lg:col-span-2 bg-brand-card border-brand-border rounded-2xl lg:rounded-3xl p-6 sm:p-8 lg:p-10 relative overflow-hidden shadow-none">
+          <div
+            aria-hidden="true"
+            className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-brand-accent/10 to-transparent rounded-full blur-3xl"
+          />
+          <h3 className="text-2xl lg:text-3xl font-medium text-brand-text font-jakarta mb-4 relative">
             Objetivo 2026
           </h3>
-          <p className="text-brand-muted leading-relaxed max-w-xl mb-6 relative z-10">
+          <p className="text-brand-muted leading-relaxed max-w-xl mb-6 relative">
             Nuestra meta es rescatar más de{" "}
-            <span className="text-brand-accent font-semibold">
-              50,000 kilogramos
-            </span>{" "}
+            <span className="text-brand-accent font-semibold">50,000 kilogramos</span>{" "}
             de alimentos y reducir significativamente las emisiones de CO₂ en la
             región de Antioquia. Cada donación cuenta.
           </p>
-          <div className="flex items-center gap-4 relative z-10">
+          <div
+            className="flex items-center gap-4 relative"
+            role="progressbar"
+            aria-valuenow={25}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Progreso hacia objetivo 2026"
+          >
             <div className="flex-1 h-3 bg-brand-border rounded-full overflow-hidden">
               <div
-                className="h-full bg-linear-to-r from-brand-accent to-brand-accent-light rounded-full"
+                className="h-full bg-gradient-to-r from-brand-accent to-brand-accent-light rounded-full"
                 style={{ width: "25%" }}
               />
             </div>
             <span className="text-brand-text font-medium">25%</span>
           </div>
-        </div>
+        </Card>
 
-        <div className="bg-brand-card border border-brand-border rounded-2xl lg:rounded-3xl p-8 lg:p-10 flex flex-col justify-between">
+        <Card className="bg-brand-card border-brand-border rounded-2xl lg:rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col justify-between shadow-none">
           <div>
             <div className="w-12 h-12 bg-brand-accent/10 text-brand-accent rounded-xl flex items-center justify-center mb-4">
-              <Recycle size={22} />
+              <Recycle size={22} aria-hidden="true" />
             </div>
             <h3 className="text-xl lg:text-2xl font-medium text-brand-text font-jakarta mb-3">
               Economía Circular
@@ -242,7 +200,7 @@ export function ImpactSection() {
               <span className="text-brand-text font-medium">127</span>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     </section>
   );
