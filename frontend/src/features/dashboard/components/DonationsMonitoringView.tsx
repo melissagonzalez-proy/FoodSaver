@@ -163,7 +163,7 @@ export const DonationsMonitoringView = ({
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="min-w-[5.5rem] text-right text-sm font-semibold text-brand-text">
+                      <span className="min-w-22 text-right text-sm font-semibold text-brand-text">
                         {metric.total.toLocaleString()}
                       </span>
                     </div>

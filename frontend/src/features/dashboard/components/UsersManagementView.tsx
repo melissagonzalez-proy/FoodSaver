@@ -41,7 +41,7 @@ export const UsersManagementView = ({
           <Table>
             <TableHeader>
               <TableRow className="border-brand-border hover:bg-transparent">
-                <TableHead className="text-brand-muted min-w-[200px]">
+                <TableHead className="text-brand-muted min-w-50">
                   Usuario
                 </TableHead>
                 <TableHead className="text-brand-muted text-center">
