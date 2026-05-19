@@ -40,10 +40,10 @@ function AnimatedCounter({
 }
 
 export function ImpactSection() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const titleRef = useRef<HTMLDivElement>(null);
-  const metricsRef = useRef<HTMLDivElement>(null);
-  const bentoRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const titleRef = useRef<HTMLDivElement | null>(null);
+  const metricsRef = useRef<HTMLUListElement | null>(null);
+  const bentoRef = useRef<HTMLDivElement | null>(null);
   const [shouldAnimate, setShouldAnimate] = useState(false);
 
   useEffect(() => {
@@ -151,7 +151,7 @@ export function ImpactSection() {
         <Card className="lg:col-span-2 bg-brand-card border-brand-border rounded-2xl lg:rounded-3xl p-6 sm:p-8 lg:p-10 relative overflow-hidden shadow-none">
           <div
             aria-hidden="true"
-            className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-brand-accent/10 to-transparent rounded-full blur-3xl"
+            className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-brand-accent/10 to-transparent rounded-full blur-3xl"
           />
           <h3 className="text-2xl lg:text-3xl font-medium text-brand-text font-jakarta mb-4 relative">
             Objetivo 2026
@@ -172,7 +172,7 @@ export function ImpactSection() {
           >
             <div className="flex-1 h-3 bg-brand-border rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-brand-accent to-brand-accent-light rounded-full"
+                className="h-full bg-linear-to-r from-brand-accent to-brand-accent-light rounded-full"
                 style={{ width: "25%" }}
               />
             </div>

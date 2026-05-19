@@ -135,9 +135,8 @@ export function Footer() {
               </p>
             </div>
             <Button
-              asChild
               size="lg"
-              className="rounded-full h-12 px-8 bg-brand-accent text-white hover:bg-brand-accent-light whitespace-nowrap shadow-[var(--shadow-brand-accent)] group w-full sm:w-auto"
+              className="rounded-full h-12 px-8 bg-brand-accent text-white hover:bg-brand-accent-light whitespace-nowrap shadow-(--shadow-brand-accent) group w-full sm:w-auto"
             >
               <Link to="/selection">
                 Crear cuenta{" "}

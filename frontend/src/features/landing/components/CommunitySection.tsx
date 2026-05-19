@@ -48,10 +48,10 @@ const partners: Partner[] = [
 ];
 
 export function CommunitySection() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const titleRef = useRef<HTMLDivElement>(null);
-  const cardsRef = useRef<HTMLDivElement>(null);
-  const ctaRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const titleRef = useRef<HTMLDivElement | null>(null);
+  const cardsRef = useRef<HTMLUListElement | null>(null);
+  const ctaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -121,7 +121,7 @@ export function CommunitySection() {
               <Card className="h-full bg-brand-card border-brand-border rounded-2xl lg:rounded-3xl p-6 sm:p-8 hover:border-brand-accent/50 transition-all group relative overflow-hidden shadow-none">
                 <div
                   aria-hidden="true"
-                  className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-accent/5 to-transparent rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-brand-accent/5 to-transparent rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity"
                 />
 
                 <div className="flex items-center justify-between mb-6">
@@ -160,46 +160,43 @@ export function CommunitySection() {
         })}
       </ul>
 
-      <Card
-        ref={ctaRef}
-        className="bg-gradient-to-br from-brand-card to-brand-background border-brand-border rounded-2xl lg:rounded-3xl p-6 sm:p-8 lg:p-12 relative overflow-hidden shadow-none"
-      >
-        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-brand-accent/5 to-transparent pointer-events-none" />
-        <div aria-hidden="true" className="absolute bottom-0 right-0 w-96 h-96 bg-brand-accent/5 rounded-full blur-3xl" />
+      <div ref={ctaRef}>
+        <Card className="bg-linear-to-br from-brand-card to-brand-background border-brand-border rounded-2xl lg:rounded-3xl p-6 sm:p-8 lg:p-12 relative overflow-hidden shadow-none">
+          <div aria-hidden="true" className="absolute inset-0 bg-linear-to-br from-brand-accent/5 to-transparent pointer-events-none" />
+          <div aria-hidden="true" className="absolute bottom-0 right-0 w-96 h-96 bg-linear-to-br from-brand-accent/5 to-transparent rounded-full blur-3xl" />
 
-        <div className="relative flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-8">
-          <div className="text-center lg:text-left">
-            <h3 className="text-2xl md:text-3xl lg:text-4xl font-semibold text-brand-text font-jakarta mb-4 text-balance">
-              ¿Tienes un establecimiento?
-            </h3>
-            <p className="text-brand-muted text-base lg:text-lg max-w-xl">
-              Únete a nuestra red de donadores y contribuye a reducir el
-              desperdicio alimentario mientras generas un impacto positivo en tu
-              comunidad.
-            </p>
-          </div>
+          <div className="relative flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-8">
+            <div className="text-center lg:text-left">
+              <h3 className="text-2xl md:text-3xl lg:text-4xl font-semibold text-brand-text font-jakarta mb-4 text-balance">
+                ¿Tienes un establecimiento?
+              </h3>
+              <p className="text-brand-muted text-base lg:text-lg max-w-xl">
+                Únete a nuestra red de donadores y contribuye a reducir el
+                desperdicio alimentario mientras generas un impacto positivo en tu
+                comunidad.
+              </p>
+            </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full lg:w-auto">
-            <Button
-              asChild
-              size="lg"
-              className="rounded-full h-12 lg:h-14 px-6 lg:px-8 text-base lg:text-lg bg-brand-accent text-white hover:bg-brand-accent-light shadow-[var(--shadow-brand-accent)]"
-            >
-              <Link to="/selection">
-                Registrar mi negocio <ArrowRight size={20} aria-hidden="true" />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="rounded-full h-12 lg:h-14 px-6 lg:px-8 text-base lg:text-lg border-brand-border text-brand-text hover:bg-brand-border/60 bg-transparent"
-            >
-              <a href="#como-funciona">Saber más</a>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full lg:w-auto">
+              <Button
+                size="lg"
+                className="rounded-full h-12 lg:h-14 px-6 lg:px-8 text-base lg:text-lg bg-brand-accent text-white hover:bg-brand-accent-light shadow-(--shadow-brand-accent)"
+              >
+                <Link to="/selection">
+                  Registrar mi negocio <ArrowRight size={20} aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="rounded-full h-12 lg:h-14 px-6 lg:px-8 text-base lg:text-lg border-brand-border text-brand-text hover:bg-brand-border/60 bg-transparent"
+              >
+                <a href="#como-funciona">Saber más</a>
+              </Button>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
     </section>
   );
 }

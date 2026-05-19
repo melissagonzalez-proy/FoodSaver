@@ -102,11 +102,11 @@ export function HeroSection() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-4">
         <Card
           ref={heroCardRef}
-          className="bg-brand-card border-brand-border rounded-3xl lg:rounded-[2.5rem] p-6 sm:p-8 lg:p-12 flex flex-col justify-center relative overflow-hidden min-h-[24rem] lg:min-h-[32rem] shadow-none"
+          className="bg-brand-card border-brand-border rounded-3xl lg:rounded-[2.5rem] p-6 sm:p-8 lg:p-12 flex flex-col justify-center relative overflow-hidden min-h-96 lg:min-h-128 shadow-none"
         >
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-br from-brand-accent/10 to-transparent pointer-events-none"
+            className="absolute inset-0 bg-linear-to-br from-brand-accent/10 to-transparent pointer-events-none"
           />
           <h1
             id="hero-title"
@@ -122,16 +122,14 @@ export function HeroSection() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 relative">
             <Button
-              asChild
               size="lg"
-              className="rounded-full h-12 lg:h-14 px-6 lg:px-8 text-base lg:text-lg bg-brand-accent text-white hover:bg-brand-accent-light shadow-[var(--shadow-brand-accent)]"
+              className="rounded-full h-12 lg:h-14 px-6 lg:px-8 text-base lg:text-lg bg-brand-accent text-white hover:bg-brand-accent-light shadow-(--shadow-brand-accent)"
             >
               <Link to="/selection">
                 Unirme a la red <ArrowRight size={20} aria-hidden="true" />
               </Link>
             </Button>
             <Button
-              asChild
               variant="outline"
               size="lg"
               className="rounded-full h-12 lg:h-14 px-6 lg:px-8 text-base lg:text-lg border-brand-border text-brand-text hover:bg-brand-border/60 bg-transparent"
@@ -143,7 +141,7 @@ export function HeroSection() {
 
         <div
           ref={imageCardRef}
-          className="relative rounded-3xl lg:rounded-[2.5rem] overflow-hidden min-h-[18rem] lg:min-h-[24rem] border border-brand-border group"
+          className="relative rounded-3xl lg:rounded-[2.5rem] overflow-hidden min-h-72 lg:min-h-96 border border-brand-border group"
         >
           <img
             src="/01.jpg"
@@ -153,7 +151,7 @@ export function HeroSection() {
           />
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-t from-brand-background via-brand-background/20 to-transparent"
+            className="absolute inset-0 bg-linear-to-t from-brand-background via-brand-background/20 to-transparent"
           />
           <div className="absolute bottom-6 lg:bottom-8 left-6 lg:left-8 right-6 lg:right-8">
             <div className="inline-flex items-center gap-2 bg-brand-background/80 backdrop-blur-md border border-brand-border px-4 py-2 rounded-full text-brand-text text-sm font-medium mb-3">
@@ -200,7 +198,7 @@ export function HeroSection() {
                 </p>
               </div>
               {f.image && (
-                <div className="flex-1 w-full h-48 md:h-full min-h-[12rem] rounded-2xl overflow-hidden border border-brand-border relative">
+                <div className="flex-1 w-full h-48 md:h-full min-h-48 rounded-2xl overflow-hidden border border-brand-border relative">
                   <img
                     src={f.image}
                     alt={f.imageAlt ?? ""}
