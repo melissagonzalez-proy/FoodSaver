@@ -48,7 +48,7 @@ const donationSchema = new mongoose.Schema(
     cantidad: { type: Number, required: true },
     unidad: { type: String, default: "unidades" },
     fechaCaducidad: { type: Date, required: true },
-    fechaRecogida: { type: Date, required: true },
+    fechaRecogida: { type: String, required: true },
 
     estado: {
       type: String,
