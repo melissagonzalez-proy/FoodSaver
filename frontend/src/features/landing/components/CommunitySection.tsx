@@ -19,7 +19,6 @@ type Partner = {
   title: string;
   description: string;
   benefits: string[];
-  count: number;
 };
 
 const partners: Partner[] = [
@@ -32,8 +31,7 @@ const partners: Partner[] = [
       "Reducción de pérdidas",
       "Beneficio fiscal",
       "Imagen responsable",
-    ],
-    count: 45,
+    ]
   },
   {
     icon: UtensilsCrossed,
@@ -41,15 +39,13 @@ const partners: Partner[] = [
     description:
       "Establecimientos gastronómicos que comparten sus excedentes diarios con quienes más lo necesitan.",
     benefits: ["Cero desperdicio", "Impacto social", "Comunidad conectada"],
-    count: 62,
   },
   {
     icon: Home,
     title: "Hogares",
     description:
       "Familias comprometidas que donan alimentos antes de que se desperdicien en sus hogares.",
-    benefits: ["Ayuda a vecinos", "Consumo consciente", "Red solidaria"],
-    count: 234,
+    benefits: ["Consumo consciente", "Red solidaria"],
   },
 ];
 
@@ -122,19 +118,12 @@ export function CommunitySection() {
       className="pt-20 lg:pt-32 scroll-mt-24"
     >
       <div ref={titleRef} className="text-center mb-12 lg:mb-16">
-        <span className="inline-block px-4 py-1.5 bg-brand-accent/10 text-brand-accent rounded-full text-sm font-medium mb-4">
-          Nuestra Red
-        </span>
         <h2
           id="community-title"
           className="text-3xl md:text-4xl lg:text-5xl font-semibold text-brand-text font-jakarta mb-4 text-balance"
         >
-          Comunidad y Alianzas
+          Posibles Donadores y Beneficiarios
         </h2>
-        <p className="text-brand-muted text-base lg:text-lg max-w-2xl mx-auto">
-          Una red diversa de colaboradores comprometidos con la reducción del
-          desperdicio alimentario en nuestra región.
-        </p>
       </div>
 
       <ul
@@ -155,12 +144,6 @@ export function CommunitySection() {
                 <div className="flex items-center justify-between mb-6">
                   <div className="w-14 h-14 bg-brand-background border border-brand-border text-brand-text rounded-2xl flex items-center justify-center group-hover:text-brand-accent group-hover:border-brand-accent/50 transition-colors">
                     <Icon size={26} aria-hidden="true" />
-                  </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold text-brand-accent font-jakarta">
-                      {partner.count}
-                    </span>
-                    <p className="text-xs text-brand-muted">activos</p>
                   </div>
                 </div>
 
