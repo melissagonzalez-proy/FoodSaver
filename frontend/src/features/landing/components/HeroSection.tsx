@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight,
   MapPin,
   Clock,
   HeartHandshake,
@@ -125,9 +124,7 @@ export function HeroSection() {
               size="lg"
               className="rounded-full h-12 lg:h-14 px-6 lg:px-8 text-base lg:text-lg bg-brand-accent text-white hover:bg-brand-accent-light shadow-(--shadow-brand-accent)"
             >
-              <Link to="/selection">
-                Unirme a la red <ArrowRight size={20} aria-hidden="true" />
-              </Link>
+              <Link to="/selection">Unirme a la red</Link>
             </Button>
             <Button
               variant="outline"
@@ -155,7 +152,11 @@ export function HeroSection() {
           />
           <div className="absolute bottom-6 lg:bottom-8 left-6 lg:left-8 right-6 lg:right-8">
             <div className="inline-flex items-center gap-2 bg-brand-background/80 backdrop-blur-md border border-brand-border px-4 py-2 rounded-full text-brand-text text-sm font-medium mb-3">
-              <MapPin size={16} className="text-brand-accent" aria-hidden="true" />
+              <MapPin
+                size={16}
+                className="text-brand-accent"
+                aria-hidden="true"
+              />
               <span>Yarumal, Giraldo, Apartado y Medellín</span>
             </div>
             <p className="text-lg lg:text-xl text-brand-text font-medium font-jakarta">
@@ -175,7 +176,9 @@ export function HeroSection() {
             <Card
               key={f.title}
               className={`bg-brand-card border-brand-border rounded-3xl lg:rounded-[2.5rem] p-6 sm:p-8 lg:p-10 flex hover:border-brand-accent/50 transition-colors group shadow-none ${
-                f.wide ? "md:col-span-2 flex-col md:flex-row gap-6 lg:gap-8 items-center" : "flex-col items-start"
+                f.wide
+                  ? "md:col-span-2 flex-col md:flex-row gap-6 lg:gap-8 items-center"
+                  : "flex-col items-start"
               }`}
             >
               <div className="flex-1 w-full">
@@ -191,7 +194,9 @@ export function HeroSection() {
                 </h2>
                 <p
                   className={`text-brand-muted leading-relaxed ${
-                    f.wide ? "text-base lg:text-lg max-w-2xl" : "text-sm sm:text-base"
+                    f.wide
+                      ? "text-base lg:text-lg max-w-2xl"
+                      : "text-sm sm:text-base"
                   }`}
                 >
                   {f.description}

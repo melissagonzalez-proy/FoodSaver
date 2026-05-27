@@ -4,7 +4,6 @@ import {
   Building2,
   UtensilsCrossed,
   Home,
-  ArrowRight,
   CheckCircle2,
   type LucideIcon,
 } from "lucide-react";
@@ -27,21 +26,28 @@ const partners: Partner[] = [
   {
     icon: Building2,
     title: "Supermercados",
-    description: "Grandes cadenas y tiendas locales que donan productos próximos a vencer pero en perfecto estado.",
-    benefits: ["Reducción de pérdidas", "Beneficio fiscal", "Imagen responsable"],
+    description:
+      "Grandes cadenas y tiendas locales que donan productos próximos a vencer pero en perfecto estado.",
+    benefits: [
+      "Reducción de pérdidas",
+      "Beneficio fiscal",
+      "Imagen responsable",
+    ],
     count: 45,
   },
   {
     icon: UtensilsCrossed,
     title: "Restaurantes",
-    description: "Establecimientos gastronómicos que comparten sus excedentes diarios con quienes más lo necesitan.",
+    description:
+      "Establecimientos gastronómicos que comparten sus excedentes diarios con quienes más lo necesitan.",
     benefits: ["Cero desperdicio", "Impacto social", "Comunidad conectada"],
     count: 62,
   },
   {
     icon: Home,
     title: "Hogares",
-    description: "Familias comprometidas que donan alimentos antes de que se desperdicien en sus hogares.",
+    description:
+      "Familias comprometidas que donan alimentos antes de que se desperdicien en sus hogares.",
     benefits: ["Ayuda a vecinos", "Consumo consciente", "Red solidaria"],
     count: 234,
   },
@@ -59,8 +65,15 @@ export function CommunitySection() {
         titleRef.current,
         { y: 40, opacity: 0 },
         {
-          y: 0, opacity: 1, duration: 0.8, ease: "power3.out",
-          scrollTrigger: { trigger: titleRef.current, start: "top 85%", once: true },
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: titleRef.current,
+            start: "top 85%",
+            once: true,
+          },
         },
       );
 
@@ -68,8 +81,16 @@ export function CommunitySection() {
         cardsRef.current?.children || [],
         { y: 40, opacity: 0 },
         {
-          y: 0, opacity: 1, duration: 0.6, stagger: 0.15, ease: "power2.out",
-          scrollTrigger: { trigger: cardsRef.current, start: "top 80%", once: true },
+          y: 0,
+          opacity: 1,
+          duration: 0.6,
+          stagger: 0.15,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: cardsRef.current,
+            start: "top 80%",
+            once: true,
+          },
         },
       );
 
@@ -77,8 +98,15 @@ export function CommunitySection() {
         ctaRef.current,
         { y: 30, opacity: 0 },
         {
-          y: 0, opacity: 1, duration: 0.8, ease: "power3.out",
-          scrollTrigger: { trigger: ctaRef.current, start: "top 85%", once: true },
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: ctaRef.current,
+            start: "top 85%",
+            once: true,
+          },
         },
       );
     }, sectionRef);
@@ -143,13 +171,20 @@ export function CommunitySection() {
                   {partner.description}
                 </p>
 
-                <ul className="space-y-2" aria-label={`Beneficios para ${partner.title}`}>
+                <ul
+                  className="space-y-2"
+                  aria-label={`Beneficios para ${partner.title}`}
+                >
                   {partner.benefits.map((benefit) => (
                     <li
                       key={benefit}
                       className="flex items-center gap-2 text-sm text-brand-muted"
                     >
-                      <CheckCircle2 size={16} className="text-brand-accent shrink-0" aria-hidden="true" />
+                      <CheckCircle2
+                        size={16}
+                        className="text-brand-accent shrink-0"
+                        aria-hidden="true"
+                      />
                       <span>{benefit}</span>
                     </li>
                   ))}
@@ -162,8 +197,14 @@ export function CommunitySection() {
 
       <div ref={ctaRef}>
         <Card className="bg-linear-to-br from-brand-card to-brand-background border-brand-border rounded-2xl lg:rounded-3xl p-6 sm:p-8 lg:p-12 relative overflow-hidden shadow-none">
-          <div aria-hidden="true" className="absolute inset-0 bg-linear-to-br from-brand-accent/5 to-transparent pointer-events-none" />
-          <div aria-hidden="true" className="absolute bottom-0 right-0 w-96 h-96 bg-linear-to-br from-brand-accent/5 to-transparent rounded-full blur-3xl" />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-linear-to-br from-brand-accent/5 to-transparent pointer-events-none"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute bottom-0 right-0 w-96 h-96 bg-linear-to-br from-brand-accent/5 to-transparent rounded-full blur-3xl"
+          />
 
           <div className="relative flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-8">
             <div className="text-center lg:text-left">
@@ -172,8 +213,8 @@ export function CommunitySection() {
               </h3>
               <p className="text-brand-muted text-base lg:text-lg max-w-xl">
                 Únete a nuestra red de donadores y contribuye a reducir el
-                desperdicio alimentario mientras generas un impacto positivo en tu
-                comunidad.
+                desperdicio alimentario mientras generas un impacto positivo en
+                tu comunidad.
               </p>
             </div>
 
@@ -182,9 +223,7 @@ export function CommunitySection() {
                 size="lg"
                 className="rounded-full h-12 lg:h-14 px-6 lg:px-8 text-base lg:text-lg bg-brand-accent text-white hover:bg-brand-accent-light shadow-(--shadow-brand-accent)"
               >
-                <Link to="/selection">
-                  Registrar mi negocio <ArrowRight size={20} aria-hidden="true" />
-                </Link>
+                <Link to="/selection">Registrar mi negocio</Link>
               </Button>
               <Button
                 variant="outline"
