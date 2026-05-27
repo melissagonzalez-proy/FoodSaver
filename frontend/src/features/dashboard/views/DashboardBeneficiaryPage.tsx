@@ -23,8 +23,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiUrl, assetUrl } from "../../../lib/api";
 import { EditProfile } from "../components/EditProfile";
+import { ProfileOverview } from "../components/ProfileOverview";
 import { UserCommentsPanel } from "../components/UserCommentsPanel";
 import { UserProfileModal } from "../components/UserProfileModal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FeedbackDialog } from "@/components/ui/feedback-dialog";
 
 interface DonorInfo {
   _id: string;
@@ -87,6 +90,22 @@ export const DashboardBeneficiaryPage = () => {
     confirmar: "",
     isSubmitting: false,
   });
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [feedback, setFeedback] = useState({
+    open: false,
+    title: "",
+    message: "",
+    tone: "info" as "info" | "success" | "error",
+  });
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
+
+  const showFeedback = (
+    tone: "info" | "success" | "error",
+    title: string,
+    message = "",
+  ) => {
+    setFeedback({ open: true, title, message, tone });
+  };
 
   // ESTADO DEL MODAL DE CALIFICACIÓN
   const [profileModal, setProfileModal] = useState({
@@ -196,29 +215,47 @@ export const DashboardBeneficiaryPage = () => {
     }
   };
 
-  const handleCancelReservation = async (id: string) => {
-    if (
-      !window.confirm(
-        "¿Estás seguro de que deseas cancelar esta reserva? El alimento volverá a estar disponible para otros y el PIN se anulará.",
-      )
-    )
-      return;
+  const handleCancelReservation = (id: string) => {
+    setCancelTargetId(id);
+  };
+
+  const confirmCancelReservation = async () => {
+    if (!cancelTargetId) return;
     try {
-      await axios.put(apiUrl(`/api/donations/cancel/${id}`));
+      await axios.put(apiUrl(`/api/donations/cancel/${cancelTargetId}`));
       fetchMyReservations();
+      showFeedback(
+        "success",
+        "Reserva cancelada",
+        "El alimento vuelve a estar disponible.",
+      );
     } catch {
-      alert("Error al cancelar la reserva.");
+      showFeedback(
+        "error",
+        "No se pudo cancelar",
+        "Intenta nuevamente en unos momentos.",
+      );
+    } finally {
+      setCancelTargetId(null);
     }
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordModal.nueva !== passwordModal.confirmar) {
-      alert("Las contraseñas nuevas no coinciden.");
+      showFeedback(
+        "error",
+        "Contraseñas no coinciden",
+        "Las contraseñas nuevas no coinciden.",
+      );
       return;
     }
     if (passwordModal.nueva.length < 6) {
-      alert("La nueva contraseña debe tener al menos 6 caracteres.");
+      showFeedback(
+        "error",
+        "Contraseña muy corta",
+        "La nueva contraseña debe tener al menos 6 caracteres.",
+      );
       return;
     }
 
@@ -235,7 +272,7 @@ export const DashboardBeneficiaryPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      alert(response.data.message);
+      showFeedback("success", "Contraseña actualizada", response.data.message);
       setPasswordModal({
         isOpen: false,
         actual: "",
@@ -244,7 +281,11 @@ export const DashboardBeneficiaryPage = () => {
         isSubmitting: false,
       });
     } catch (error: any) {
-      alert(error.response?.data?.message || "Error al cambiar la contraseña.");
+      showFeedback(
+        "error",
+        "No se pudo actualizar",
+        error.response?.data?.message || "Error al cambiar la contraseña.",
+      );
       setPasswordModal((prev) => ({ ...prev, isSubmitting: false }));
     }
   };
@@ -344,7 +385,7 @@ export const DashboardBeneficiaryPage = () => {
                 ? "Explora los excedentes disponibles para recolección inmediata."
                 : activeTab === "reservas"
                   ? "Gestiona los alimentos que has reservado y revisa tus códigos PIN."
-                  : "Actualiza tus datos personales y de logística de recolección."}
+                  : "Consulta tu informacion personal y comentarios recibidos."}
             </p>
           </div>
           {activeTab === "galeria" && (
@@ -366,7 +407,7 @@ export const DashboardBeneficiaryPage = () => {
 
         {activeTab === "perfil" ? (
           <div className="flex flex-col gap-8">
-            <EditProfile />
+            <ProfileOverview onEdit={() => setIsEditProfileOpen(true)} />
             <div id="comentarios">
               <UserCommentsPanel
                 userId={currentUserId}
@@ -888,6 +929,33 @@ export const DashboardBeneficiaryPage = () => {
         toUserName={profileModal.toUserName}
         canRate={profileModal.canRate}
         onSuccess={fetchMyReservations}
+      />
+
+      <EditProfile
+        open={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={!!cancelTargetId}
+        onOpenChange={(open) => {
+          if (!open) setCancelTargetId(null);
+        }}
+        title="Cancelar reserva"
+        description="¿Estás seguro de que deseas cancelar esta reserva? El alimento volverá a estar disponible y el PIN se anulará."
+        confirmLabel="Si, cancelar"
+        confirmClassName="bg-red-500 text-white hover:bg-red-500/90"
+        onConfirm={confirmCancelReservation}
+      />
+
+      <FeedbackDialog
+        open={feedback.open}
+        onOpenChange={(open) =>
+          setFeedback((prev) => ({ ...prev, open }))
+        }
+        title={feedback.title}
+        message={feedback.message}
+        tone={feedback.tone}
       />
     </div>
   );

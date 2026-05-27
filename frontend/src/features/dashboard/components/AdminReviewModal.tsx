@@ -9,6 +9,7 @@ import {
   Send,
 } from "lucide-react";
 import { apiUrl } from "../../../lib/api";
+import { FeedbackDialog } from "@/components/ui/feedback-dialog";
 
 interface RatingAuthor {
   _id: string;
@@ -57,7 +58,21 @@ export const AdminReviewModal = ({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [feedback, setFeedback] = useState({
+    open: false,
+    title: "",
+    message: "",
+    tone: "info" as "info" | "success" | "error",
+  });
   const token = localStorage.getItem("token");
+
+  const showFeedback = (
+    tone: "info" | "success" | "error",
+    title: string,
+    message = "",
+  ) => {
+    setFeedback({ open: true, title, message, tone });
+  };
 
   const fetchProfile = useCallback(async () => {
     if (!userId) return;
@@ -94,7 +109,11 @@ export const AdminReviewModal = ({
       onClose();
     } catch (error) {
       console.error("Error enviando mensaje:", error);
-      alert("No se pudo enviar el mensaje.");
+      showFeedback(
+        "error",
+        "No se pudo enviar",
+        "Ocurrio un error al enviar el mensaje.",
+      );
     } finally {
       setIsSending(false);
     }
@@ -107,8 +126,9 @@ export const AdminReviewModal = ({
     `${profile?.nombres ?? ""} ${profile?.apellidos ?? ""}`.trim();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-brand-card w-full max-w-2xl rounded-3xl shadow-2xl border border-brand-border overflow-hidden flex flex-col max-h-[90vh]">
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="bg-brand-card w-full max-w-2xl rounded-3xl shadow-2xl border border-brand-border overflow-hidden flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-6 py-5 border-b border-brand-border">
           <div>
             <h3 className="text-xl font-bold text-brand-text font-jakarta">
@@ -241,7 +261,16 @@ export const AdminReviewModal = ({
             </button>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+
+      <FeedbackDialog
+        open={feedback.open}
+        onOpenChange={(open) => setFeedback((prev) => ({ ...prev, open }))}
+        title={feedback.title}
+        message={feedback.message}
+        tone={feedback.tone}
+      />
+    </>
   );
 };

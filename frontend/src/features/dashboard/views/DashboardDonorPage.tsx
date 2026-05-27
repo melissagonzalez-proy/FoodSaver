@@ -24,8 +24,11 @@ import { useNavigate } from "react-router-dom";
 import { apiUrl, assetUrl } from "../../../lib/api";
 import { EditDonationModal } from "../components/EditDonationModal";
 import { EditProfile } from "../components/EditProfile";
+import { ProfileOverview } from "../components/ProfileOverview";
 import { UserCommentsPanel } from "../components/UserCommentsPanel";
 import { UserProfileModal } from "../components/UserProfileModal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FeedbackDialog } from "@/components/ui/feedback-dialog";
 
 interface BeneficiaryInfo {
   _id: string;
@@ -120,6 +123,7 @@ export const DashboardDonorPage = () => {
   const [editingDonation, setEditingDonation] = useState<DonationData | null>(
     null,
   );
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
   const [ratingModal, setRatingModal] = useState({
     isOpen: false,
@@ -151,6 +155,21 @@ export const DashboardDonorPage = () => {
     confirmar: "",
     isSubmitting: false,
   });
+  const [feedback, setFeedback] = useState({
+    open: false,
+    title: "",
+    message: "",
+    tone: "info" as "info" | "success" | "error",
+  });
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
+
+  const showFeedback = (
+    tone: "info" | "success" | "error",
+    title: string,
+    message = "",
+  ) => {
+    setFeedback({ open: true, title, message, tone });
+  };
 
   const getErrorMessage = (error: unknown): string => {
     if (axios.isAxiosError(error)) {
@@ -231,7 +250,11 @@ export const DashboardDonorPage = () => {
     e.preventDefault();
     setIsSubmitting(true);
     if (!userId) {
-      alert("Tu sesion no es valida. Por favor inicia sesion de nuevo.");
+      showFeedback(
+        "error",
+        "Sesion invalida",
+        "Tu sesion no es valida. Por favor inicia sesion de nuevo.",
+      );
       setIsSubmitting(false);
       return;
     }
@@ -267,31 +290,41 @@ export const DashboardDonorPage = () => {
       setShowSuccessModal(true);
     } catch (error) {
       console.error("Error al crear la publicacion:", error);
-      alert(getErrorMessage(error));
+      showFeedback("error", "No se pudo publicar", getErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCancel = async (id: string) => {
-    if (
-      !window.confirm(
-        "¿Seguro que deseas cancelar esta reserva y liberar el producto?",
-      )
-    )
-      return;
+  const handleCancel = (id: string) => {
+    setCancelTargetId(id);
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelTargetId) return;
     try {
-      await axios.put(apiUrl(`/api/donations/cancel/${id}`));
+      await axios.put(apiUrl(`/api/donations/cancel/${cancelTargetId}`));
       fetchDonations();
+      showFeedback(
+        "success",
+        "Reserva cancelada",
+        "El alimento fue liberado correctamente.",
+      );
     } catch {
-      alert("Error al cancelar la reserva.");
+      showFeedback(
+        "error",
+        "No se pudo cancelar",
+        "Intenta nuevamente en unos momentos.",
+      );
+    } finally {
+      setCancelTargetId(null);
     }
   };
 
   const handleComplete = async (id: string) => {
     const pin = pinInputs[id];
     if (!pin || pin.length !== 4) {
-      alert("Ingresa el PIN de 4 dígitos.");
+      showFeedback("error", "PIN invalido", "Ingresa el PIN de 4 digitos.");
       return;
     }
     try {
@@ -299,10 +332,14 @@ export const DashboardDonorPage = () => {
         apiUrl(`/api/donations/complete/${id}`),
         { pin },
       );
-      alert(response.data.message);
+      showFeedback("success", "Entrega completada", response.data.message);
       fetchDonations();
     } catch (error: any) {
-      alert(error.response?.data?.message || "Error al completar la entrega.");
+      showFeedback(
+        "error",
+        "No se pudo completar",
+        error.response?.data?.message || "Error al completar la entrega.",
+      );
     }
   };
 
@@ -315,11 +352,19 @@ export const DashboardDonorPage = () => {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordModal.nueva !== passwordModal.confirmar) {
-      alert("Las contraseñas nuevas no coinciden.");
+      showFeedback(
+        "error",
+        "Contraseñas no coinciden",
+        "Las contraseñas nuevas no coinciden.",
+      );
       return;
     }
     if (passwordModal.nueva.length < 6) {
-      alert("La nueva contraseña debe tener al menos 6 caracteres.");
+      showFeedback(
+        "error",
+        "Contraseña muy corta",
+        "La nueva contraseña debe tener al menos 6 caracteres.",
+      );
       return;
     }
 
@@ -336,7 +381,7 @@ export const DashboardDonorPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      alert(response.data.message);
+      showFeedback("success", "Contraseña actualizada", response.data.message);
       setPasswordModal({
         isOpen: false,
         actual: "",
@@ -345,7 +390,11 @@ export const DashboardDonorPage = () => {
         isSubmitting: false,
       });
     } catch (error: any) {
-      alert(error.response?.data?.message || "Error al cambiar la contraseña.");
+      showFeedback(
+        "error",
+        "No se pudo actualizar",
+        error.response?.data?.message || "Error al cambiar la contraseña.",
+      );
       setPasswordModal((prev) => ({ ...prev, isSubmitting: false }));
     }
   };
@@ -441,7 +490,7 @@ export const DashboardDonorPage = () => {
               ? "Publica y gestiona el estado de tus excedentes alimentarios."
               : mainView === "historial"
                 ? "Supervisa todas las donaciones que has realizado y su estado actual."
-                : "Actualiza tus datos personales y de logística de recolección."}
+                : "Consulta tu informacion personal y comentarios recibidos."}
           </p>
         </header>
 
@@ -908,7 +957,7 @@ export const DashboardDonorPage = () => {
 
         {mainView === "perfil" && (
           <div className="flex flex-col gap-8">
-            <EditProfile />
+            <ProfileOverview onEdit={() => setIsEditProfileOpen(true)} />
             <div id="comentarios">
               <UserCommentsPanel userId={userId} title="Mis Comentarios" />
             </div>
@@ -1049,6 +1098,11 @@ export const DashboardDonorPage = () => {
         onSuccess={fetchDonations}
       />
 
+      <EditProfile
+        open={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+      />
+
       {/* MODAL DE CALIFICACIÓN */}
       <UserProfileModal
         isOpen={ratingModal.isOpen}
@@ -1058,6 +1112,28 @@ export const DashboardDonorPage = () => {
         toUserName={ratingModal.toUserName}
         canRate={ratingModal.canRate}
         onSuccess={fetchDonations}
+      />
+
+      <ConfirmDialog
+        open={!!cancelTargetId}
+        onOpenChange={(open) => {
+          if (!open) setCancelTargetId(null);
+        }}
+        title="Cancelar reserva"
+        description="¿Seguro que deseas cancelar esta reserva y liberar el producto?"
+        confirmLabel="Si, cancelar"
+        confirmClassName="bg-red-500 text-white hover:bg-red-500/90"
+        onConfirm={confirmCancel}
+      />
+
+      <FeedbackDialog
+        open={feedback.open}
+        onOpenChange={(open) =>
+          setFeedback((prev) => ({ ...prev, open }))
+        }
+        title={feedback.title}
+        message={feedback.message}
+        tone={feedback.tone}
       />
     </div>
   );
