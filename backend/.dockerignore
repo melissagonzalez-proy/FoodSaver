@@ -1,0 +1,15 @@
+target/
+.git/
+.gitignore
+.maven/
+.DS_Store
+*.log
+node_modules/
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+.env
+.env.local
