@@ -55,6 +55,7 @@ interface DonationData {
   imagenUrl: string;
   pickupPin?: string;
   beneficiary?: BeneficiaryInfo;
+  canRate?: boolean;
   notificaciones?: NotificationLog[];
   createdAt: string;
 }
@@ -353,7 +354,11 @@ export const DashboardDonorPage = () => {
   const today = new Date().toISOString().split("T")[0];
 
   const getReputation = (avg?: number, total?: number) => {
-    if (!total || total === 0) return null;
+    if (!total || total === 0)
+      return {
+        label: "Sin calificación",
+        className: "bg-slate-500/10 text-slate-500 border-slate-500/30",
+      };
     if (avg! >= 4)
       return {
         label: "⭐ Excelente",
@@ -668,12 +673,6 @@ export const DashboardDonorPage = () => {
                                   donation.beneficiary.promedioCalificacion,
                                   donation.beneficiary.totalEvaluaciones,
                                 );
-                                if (!badge)
-                                  return (
-                                    <span className="text-brand-muted">
-                                      • Usuario nuevo
-                                    </span>
-                                  );
                                 return (
                                   <span
                                     className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badge.className}`}
@@ -865,25 +864,27 @@ export const DashboardDonorPage = () => {
                                 toUserId: d.beneficiary!._id,
                                 toUserName:
                                   `${d.beneficiary!.nombres} ${d.beneficiary!.apellidos || ""}`.trim(),
-                                canRate: true,
+                                canRate: d.canRate !== false,
                               })
                             }
                             className="inline-flex flex-col items-center gap-1 text-xs px-3 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors font-medium"
                           >
                             <span className="flex items-center gap-1">
-                              <Star size={14} /> Ver / Evaluar
+                              <Star size={14} />
+                              {d.canRate !== false ? "Ver / Evaluar" : "Ver"}
                             </span>
                             {(() => {
+                              if (d.canRate === false) {
+                                return (
+                                  <span className="text-[10px] opacity-70">
+                                    Calificado
+                                  </span>
+                                );
+                              }
                               const badge = getReputation(
                                 d.beneficiary!.promedioCalificacion,
                                 d.beneficiary!.totalEvaluaciones,
                               );
-                              if (!badge)
-                                return (
-                                  <span className="text-[10px] opacity-70">
-                                    Usuario nuevo
-                                  </span>
-                                );
                               return (
                                 <span
                                   className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badge.className}`}

@@ -64,6 +64,8 @@ const userSchema = new mongoose.Schema(
     probationStart: { type: Date, default: null },
     probationEnd: { type: Date, default: null },
     isSuspended: { type: Boolean, default: false },
+    isBlacklisted: { type: Boolean, default: false },
+    blacklistedAt: { type: Date, default: null },
 
     role: {
       type: String,

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Donation from "../models/Donation.js";
+import Blacklist from "../models/Blacklist.js";
 import Rating from "../models/Rating.js";
 import User from "../models/User.js";
 import { evaluateUserReputation } from "../services/reputationService.js";
@@ -99,7 +100,7 @@ export const getUsersForAdminRating = async (req, res) => {
   try {
     const users = await User.aggregate([
       {
-        $match: { role: { $ne: "admin" } },
+        $match: { role: { $ne: "admin" }, isBlacklisted: { $ne: true } },
       },
       {
         $addFields: {
@@ -135,6 +136,12 @@ export const deleteBadUser = async (req, res) => {
     if (!user)
       return res.status(404).json({ message: "Usuario no encontrado." });
 
+    if (user.isBlacklisted) {
+      return res.status(400).json({
+        message: "El usuario ya se encuentra en lista negra.",
+      });
+    }
+
     if (user.promedioCalificacion > 3 || user.totalEvaluaciones === 0) {
       return res
         .status(400)
@@ -160,13 +167,35 @@ export const deleteBadUser = async (req, res) => {
       );
     }
 
-    await User.findByIdAndDelete(userId);
+    const blacklistFilters = [{ email: user.email }];
+    if (user.numeroDocumento) {
+      blacklistFilters.push({ numeroDocumento: user.numeroDocumento });
+    }
+    if (user.nit) {
+      blacklistFilters.push({ nit: user.nit });
+    }
 
-    res
-      .status(200)
-      .json({
-        message: "Usuario eliminado y operaciones canceladas con éxito.",
+    const existingBlacklist = await Blacklist.findOne({
+      $or: blacklistFilters,
+    });
+    if (!existingBlacklist) {
+      await Blacklist.create({
+        email: user.email,
+        numeroDocumento: user.numeroDocumento || null,
+        nit: user.nit || null,
+        userId: user._id,
       });
+    }
+
+    user.isBlacklisted = true;
+    user.blacklistedAt = new Date();
+    user.isSuspended = true;
+    await user.save();
+
+    res.status(200).json({
+      message:
+        "Usuario bloqueado y agregado a la lista negra. Operaciones canceladas.",
+    });
   } catch (error) {
     res.status(500).json({ message: "Error al eliminar el usuario." });
   }

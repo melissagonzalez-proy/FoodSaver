@@ -50,6 +50,7 @@ interface DonationData {
   imagenUrl: string;
   donor: DonorInfo;
   pickupPin?: string;
+  canRate?: boolean;
 }
 
 export const DashboardBeneficiaryPage = () => {
@@ -261,7 +262,11 @@ export const DashboardBeneficiaryPage = () => {
   );
 
   const getReputation = (avg?: number, total?: number) => {
-    if (!total || total === 0) return null; // sin evaluaciones = sin badge
+    if (!total || total === 0)
+      return {
+        label: "Sin calificación",
+        className: "bg-slate-500/10 text-slate-500 border-slate-500/30",
+      };
     if (avg! >= 4)
       return {
         label: "⭐ Excelente",
@@ -416,7 +421,6 @@ export const DashboardBeneficiaryPage = () => {
                         donation.donor.promedioCalificacion,
                         donation.donor.totalEvaluaciones,
                       );
-                      if (!badge) return null;
                       return (
                         <div
                           className={`absolute top-3 left-3 px-2.5 py-1 rounded-full border text-xs font-semibold backdrop-blur-sm ${badge.className}`}
@@ -465,32 +469,34 @@ export const DashboardBeneficiaryPage = () => {
                               donation.donor.promedioCalificacion,
                               donation.donor.totalEvaluaciones,
                             );
+                            const totalEvaluations =
+                              donation.donor.totalEvaluaciones || 0;
+                            const avgScore = donation.donor.promedioCalificacion ?? 0;
                             const starClass =
                               badge?.className
                                 .split(" ")
                                 .find((c) => c.startsWith("text-")) ||
                               "text-brand-muted";
-                            return <Star size={12} className={starClass} />;
-                          })()}
-                          <span
-                            className={`text-xs ${
-                              !donation.donor.totalEvaluaciones ||
-                              donation.donor.totalEvaluaciones === 0
-                                ? "text-brand-muted"
-                                : (donation.donor.promedioCalificacion ?? 0) >=
-                                    4
+                            const textClass =
+                              totalEvaluations > 0
+                                ? avgScore >= 4
                                   ? "text-green-400"
-                                  : (donation.donor.promedioCalificacion ??
-                                        0) >= 3
+                                  : avgScore >= 3
                                     ? "text-yellow-400"
                                     : "text-red-400"
-                            }`}
-                          >
-                            {donation.donor.totalEvaluaciones &&
-                            donation.donor.totalEvaluaciones > 0
-                              ? `${donation.donor.promedioCalificacion?.toFixed(1)} • ${donation.donor.totalEvaluaciones} eval.`
-                              : "Usuario nuevo"}
-                          </span>
+                                : "text-slate-500";
+
+                            return (
+                              <>
+                                <Star size={12} className={starClass} />
+                                <span className={`text-xs ${textClass}`}>
+                                  {totalEvaluations > 0
+                                    ? `${avgScore.toFixed(1)} • ${totalEvaluations} eval.`
+                                    : "Sin calificación"}
+                                </span>
+                              </>
+                            );
+                          })()}
                         </button>
                       </div>
                     </div>
@@ -574,16 +580,6 @@ export const DashboardBeneficiaryPage = () => {
                                 reservation.donor.promedioCalificacion,
                                 reservation.donor.totalEvaluaciones,
                               );
-                              if (!badge)
-                                return (
-                                  <span className="text-xs text-brand-muted flex items-center gap-1">
-                                    <Star
-                                      size={12}
-                                      className="text-brand-muted"
-                                    />{" "}
-                                    Usuario nuevo
-                                  </span>
-                                );
                               const starClass =
                                 badge.className
                                   .split(" ")
@@ -595,10 +591,10 @@ export const DashboardBeneficiaryPage = () => {
                                   className={`text-xs flex items-center gap-1 ${textClass}`}
                                 >
                                   <Star size={12} className={starClass} />
-                                  {reservation.donor.promedioCalificacion?.toFixed(
-                                    1,
-                                  )}{" "}
-                                  • {reservation.donor.totalEvaluaciones} eval.
+                                  {reservation.donor.totalEvaluaciones &&
+                                  reservation.donor.totalEvaluaciones > 0
+                                    ? `${reservation.donor.promedioCalificacion?.toFixed(1)} • ${reservation.donor.totalEvaluaciones} eval.`
+                                    : "Sin calificación"}
                                   <span
                                     className={`ml-1 px-1.5 py-0.5 rounded-full border text-[10px] font-semibold ${badge.className}`}
                                   >
@@ -655,12 +651,15 @@ export const DashboardBeneficiaryPage = () => {
                                     reservation.donor?.nombreEmpresa ||
                                     reservation.donor?.nombres ||
                                     "Usuario",
-                                  canRate: true, // ya fue recolectado, puede calificar
+                                  canRate: reservation.canRate !== false,
                                 })
                               }
                               className="flex items-center gap-1 text-xs px-3 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors font-medium"
                             >
-                              <Star size={14} /> Ver / Calificar
+                              <Star size={14} />
+                              {reservation.canRate !== false
+                                ? "Ver / Calificar"
+                                : "Ver"}
                             </button>
                           )}
                         </td>

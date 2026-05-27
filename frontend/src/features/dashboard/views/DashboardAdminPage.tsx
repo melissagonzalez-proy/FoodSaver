@@ -272,20 +272,6 @@ export const DashboardAdminPage = () => {
     }
   };
 
-  const handleSuspendUser = async (userId: string) => {
-    try {
-      await axios.put(
-        apiUrl(`/api/admin/trial-users/${userId}/suspend`),
-        {},
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      fetchTrialUsers();
-    } catch (error) {
-      console.error("Error suspendiendo usuario:", error);
-      alert("No se pudo suspender el usuario.");
-    }
-  };
-
   const handleRestoreUser = async (userId: string) => {
     try {
       await axios.put(
@@ -402,9 +388,9 @@ export const DashboardAdminPage = () => {
             <TrialUsersView
               trialUsers={trialUsers}
               isLoading={isTrialLoading}
-              onSuspend={handleSuspendUser}
               onRestore={handleRestoreUser}
               onReview={(userId) => setReviewModal({ isOpen: true, userId })}
+              onDelete={confirmDelete}
             />
           )}
 

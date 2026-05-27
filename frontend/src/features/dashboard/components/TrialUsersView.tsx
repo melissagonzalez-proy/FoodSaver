@@ -20,9 +20,10 @@ import type {
 interface TrialUsersViewProps {
   trialUsers: TrialUser[];
   isLoading: boolean;
-  onSuspend: (userId: string) => void;
   onRestore: (userId: string) => void;
   onReview: (userId: string) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onDelete: (user: any) => void;
 }
 
 const REPUTATION_BADGE: Record<"green" | "yellow" | "red", string> = {
@@ -45,9 +46,9 @@ const hasNotification = (
 export const TrialUsersView = ({
   trialUsers,
   isLoading,
-  onSuspend,
   onRestore,
   onReview,
+  onDelete,
 }: TrialUsersViewProps) => {
   return (
     <Card className="border-brand-border bg-brand-card rounded-3xl">
@@ -96,6 +97,7 @@ export const TrialUsersView = ({
               ) : (
                 trialUsers.map((user) => {
                   const status = user.reputationStatus || "green";
+                  const isOnProbation = user.diasRestantes !== null;
                   return (
                     <TableRow key={user._id} className="border-brand-border/60">
                       <TableCell>
@@ -134,32 +136,10 @@ export const TrialUsersView = ({
                         </div>
                       </TableCell>
                       <TableCell className="text-center text-sm text-brand-text">
-                        {status === "red" ? (user.diasRestantes ?? 0) : "—"}
+                        {isOnProbation ? user.diasRestantes ?? 0 : "—"}
                       </TableCell>
                       <TableCell className="text-center">
-                        {status === "red" ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => onSuspend(user._id)}
-                              disabled={user.isSuspended}
-                              className="bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white"
-                            >
-                              Suspender
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => onRestore(user._id)}
-                              className="bg-green-500/10 text-green-600 hover:bg-green-500 hover:text-white"
-                            >
-                              Restaurar
-                            </Button>
-                          </div>
-                        ) : (
+                        <div className="flex flex-wrap items-center justify-center gap-2">
                           <Button
                             type="button"
                             size="sm"
@@ -169,7 +149,29 @@ export const TrialUsersView = ({
                           >
                             Revisión Comentarios
                           </Button>
-                        )}
+                          {isOnProbation && (
+                            <>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => onRestore(user._id)}
+                                className="bg-green-500/10 text-green-600 hover:bg-green-500 hover:text-white"
+                              >
+                                Mantener activo
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => onDelete(user)}
+                                className="bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white"
+                              >
+                                Eliminar
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-col items-center gap-2">

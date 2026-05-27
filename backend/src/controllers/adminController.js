@@ -90,8 +90,13 @@ export const getTrialUsers = async (req, res) => {
 
     const matchStage = {
       role: { $ne: "admin" },
-      reputationStatus: { $in: ["yellow", "red"] },
+      isBlacklisted: { $ne: true },
+      totalEvaluaciones: { $gt: 0 },
       ...dateFilter,
+      $or: [
+        { probationEnd: { $ne: null } },
+        { promedioCalificacion: { $lte: 3 } },
+      ],
     };
 
     const donationPipeline = [
@@ -151,7 +156,12 @@ export const getTrialUsers = async (req, res) => {
       .map((user) => {
         const probationEnd = user.probationEnd
           ? new Date(user.probationEnd)
-          : null;
+          : user.reputationUpdatedAt
+            ? new Date(
+                new Date(user.reputationUpdatedAt).getTime() +
+                  15 * 24 * 60 * 60 * 1000,
+              )
+            : null;
         const daysRemaining = probationEnd
           ? Math.max(
               0,
@@ -161,7 +171,7 @@ export const getTrialUsers = async (req, res) => {
 
         return {
           ...user,
-          diasRestantes: user.reputationStatus === "red" ? daysRemaining : null,
+          diasRestantes: probationEnd ? daysRemaining : null,
         };
       })
       .sort((a, b) => {
