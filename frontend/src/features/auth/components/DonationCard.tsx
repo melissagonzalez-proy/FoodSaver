@@ -25,10 +25,10 @@ export const DonationCard = ({ donation, onCancel, onComplete, onEdit }: Props) 
 
   
   const isNearExpiry = () => {
-    const difference = new Date(donation.fechaCaducidad).getTime() - new Date().getTime();
-    const days = difference / (1000 * 60 * 60 * 24);
-    return days > 0 && days <= 3;
-  };
+  const difference = new Date(donation.fechaCaducidad).getTime() - new Date().getTime();
+  const hours = difference / (1000 * 60 * 60); // 👈 comparar en horas, no días
+  return hours > 0 && hours <= 72; // 72h = 3 días
+};
 
   useEffect(() => {
     const calculateTime = () => {
