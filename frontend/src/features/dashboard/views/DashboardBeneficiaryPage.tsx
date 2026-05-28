@@ -23,8 +23,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiUrl, assetUrl } from "../../../lib/api";
 import { EditProfile } from "../components/EditProfile";
+import { ProfileOverview } from "../components/ProfileOverview";
 import { UserCommentsPanel } from "../components/UserCommentsPanel";
 import { UserProfileModal } from "../components/UserProfileModal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FeedbackDialog } from "@/components/ui/feedback-dialog";
 
 interface DonorInfo {
   _id: string;
@@ -50,6 +53,7 @@ interface DonationData {
   imagenUrl: string;
   donor: DonorInfo;
   pickupPin?: string;
+  canRate?: boolean;
 }
 
 export const DashboardBeneficiaryPage = () => {
@@ -86,6 +90,22 @@ export const DashboardBeneficiaryPage = () => {
     confirmar: "",
     isSubmitting: false,
   });
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [feedback, setFeedback] = useState({
+    open: false,
+    title: "",
+    message: "",
+    tone: "info" as "info" | "success" | "error",
+  });
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
+
+  const showFeedback = (
+    tone: "info" | "success" | "error",
+    title: string,
+    message = "",
+  ) => {
+    setFeedback({ open: true, title, message, tone });
+  };
 
   // ESTADO DEL MODAL DE CALIFICACIÓN
   const [profileModal, setProfileModal] = useState({
@@ -195,29 +215,47 @@ export const DashboardBeneficiaryPage = () => {
     }
   };
 
-  const handleCancelReservation = async (id: string) => {
-    if (
-      !window.confirm(
-        "¿Estás seguro de que deseas cancelar esta reserva? El alimento volverá a estar disponible para otros y el PIN se anulará.",
-      )
-    )
-      return;
+  const handleCancelReservation = (id: string) => {
+    setCancelTargetId(id);
+  };
+
+  const confirmCancelReservation = async () => {
+    if (!cancelTargetId) return;
     try {
-      await axios.put(apiUrl(`/api/donations/cancel/${id}`));
+      await axios.put(apiUrl(`/api/donations/cancel/${cancelTargetId}`));
       fetchMyReservations();
+      showFeedback(
+        "success",
+        "Reserva cancelada",
+        "El alimento vuelve a estar disponible.",
+      );
     } catch {
-      alert("Error al cancelar la reserva.");
+      showFeedback(
+        "error",
+        "No se pudo cancelar",
+        "Intenta nuevamente en unos momentos.",
+      );
+    } finally {
+      setCancelTargetId(null);
     }
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordModal.nueva !== passwordModal.confirmar) {
-      alert("Las contraseñas nuevas no coinciden.");
+      showFeedback(
+        "error",
+        "Contraseñas no coinciden",
+        "Las contraseñas nuevas no coinciden.",
+      );
       return;
     }
     if (passwordModal.nueva.length < 6) {
-      alert("La nueva contraseña debe tener al menos 6 caracteres.");
+      showFeedback(
+        "error",
+        "Contraseña muy corta",
+        "La nueva contraseña debe tener al menos 6 caracteres.",
+      );
       return;
     }
 
@@ -234,7 +272,7 @@ export const DashboardBeneficiaryPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      alert(response.data.message);
+      showFeedback("success", "Contraseña actualizada", response.data.message);
       setPasswordModal({
         isOpen: false,
         actual: "",
@@ -243,7 +281,11 @@ export const DashboardBeneficiaryPage = () => {
         isSubmitting: false,
       });
     } catch (error: any) {
-      alert(error.response?.data?.message || "Error al cambiar la contraseña.");
+      showFeedback(
+        "error",
+        "No se pudo actualizar",
+        error.response?.data?.message || "Error al cambiar la contraseña.",
+      );
       setPasswordModal((prev) => ({ ...prev, isSubmitting: false }));
     }
   };
@@ -261,7 +303,11 @@ export const DashboardBeneficiaryPage = () => {
   );
 
   const getReputation = (avg?: number, total?: number) => {
-    if (!total || total === 0) return null; // sin evaluaciones = sin badge
+    if (!total || total === 0)
+      return {
+        label: "Sin calificación",
+        className: "bg-slate-500/10 text-slate-500 border-slate-500/30",
+      };
     if (avg! >= 4)
       return {
         label: "⭐ Excelente",
@@ -339,7 +385,7 @@ export const DashboardBeneficiaryPage = () => {
                 ? "Explora los excedentes disponibles para recolección inmediata."
                 : activeTab === "reservas"
                   ? "Gestiona los alimentos que has reservado y revisa tus códigos PIN."
-                  : "Actualiza tus datos personales y de logística de recolección."}
+                  : "Consulta tu informacion personal y comentarios recibidos."}
             </p>
           </div>
           {activeTab === "galeria" && (
@@ -361,7 +407,7 @@ export const DashboardBeneficiaryPage = () => {
 
         {activeTab === "perfil" ? (
           <div className="flex flex-col gap-8">
-            <EditProfile />
+            <ProfileOverview onEdit={() => setIsEditProfileOpen(true)} />
             <div id="comentarios">
               <UserCommentsPanel
                 userId={currentUserId}
@@ -416,7 +462,6 @@ export const DashboardBeneficiaryPage = () => {
                         donation.donor.promedioCalificacion,
                         donation.donor.totalEvaluaciones,
                       );
-                      if (!badge) return null;
                       return (
                         <div
                           className={`absolute top-3 left-3 px-2.5 py-1 rounded-full border text-xs font-semibold backdrop-blur-sm ${badge.className}`}
@@ -465,32 +510,34 @@ export const DashboardBeneficiaryPage = () => {
                               donation.donor.promedioCalificacion,
                               donation.donor.totalEvaluaciones,
                             );
+                            const totalEvaluations =
+                              donation.donor.totalEvaluaciones || 0;
+                            const avgScore = donation.donor.promedioCalificacion ?? 0;
                             const starClass =
                               badge?.className
                                 .split(" ")
                                 .find((c) => c.startsWith("text-")) ||
                               "text-brand-muted";
-                            return <Star size={12} className={starClass} />;
-                          })()}
-                          <span
-                            className={`text-xs ${
-                              !donation.donor.totalEvaluaciones ||
-                              donation.donor.totalEvaluaciones === 0
-                                ? "text-brand-muted"
-                                : (donation.donor.promedioCalificacion ?? 0) >=
-                                    4
+                            const textClass =
+                              totalEvaluations > 0
+                                ? avgScore >= 4
                                   ? "text-green-400"
-                                  : (donation.donor.promedioCalificacion ??
-                                        0) >= 3
+                                  : avgScore >= 3
                                     ? "text-yellow-400"
                                     : "text-red-400"
-                            }`}
-                          >
-                            {donation.donor.totalEvaluaciones &&
-                            donation.donor.totalEvaluaciones > 0
-                              ? `${donation.donor.promedioCalificacion?.toFixed(1)} • ${donation.donor.totalEvaluaciones} eval.`
-                              : "Usuario nuevo"}
-                          </span>
+                                : "text-slate-500";
+
+                            return (
+                              <>
+                                <Star size={12} className={starClass} />
+                                <span className={`text-xs ${textClass}`}>
+                                  {totalEvaluations > 0
+                                    ? `${avgScore.toFixed(1)} • ${totalEvaluations} eval.`
+                                    : "Sin calificación"}
+                                </span>
+                              </>
+                            );
+                          })()}
                         </button>
                       </div>
                     </div>
@@ -574,16 +621,6 @@ export const DashboardBeneficiaryPage = () => {
                                 reservation.donor.promedioCalificacion,
                                 reservation.donor.totalEvaluaciones,
                               );
-                              if (!badge)
-                                return (
-                                  <span className="text-xs text-brand-muted flex items-center gap-1">
-                                    <Star
-                                      size={12}
-                                      className="text-brand-muted"
-                                    />{" "}
-                                    Usuario nuevo
-                                  </span>
-                                );
                               const starClass =
                                 badge.className
                                   .split(" ")
@@ -595,10 +632,10 @@ export const DashboardBeneficiaryPage = () => {
                                   className={`text-xs flex items-center gap-1 ${textClass}`}
                                 >
                                   <Star size={12} className={starClass} />
-                                  {reservation.donor.promedioCalificacion?.toFixed(
-                                    1,
-                                  )}{" "}
-                                  • {reservation.donor.totalEvaluaciones} eval.
+                                  {reservation.donor.totalEvaluaciones &&
+                                  reservation.donor.totalEvaluaciones > 0
+                                    ? `${reservation.donor.promedioCalificacion?.toFixed(1)} • ${reservation.donor.totalEvaluaciones} eval.`
+                                    : "Sin calificación"}
                                   <span
                                     className={`ml-1 px-1.5 py-0.5 rounded-full border text-[10px] font-semibold ${badge.className}`}
                                   >
@@ -655,12 +692,15 @@ export const DashboardBeneficiaryPage = () => {
                                     reservation.donor?.nombreEmpresa ||
                                     reservation.donor?.nombres ||
                                     "Usuario",
-                                  canRate: true, // ya fue recolectado, puede calificar
+                                  canRate: reservation.canRate !== false,
                                 })
                               }
                               className="flex items-center gap-1 text-xs px-3 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors font-medium"
                             >
-                              <Star size={14} /> Ver / Calificar
+                              <Star size={14} />
+                              {reservation.canRate !== false
+                                ? "Ver / Calificar"
+                                : "Ver"}
                             </button>
                           )}
                         </td>
@@ -889,6 +929,33 @@ export const DashboardBeneficiaryPage = () => {
         toUserName={profileModal.toUserName}
         canRate={profileModal.canRate}
         onSuccess={fetchMyReservations}
+      />
+
+      <EditProfile
+        open={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={!!cancelTargetId}
+        onOpenChange={(open) => {
+          if (!open) setCancelTargetId(null);
+        }}
+        title="Cancelar reserva"
+        description="¿Estás seguro de que deseas cancelar esta reserva? El alimento volverá a estar disponible y el PIN se anulará."
+        confirmLabel="Si, cancelar"
+        confirmClassName="bg-red-500 text-white hover:bg-red-500/90"
+        onConfirm={confirmCancelReservation}
+      />
+
+      <FeedbackDialog
+        open={feedback.open}
+        onOpenChange={(open) =>
+          setFeedback((prev) => ({ ...prev, open }))
+        }
+        title={feedback.title}
+        message={feedback.message}
+        tone={feedback.tone}
       />
     </div>
   );

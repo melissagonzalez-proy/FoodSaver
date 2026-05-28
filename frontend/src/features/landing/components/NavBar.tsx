@@ -24,16 +24,12 @@ export const Navbar = () => {
 
       <div className="hidden md:flex gap-2 items-center">
         <Button
-          asChild
           variant="ghost"
           className="rounded-full text-brand-muted hover:text-brand-text hover:bg-brand-border/50"
         >
           <Link to="/login">Iniciar Sesión</Link>
         </Button>
-        <Button
-          asChild
-          className="rounded-full bg-brand-text text-brand-background hover:bg-brand-muted px-5"
-        >
+        <Button className="rounded-full bg-brand-text text-brand-background hover:bg-brand-muted px-5">
           <Link to="/selection">Crear Cuenta</Link>
         </Button>
       </div>
@@ -46,7 +42,11 @@ export const Navbar = () => {
         aria-expanded={isOpen}
         aria-controls="mobile-menu"
       >
-        {isOpen ? <X size={28} aria-hidden="true" /> : <Menu size={28} aria-hidden="true" />}
+        {isOpen ? (
+          <X size={28} aria-hidden="true" />
+        ) : (
+          <Menu size={28} aria-hidden="true" />
+        )}
       </button>
 
       {isOpen && (
@@ -63,11 +63,12 @@ export const Navbar = () => {
           >
             Iniciar Sesión
           </Link>
-          <Button
-            asChild
-            className="w-10/12 h-12 rounded-full bg-brand-text text-brand-background hover:bg-brand-muted text-base"
-          >
-            <Link to="/register" role="menuitem" onClick={() => setIsOpen(false)}>
+          <Button className="w-10/12 h-12 rounded-full bg-brand-text text-brand-background hover:bg-brand-muted text-base">
+            <Link
+              to="/register"
+              role="menuitem"
+              onClick={() => setIsOpen(false)}
+            >
               Crear Cuenta
             </Link>
           </Button>

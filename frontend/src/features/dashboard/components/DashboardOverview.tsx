@@ -68,23 +68,27 @@ export const DashboardOverview = ({
     { total: 0, activo: 0, asignado: 0, recolectado: 0, cancelado: 0 },
   );
 
-  const usersForDashboard = usersList.filter((u) => {
-    if (!u.createdAt) return true;
-    const d = new Date(u.createdAt);
+  const activeUsersForRange = usersList.filter((u) => {
+    if (u.isSuspended) return false;
+    const lastUpdate = u.updatedAt || u.createdAt;
+    if (!lastUpdate) return true;
+    const d = new Date(lastUpdate);
+    if (Number.isNaN(d.getTime())) return true;
     return d >= dashboardRange.start && d < dashboardRange.end;
   });
 
-  const totalUsers = usersForDashboard.length;
-  const donorCount = usersForDashboard.filter((u) => u.role === "donor").length;
-  const beneficiaryCount = usersForDashboard.filter(
+  const totalUsers = activeUsersForRange.length;
+  const donorCount = activeUsersForRange.filter(
+    (u) => u.role === "donor",
+  ).length;
+  const beneficiaryCount = activeUsersForRange.filter(
     (u) => u.role === "beneficiary",
   ).length;
-  const adminCount = usersForDashboard.filter((u) => u.role === "admin").length;
-  const totalEvaluations = usersForDashboard.reduce(
+  const totalEvaluations = activeUsersForRange.reduce(
     (acc, u) => acc + (u.totalEvaluaciones || 0),
     0,
   );
-  const weightedRatingSum = usersForDashboard.reduce(
+  const weightedRatingSum = activeUsersForRange.reduce(
     (acc, u) =>
       acc + (u.promedioCalificacion || 0) * (u.totalEvaluaciones || 0),
     0,
@@ -289,10 +293,10 @@ export const DashboardOverview = ({
           {/* Métricas principales */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
             <StatCard
-              label="Usuarios nuevos"
+              label="Usuarios activos"
               value={totalUsers}
               icon={Users}
-              hint={`Donadores ${donorCount} · Beneficiarios ${beneficiaryCount} · Admin ${adminCount}`}
+              hint={`Donadores ${donorCount} · Beneficiarios ${beneficiaryCount}`}
             />
             <StatCard
               label="Entregas completadas"

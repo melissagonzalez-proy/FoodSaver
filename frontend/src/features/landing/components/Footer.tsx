@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Leaf, Instagram, Linkedin, Github, ArrowRight } from "lucide-react";
+import { Leaf, Instagram, Linkedin, Github } from "lucide-react";
 import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -32,7 +32,13 @@ const socialLinks = [
   { icon: Instagram, href: "#", label: "Instagram" },
 ];
 
-function LinkColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
+function LinkColumn({
+  title,
+  links,
+}: {
+  title: string;
+  links: { label: string; href: string }[];
+}) {
   return (
     <nav aria-label={title}>
       <h3 className="text-brand-text font-medium mb-4 font-jakarta">{title}</h3>
@@ -62,8 +68,15 @@ export function Footer() {
         contentRef.current,
         { y: 30, opacity: 0 },
         {
-          y: 0, opacity: 1, duration: 0.8, ease: "power3.out",
-          scrollTrigger: { trigger: footerRef.current, start: "top 90%", once: true },
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: footerRef.current,
+            start: "top 90%",
+            once: true,
+          },
         },
       );
     }, footerRef);
@@ -77,7 +90,9 @@ export function Footer() {
       aria-labelledby="footer-title"
       className="mt-20 lg:mt-32 pt-16 lg:pt-20 border-t border-brand-border"
     >
-      <h2 id="footer-title" className="sr-only">Pie de página</h2>
+      <h2 id="footer-title" className="sr-only">
+        Pie de página
+      </h2>
       <div ref={contentRef} className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 mb-12 lg:mb-16">
           <div className="sm:col-span-2 lg:col-span-2">
@@ -138,14 +153,7 @@ export function Footer() {
               size="lg"
               className="rounded-full h-12 px-8 bg-brand-accent text-white hover:bg-brand-accent-light whitespace-nowrap shadow-(--shadow-brand-accent) group w-full sm:w-auto"
             >
-              <Link to="/selection">
-                Crear cuenta{" "}
-                <ArrowRight
-                  size={18}
-                  aria-hidden="true"
-                  className="group-hover:translate-x-1 transition-transform"
-                />
-              </Link>
+              <Link to="/selection">Crear cuenta </Link>
             </Button>
           </div>
         </Card>
@@ -153,7 +161,8 @@ export function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 pb-8 text-sm text-brand-muted">
           <p>© {new Date().getFullYear()} FoodSaver.</p>
           <p className="flex items-center gap-1">
-            Desarrollado con <Leaf size={14} className="text-brand-accent" aria-hidden="true" />{" "}
+            Desarrollado con{" "}
+            <Leaf size={14} className="text-brand-accent" aria-hidden="true" />{" "}
             para reducir el desperdicio.
           </p>
         </div>

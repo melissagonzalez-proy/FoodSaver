@@ -20,6 +20,7 @@ import { DonationsMonitoringView } from "../components/DonationsMonitoringView";
 import { TrialUsersView } from "../components/TrialUsersView";
 import { UsersManagementView } from "../components/UsersManagementView";
 import { DeleteUserDialog } from "../components/DeleteUserDialog";
+import { FeedbackDialog } from "@/components/ui/feedback-dialog";
 
 ChartJS.register(
   CategoryScale,
@@ -124,6 +125,12 @@ export const DashboardAdminPage = () => {
   const [trialUsers, setTrialUsers] = useState<TrialUser[]>([]);
   const [isTrialLoading, setIsTrialLoading] = useState(false);
   const [reviewModal, setReviewModal] = useState({ isOpen: false, userId: "" });
+  const [feedback, setFeedback] = useState({
+    open: false,
+    title: "",
+    message: "",
+    tone: "info" as "info" | "success" | "error",
+  });
   const [dateFilter, setDateFilter] = useState<DateFilter>("last6");
   const [selectedMonth, setSelectedMonth] = useState(() =>
     new Date().toISOString().slice(0, 7),
@@ -272,20 +279,6 @@ export const DashboardAdminPage = () => {
     }
   };
 
-  const handleSuspendUser = async (userId: string) => {
-    try {
-      await axios.put(
-        apiUrl(`/api/admin/trial-users/${userId}/suspend`),
-        {},
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      fetchTrialUsers();
-    } catch (error) {
-      console.error("Error suspendiendo usuario:", error);
-      alert("No se pudo suspender el usuario.");
-    }
-  };
-
   const handleRestoreUser = async (userId: string) => {
     try {
       await axios.put(
@@ -296,7 +289,12 @@ export const DashboardAdminPage = () => {
       fetchTrialUsers();
     } catch (error) {
       console.error("Error restaurando usuario:", error);
-      alert("No se pudo restaurar el usuario.");
+      setFeedback({
+        open: true,
+        title: "No se pudo restaurar",
+        message: "Intenta nuevamente en unos momentos.",
+        tone: "error",
+      });
     }
   };
 
@@ -344,9 +342,14 @@ export const DashboardAdminPage = () => {
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      alert(
-        error.response?.data?.message || "Hubo un error al ejecutar la acción.",
-      );
+      setFeedback({
+        open: true,
+        title: "Accion fallida",
+        message:
+          error.response?.data?.message ||
+          "Hubo un error al ejecutar la accion.",
+        tone: "error",
+      });
       setModalConfig({
         isOpen: false,
         userId: null,
@@ -402,9 +405,9 @@ export const DashboardAdminPage = () => {
             <TrialUsersView
               trialUsers={trialUsers}
               isLoading={isTrialLoading}
-              onSuspend={handleSuspendUser}
               onRestore={handleRestoreUser}
               onReview={(userId) => setReviewModal({ isOpen: true, userId })}
+              onDelete={confirmDelete}
             />
           )}
 
@@ -449,6 +452,16 @@ export const DashboardAdminPage = () => {
         userId={reviewModal.userId}
         onClose={() => setReviewModal({ isOpen: false, userId: "" })}
         onMessageSent={fetchTrialUsers}
+      />
+
+      <FeedbackDialog
+        open={feedback.open}
+        onOpenChange={(open) =>
+          setFeedback((prev) => ({ ...prev, open }))
+        }
+        title={feedback.title}
+        message={feedback.message}
+        tone={feedback.tone}
       />
     </div>
   );

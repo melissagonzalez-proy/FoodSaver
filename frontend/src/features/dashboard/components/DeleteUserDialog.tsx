@@ -41,12 +41,12 @@ export const DeleteUserDialog = ({
             <AlertTriangle size={32} />
           </div>
           <AlertDialogTitle className="text-2xl font-bold text-center text-brand-text font-jakarta">
-            Eliminar Usuario
+            Bloquear Usuario
           </AlertDialogTitle>
           <AlertDialogDescription>
             <div className="text-center text-brand-muted space-y-2">
               <p>
-                ¿Estás seguro de eliminar a{" "}
+                ¿Estás seguro de bloquear a{" "}
                 <span className="font-semibold text-brand-text">
                   {config.userName}
                 </span>
@@ -60,7 +60,7 @@ export const DeleteUserDialog = ({
                 tras {config.totalReviews} evaluaciones.
               </p>
               <p className="text-xs text-red-500 uppercase tracking-wider font-bold pt-2">
-                ⚠️ Acción irreversible. Sus reservas serán canceladas.
+                ⚠️ Acción irreversible. Se agrega a lista negra y se cancelan sus reservas.
               </p>
             </div>
           </AlertDialogDescription>
@@ -76,7 +76,7 @@ export const DeleteUserDialog = ({
             onClick={onConfirm}
             className="flex-1 rounded-xl bg-red-600 text-white hover:bg-red-500"
           >
-            Sí, eliminar
+            Sí, bloquear
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

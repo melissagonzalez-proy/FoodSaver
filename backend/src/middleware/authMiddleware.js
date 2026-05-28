@@ -15,9 +15,16 @@ export const authenticate = async (req, res, next) => {
       process.env.JWT_SECRET || "secreto_temporal_foodsaver",
     );
 
-    const user = await User.findById(decoded.id).select("role isSuspended");
+    const user = await User.findById(decoded.id).select(
+      "role isSuspended isBlacklisted",
+    );
     if (!user) {
       return res.status(401).json({ message: "Usuario no encontrado." });
+    }
+    if (user.isBlacklisted) {
+      return res
+        .status(403)
+        .json({ message: "Tu cuenta está en lista negra." });
     }
     if (user.isSuspended) {
       return res

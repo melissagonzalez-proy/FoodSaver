@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Donation from "../models/Donation.js";
+import Rating from "../models/Rating.js";
 import User from "../models/User.js";
 import { sendDonationInterestEmail } from "../services/emailService.js";
 
@@ -184,7 +185,29 @@ export const getDonorDonations = async (req, res) => {
       path: "beneficiary",
       select: "nombres apellidos promedioCalificacion totalEvaluaciones",
     });
-    res.status(200).json(donations);
+    const eligibleIds = donations
+      .filter((donation) => donation.estado === "recolectado" && donation.beneficiary)
+      .map((donation) => donation._id);
+    const ratedDocs = eligibleIds.length
+      ? await Rating.find({
+          donationId: { $in: eligibleIds },
+          fromUser: donorId,
+        }).select("donationId")
+      : [];
+    const ratedSet = new Set(
+      ratedDocs.map((rating) => rating.donationId.toString()),
+    );
+
+    const payload = donations.map((donation) => {
+      const donationId = donation._id.toString();
+      const canRate =
+        donation.estado === "recolectado" &&
+        donation.beneficiary &&
+        !ratedSet.has(donationId);
+      return { ...donation.toObject(), canRate };
+    });
+
+    res.status(200).json(payload);
   } catch (error) {
     res.status(500).json({ message: "Error al obtener tus publicaciones." });
   }
@@ -443,7 +466,27 @@ export const getBeneficiaryDonations = async (req, res) => {
         "nombreEmpresa nombres apellidos direccion celular ciudad promedioCalificacion totalEvaluaciones",
       )
       .sort({ updatedAt: -1 });
-    res.status(200).json(donations);
+    const eligibleIds = donations
+      .filter((donation) => donation.estado === "recolectado")
+      .map((donation) => donation._id);
+    const ratedDocs = eligibleIds.length
+      ? await Rating.find({
+          donationId: { $in: eligibleIds },
+          fromUser: beneficiaryId,
+        }).select("donationId")
+      : [];
+    const ratedSet = new Set(
+      ratedDocs.map((rating) => rating.donationId.toString()),
+    );
+
+    const payload = donations.map((donation) => {
+      const donationId = donation._id.toString();
+      const canRate =
+        donation.estado === "recolectado" && !ratedSet.has(donationId);
+      return { ...donation.toObject(), canRate };
+    });
+
+    res.status(200).json(payload);
   } catch (error) {
     res.status(500).json({ message: "Error al cargar tus reservas." });
   }

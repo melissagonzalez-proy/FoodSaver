@@ -19,17 +19,57 @@ gsap.registerPlugin(ScrollTrigger);
 type Step = { icon: LucideIcon; title: string; description: string };
 
 const donorSteps: Step[] = [
-  { icon: Upload, title: "Publica tu excedente", description: "Sube los alimentos disponibles con fotos, cantidad y fecha de vencimiento en segundos." },
-  { icon: Bell, title: "Recibe confirmación", description: "Te notificamos cuando un beneficiario reserve tu donación para recolección." },
-  { icon: MapPinned, title: "Coordina entrega", description: "El beneficiario acuerda contigo el horario de recolección más conveniente." },
-  { icon: HandHeart, title: "Entrega solidaria", description: "Entrega los alimentos y recibe tu certificado de donación automáticamente." },
+  {
+    icon: Upload,
+    title: "Publica tu excedente",
+    description:
+      "Sube los alimentos disponibles con fotos, cantidad y fecha de vencimiento en segundos.",
+  },
+  {
+    icon: Bell,
+    title: "Recibe confirmación",
+    description:
+      "Te notificamos cuando un beneficiario reserve tu donación para recolección.",
+  },
+  {
+    icon: MapPinned,
+    title: "Coordina entrega",
+    description:
+      "El beneficiario acuerda contigo el horario de recolección más conveniente.",
+  },
+  {
+    icon: HandHeart,
+    title: "Entrega solidaria",
+    description:
+      "Entrega los alimentos y recibe tu certificado de donación automáticamente.",
+  },
 ];
 
 const beneficiarySteps: Step[] = [
-  { icon: Search, title: "Explora donaciones", description: "Navega por el mapa interactivo y encuentra alimentos disponibles cerca de ti." },
-  { icon: CalendarCheck, title: "Reserva tu pedido", description: "Selecciona los productos que necesitas y reserva antes de que expiren." },
-  { icon: Navigation, title: "Dirígete al punto", description: "Recibe indicaciones precisas para llegar al establecimiento donador." },
-  { icon: Package, title: "Recoge tus alimentos", description: "Presenta tu código de reserva y recibe los alimentos en perfecto estado." },
+  {
+    icon: Search,
+    title: "Explora donaciones",
+    description:
+      "Navega por el mapa interactivo y encuentra alimentos disponibles cerca de ti.",
+  },
+  {
+    icon: CalendarCheck,
+    title: "Reserva tu pedido",
+    description:
+      "Selecciona los productos que necesitas y reserva antes de que expiren.",
+  },
+  {
+    icon: Navigation,
+    title: "Dirígete al punto",
+    description:
+      "Recibe indicaciones precisas para llegar al establecimiento donador.",
+  },
+  {
+    icon: Package,
+    title: "Recoge tus alimentos",
+    description:
+      "Presenta tu código de reserva y recibe los alimentos en perfecto estado.",
+  },
 ];
 
 function StepsGroup({
@@ -42,7 +82,7 @@ function StepsGroup({
   title: string;
   icon: LucideIcon;
   steps: Step[];
-  groupRef: React.RefObject<HTMLDivElement>;
+  groupRef: React.Ref<HTMLOListElement>;
   headingId: string;
 }) {
   return (
@@ -51,7 +91,10 @@ function StepsGroup({
         <div className="w-10 h-10 bg-brand-accent rounded-full flex items-center justify-center shrink-0">
           <HeaderIcon size={18} className="text-white" aria-hidden="true" />
         </div>
-        <h3 id={headingId} className="text-xl lg:text-2xl font-medium text-brand-text font-jakarta">
+        <h3
+          id={headingId}
+          className="text-xl lg:text-2xl font-medium text-brand-text font-jakarta"
+        >
           {title}
         </h3>
       </div>
@@ -79,7 +122,9 @@ function StepsGroup({
                   <span className="sr-only">Paso {index + 1}: </span>
                   {step.title}
                 </h4>
-                <p className="text-brand-muted text-sm leading-relaxed">{step.description}</p>
+                <p className="text-brand-muted text-sm leading-relaxed">
+                  {step.description}
+                </p>
               </Card>
             </li>
           );
@@ -92,8 +137,8 @@ function StepsGroup({
 export function HowItWorksSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
-  const donorCardsRef = useRef<HTMLDivElement>(null);
-  const beneficiaryCardsRef = useRef<HTMLDivElement>(null);
+  const donorCardsRef = useRef<HTMLOListElement>(null);
+  const beneficiaryCardsRef = useRef<HTMLOListElement>(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -101,8 +146,15 @@ export function HowItWorksSection() {
         titleRef.current,
         { y: 40, opacity: 0 },
         {
-          y: 0, opacity: 1, duration: 0.8, ease: "power3.out",
-          scrollTrigger: { trigger: titleRef.current, start: "top 85%", once: true },
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: titleRef.current,
+            start: "top 85%",
+            once: true,
+          },
         },
       );
 
@@ -110,8 +162,16 @@ export function HowItWorksSection() {
         donorCardsRef.current?.children || [],
         { y: 30, opacity: 0 },
         {
-          y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: "power2.out",
-          scrollTrigger: { trigger: donorCardsRef.current, start: "top 80%", once: true },
+          y: 0,
+          opacity: 1,
+          duration: 0.5,
+          stagger: 0.1,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: donorCardsRef.current,
+            start: "top 80%",
+            once: true,
+          },
         },
       );
 
@@ -119,8 +179,16 @@ export function HowItWorksSection() {
         beneficiaryCardsRef.current?.children || [],
         { y: 30, opacity: 0 },
         {
-          y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: "power2.out",
-          scrollTrigger: { trigger: beneficiaryCardsRef.current, start: "top 80%", once: true },
+          y: 0,
+          opacity: 1,
+          duration: 0.5,
+          stagger: 0.1,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: beneficiaryCardsRef.current,
+            start: "top 80%",
+            once: true,
+          },
         },
       );
     }, sectionRef);

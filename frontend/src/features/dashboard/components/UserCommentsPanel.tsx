@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { Star, MessageSquare, Calendar } from "lucide-react";
 import { apiUrl } from "../../../lib/api";
+import { Badge } from "@/components/ui/badge";
 
 interface RatingAuthor {
   _id: string;
@@ -34,6 +35,12 @@ interface UserCommentsPanelProps {
   userId: string;
   title?: string;
 }
+
+const ROLE_LABEL: Record<string, string> = {
+  donor: "Donador",
+  beneficiary: "Beneficiario",
+  admin: "Admin",
+};
 
 export const UserCommentsPanel = ({ userId, title }: UserCommentsPanelProps) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -97,11 +104,21 @@ export const UserCommentsPanel = ({ userId, title }: UserCommentsPanelProps) => 
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-brand-text">
-                    {rating.fromUser?.nombreEmpresa ||
-                      `${rating.fromUser?.nombres ?? ""} ${rating.fromUser?.apellidos ?? ""}`.trim() ||
-                      "Usuario"}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-brand-text">
+                      {rating.fromUser?.nombreEmpresa ||
+                        `${rating.fromUser?.nombres ?? ""} ${rating.fromUser?.apellidos ?? ""}`.trim() ||
+                        "Usuario"}
+                    </p>
+                    {rating.fromUser?.role && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] border-brand-border text-brand-muted uppercase"
+                      >
+                        {ROLE_LABEL[rating.fromUser.role] || rating.fromUser.role}
+                      </Badge>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 text-xs text-brand-muted mt-1">
                     <Calendar size={12} />
                     {new Date(rating.createdAt).toLocaleDateString("es-CO")}

@@ -154,6 +154,47 @@ export const sendReputationProbationEmail = async ({
   });
 };
 
+export const sendReputationProbationExitEmail = async ({
+  to,
+  userName,
+  average,
+  commentsUrl,
+}) => {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
+  const subject = "FoodSaver - Saliste del periodo de prueba";
+  const text =
+    `Hola ${userName},\n\n` +
+    `Tu promedio actual es ${average}. Tu cuenta ha salido del periodo de prueba.\n` +
+    (commentsUrl ? `Revisa tus comentarios aquí: ${commentsUrl}\n\n` : "\n") +
+    "Gracias por seguir apoyando a la comunidad.\n";
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
+      <p>Hola ${userName},</p>
+      <p>
+        Tu promedio actual es <strong>${average}</strong>. Tu cuenta ha salido
+        del <strong>periodo de prueba</strong>.
+      </p>
+      ${
+        commentsUrl
+          ? `<p>Revisa tus comentarios aquí: <a href="${commentsUrl}" target="_blank" rel="noreferrer">Ver comentarios</a>.</p>`
+          : ""
+      }
+      <p>Gracias por seguir apoyando a la comunidad.</p>
+    </div>
+  `;
+
+  return transporter.sendMail({
+    from,
+    to,
+    subject,
+    text,
+    html,
+  });
+};
+
 export const sendAdminReviewMessageEmail = async ({
   to,
   userName,

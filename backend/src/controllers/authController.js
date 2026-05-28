@@ -4,6 +4,7 @@ import crypto from "crypto";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
+import Blacklist from "../models/Blacklist.js";
 import User from "../models/User.js";
 
 dotenv.config();
@@ -23,6 +24,24 @@ const splitNombreCompleto = (nombreCompleto = "") => {
     apellidos: partes.slice(-2).join(" "),
   };
 };
+
+const normalizeEmail = (email = "") => email.trim().toLowerCase();
+
+const isBlacklistedCandidate = async ({ email, numeroDocumento, nit }) => {
+  const filters = [];
+  const emailValue = normalizeEmail(email);
+  if (emailValue) filters.push({ email: emailValue });
+  if (numeroDocumento) filters.push({ numeroDocumento });
+  if (nit) filters.push({ nit });
+  if (filters.length === 0) return false;
+
+  const [blacklistEntry, blacklistedUser] = await Promise.all([
+    Blacklist.findOne({ $or: filters }),
+    User.findOne({ isBlacklisted: true, $or: filters }),
+  ]);
+
+  return Boolean(blacklistEntry || blacklistedUser);
+};
 /* =====================================================
    DONADOR — PRE REGISTRO (NIT + ENVÍO OTP)
 ===================================================== */
@@ -39,6 +58,13 @@ export const preRegisterDonorWithValidation = async (req, res) => {
       ciudad,
       direccion,
     } = req.body;
+
+    const isBlacklisted = await isBlacklistedCandidate({ email, nit });
+    if (isBlacklisted) {
+      return res.status(403).json({
+        message: "No es posible registrar este usuario.",
+      });
+    }
 
     // Verificar si ya existe el usuario
     const exists = await User.findOne({ email });
@@ -94,6 +120,16 @@ export const verifyDonorOtpAndCreate = async (req, res) => {
   try {
     const { donorData } = req.body;
     const otp = req.body.otp || req.body.http;
+
+    const isBlacklisted = await isBlacklistedCandidate({
+      email: donorData?.email,
+      nit: donorData?.nit,
+    });
+    if (isBlacklisted) {
+      return res.status(403).json({
+        message: "No es posible registrar este usuario.",
+      });
+    }
 
     // Verificar OTP en n8n (ahora con email en vez de celular)
     const otpRes = await axios.post(
@@ -180,6 +216,16 @@ export const preRegisterBeneficiaryWithValidation = async (req, res) => {
       direccion,
     } = req.body;
 
+    const isBlacklisted = await isBlacklistedCandidate({
+      email,
+      numeroDocumento,
+    });
+    if (isBlacklisted) {
+      return res.status(403).json({
+        message: "No es posible registrar este usuario.",
+      });
+    }
+
     console.log("numero documento", numeroDocumento, "sisben", sisbenGrupo);
 
     // Verificar si ya existe el usuario
@@ -245,6 +291,16 @@ export const verifyBeneficiaryOtpAndCreate = async (req, res) => {
     if (!beneficiaryData || !otp) {
       return res.status(400).json({
         message: "Información incompleta",
+      });
+    }
+
+    const isBlacklisted = await isBlacklistedCandidate({
+      email: beneficiaryData?.email,
+      numeroDocumento: beneficiaryData?.numeroDocumento,
+    });
+    if (isBlacklisted) {
+      return res.status(403).json({
+        message: "No es posible registrar este usuario.",
       });
     }
 
@@ -358,10 +414,23 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    const isBlacklisted = await isBlacklistedCandidate({ email });
+    if (isBlacklisted) {
+      return res.status(403).json({
+        message: "Tu cuenta está en lista negra.",
+      });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({
         message: "Correo o contraseña incorrectos.",
+      });
+    }
+
+    if (user.isBlacklisted) {
+      return res.status(403).json({
+        message: "Tu cuenta está en lista negra.",
       });
     }
 

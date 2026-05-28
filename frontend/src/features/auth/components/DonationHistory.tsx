@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { DonationCard } from "./DonationCard"; 
+import { DonationCard } from "./DonationCard";
 import { apiUrl } from "../../../lib/api";
+import { FeedbackDialog } from "@/components/ui/feedback-dialog";
 
 interface DonationData {
   _id: string;
@@ -17,6 +18,20 @@ export const DonationHistory = () => {
   const [donations, setDonations] = useState<DonationData[]>([]);
   const [activeTab, setActiveTab] = useState("activo"); 
   const [loading, setLoading] = useState(true);
+  const [feedback, setFeedback] = useState({
+    open: false,
+    title: "",
+    message: "",
+    tone: "info" as "info" | "success" | "error",
+  });
+
+  const showFeedback = (
+    tone: "info" | "success" | "error",
+    title: string,
+    message = "",
+  ) => {
+    setFeedback({ open: true, title, message, tone });
+  };
 
   useEffect(() => {
     fetchDonations();
@@ -46,9 +61,18 @@ export const DonationHistory = () => {
     try {
       await axios.put(apiUrl(`/api/donations/cancel/${id}`));
       fetchDonations();
+      showFeedback(
+        "success",
+        "Publicacion cancelada",
+        "El alimento se libero correctamente.",
+      );
     } catch (error) {
       console.error("Error al cancelar la donación:", error);
-      alert("Hubo un error al cancelar la publicación.");
+      showFeedback(
+        "error",
+        "No se pudo cancelar",
+        "Hubo un error al cancelar la publicacion.",
+      );
     }
   };
 
@@ -58,15 +82,21 @@ export const DonationHistory = () => {
         apiUrl(`/api/donations/complete/${id}`),
         { pin: pin },
       );
-      
-      alert(response.data.message); 
-      fetchDonations(); 
-      
+      showFeedback("success", "Entrega completada", response.data.message);
+      fetchDonations();
     } catch (error: any) {
       if (error.response && error.response.data) {
-        alert("❌ " + error.response.data.message);
+        showFeedback(
+          "error",
+          "PIN invalido",
+          error.response.data.message,
+        );
       } else {
-        alert("Error de conexión al validar el PIN.");
+        showFeedback(
+          "error",
+          "No se pudo validar",
+          "Error de conexion al validar el PIN.",
+        );
       }
     }
   };
@@ -132,6 +162,14 @@ export const DonationHistory = () => {
           ))
         )}
       </div>
+
+      <FeedbackDialog
+        open={feedback.open}
+        onOpenChange={(open) => setFeedback((prev) => ({ ...prev, open }))}
+        title={feedback.title}
+        message={feedback.message}
+        tone={feedback.tone}
+      />
     </div>
   );
 };

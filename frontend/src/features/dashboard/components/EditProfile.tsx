@@ -1,28 +1,44 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { apiUrl } from "../../../lib/api"; 
-import { CheckCircle, AlertCircle, Save } from "lucide-react";
+import { CheckCircle, AlertCircle, Save, X } from "lucide-react";
 
-export const EditProfile = () => {
+interface EditProfileProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export const EditProfile = ({ open, onClose }: EditProfileProps) => {
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentUserId = currentUser.id || currentUser._id || "";
   const token = localStorage.getItem("token");
 
-  const [formData, setFormData] = useState({
-    nombres: currentUser.nombres || "",
-    apellidos: currentUser.apellidos || "",
-    celular: currentUser.celular || "",
-    departamento: currentUser.departamento || "",
-    ciudad: currentUser.ciudad || "",
+  const buildFormData = (user: any) => ({
+    nombres: user.nombres || "",
+    apellidos: user.apellidos || "",
+    celular: user.celular || "",
+    departamento: user.departamento || "",
+    ciudad: user.ciudad || "",
     tipoVia: "Calle",
     numeroPrincipal: "",
     numeroSecundario: "",
   });
 
+  const [formData, setFormData] = useState(() => buildFormData(currentUser));
+
   const [error, setError] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    setFormData(buildFormData(storedUser));
+    setError("");
+    setShowConfirmModal(false);
+    setShowSuccessModal(false);
+  }, [open]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -79,9 +95,22 @@ export const EditProfile = () => {
     }
   };
 
+  if (!open) return null;
+
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-brand-card border border-brand-border rounded-3xl shadow-xl mt-8 animate-in fade-in">
-      <h2 className="text-2xl font-bold text-brand-text font-jakarta mb-6">Actualizar Perfil</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-2xl p-6 shadow-2xl animate-in fade-in relative">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-5 right-5 w-8 h-8 rounded-lg text-brand-muted hover:text-brand-text hover:bg-brand-background transition-colors flex items-center justify-center"
+        >
+          <X size={18} />
+        </button>
+
+        <h2 className="text-2xl font-bold text-brand-text font-jakarta mb-6">
+          Actualizar Perfil
+        </h2>
 
       {error && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center gap-3 text-red-500">
@@ -158,15 +187,31 @@ export const EditProfile = () => {
         </button>
       </form>
 
+      </div>
+
       {/* MODAL DE CONFIRMACIÓN ANTES DE GUARDAR */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
-            <h3 className="text-xl font-bold text-brand-text mb-2">Confirmar cambios</h3>
-            <p className="text-brand-muted mb-6 text-sm">¿Estás seguro de que deseas actualizar tu información de perfil y logística?</p>
+            <h3 className="text-xl font-bold text-brand-text mb-2">
+              Confirmar cambios
+            </h3>
+            <p className="text-brand-muted mb-6 text-sm">
+              ¿Estás seguro de que deseas actualizar tu información de perfil y logística?
+            </p>
             <div className="flex gap-3">
-              <button onClick={() => setShowConfirmModal(false)} className="flex-1 py-3 font-medium border border-brand-border text-brand-text rounded-xl hover:bg-brand-background transition-colors">Cancelar</button>
-              <button onClick={confirmUpdate} className="flex-1 py-3 font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all">Sí, actualizar</button>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 py-3 font-medium border border-brand-border text-brand-text rounded-xl hover:bg-brand-background transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmUpdate}
+                className="flex-1 py-3 font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all"
+              >
+                Sí, actualizar
+              </button>
             </div>
           </div>
         </div>
@@ -174,14 +219,26 @@ export const EditProfile = () => {
 
       {/* MODAL DE ÉXITO VISUAL */}
       {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 text-center animate-in zoom-in-95">
             <div className="w-16 h-16 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center mx-auto mb-6">
               <CheckCircle size={32} />
             </div>
-            <h3 className="text-2xl font-bold text-brand-text mb-2 font-jakarta">¡Actualizado!</h3>
-            <p className="text-brand-muted mb-8 text-sm">Tus datos han sido modificados correctamente en el sistema.</p>
-            <button onClick={() => setShowSuccessModal(false)} className="w-full py-3 bg-brand-accent text-white rounded-xl font-medium">Continuar</button>
+            <h3 className="text-2xl font-bold text-brand-text mb-2 font-jakarta">
+              ¡Actualizado!
+            </h3>
+            <p className="text-brand-muted mb-8 text-sm">
+              Tus datos han sido modificados correctamente en el sistema.
+            </p>
+            <button
+              onClick={() => {
+                setShowSuccessModal(false);
+                onClose();
+              }}
+              className="w-full py-3 bg-brand-accent text-white rounded-xl font-medium"
+            >
+              Continuar
+            </button>
           </div>
         </div>
       )}
