@@ -7,7 +7,8 @@ export const apiUrl = (path: string) => {
 };
 
 export const assetUrl = (path: string) => {
-  if (!path) return API_BASE_URL;
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
   const cleaned = path.replace(/^\/+/, "");
   return `${API_BASE_URL}/${cleaned}`;
 };
