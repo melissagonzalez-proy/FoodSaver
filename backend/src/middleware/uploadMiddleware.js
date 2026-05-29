@@ -1,47 +1,33 @@
+import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
-import fs from "fs";
-import path from "path";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 
-// Configurar dónde y cómo se guardan los archivos
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = "uploads/documents/";
-    // Si la carpeta no existe, Node.js la crea automáticamente
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname),
-    );
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "foodsaver/donations",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [{ width: 800, quality: "auto", fetch_format: "auto" }],
   },
 });
 
-// Filtro de seguridad: solo aceptar PDFs e imágenes
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    "application/pdf",
-    "image/jpeg",
-    "image/png",
-    "image/jpg",
-    "image/webp",
-  ];
+  const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(
-      new Error("Formato no válido. Solo se permiten archivos PDF, JPG y PNG."),
-    );
+    cb(new Error("Formato no válido. Solo se permiten JPG y PNG."));
   }
 };
 
-// Exportar el middleware configurado (límite de 5MB)
 export const upload = multer({
-  storage: storage,
+  storage,
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: fileFilter,
+  fileFilter,
 });

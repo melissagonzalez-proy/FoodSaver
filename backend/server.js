@@ -3,8 +3,8 @@ import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 
-import authRoutes from "./src/routes/authRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
+import authRoutes from "./src/routes/authRoutes.js";
 import donationRoutes from "./src/routes/donationRoutes.js";
 import ratingRoutes from "./src/routes/ratingRoutes.js";
 
@@ -16,7 +16,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/uploads", express.static("uploads"));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
