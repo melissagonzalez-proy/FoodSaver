@@ -2,16 +2,16 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copiar SOLO la carpeta backend
-COPY backend/package*.json ./
+# Copiar archivos de configuración
+COPY package*.json ./
 
-# Instalar dependencias
+# Instalar solo dependencias de producción
 RUN npm ci --only=production
 
-# Copiar el resto del código del backend
-COPY backend/ .
+# Copiar todo el código (backend completo)
+COPY . .
 
-# Exponer puerto
+# Puerto que usa server.js (verifica el puerto en tu código)
 EXPOSE 3000
 
 # Iniciar la aplicación
