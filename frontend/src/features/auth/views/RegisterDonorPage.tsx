@@ -411,7 +411,8 @@ export const RegisterDonorPage = () => {
               Verificación OTP
             </h3>
             <p className="text-center text-brand-muted">
-              Ingresa el código enviado a tu celular
+              Ingresa el código enviado a tu correo. 
+              Si no lo ves, revisa SPAM
             </p>
             <input
               type="text"
