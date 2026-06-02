@@ -1,8 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { Leaf, Mail, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
+import { Leaf, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 import { apiUrl } from "../../../lib/api";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
@@ -18,10 +29,9 @@ export const ForgotPasswordPage = () => {
     setFeedback({ type: null, message: "" });
 
     try {
-      const response = await axios.post(
-        apiUrl("/api/auth/forgot-password"),
-        { email },
-      );
+      const response = await axios.post(apiUrl("/api/auth/forgot-password"), {
+        email,
+      });
       setFeedback({ type: "success", message: response.data.message });
       setEmail("");
     } catch (error: any) {
@@ -37,76 +47,88 @@ export const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-background flex flex-col justify-center items-center p-6 font-sans relative overflow-hidden">
-      {/* Círculos decorativos de fondo */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-brand-accent/20 rounded-full blur-[100px]"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-brand-accent/10 rounded-full blur-[100px]"></div>
+    <div className="relative min-h-screen overflow-hidden bg-brand-background">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 -left-24 h-64 w-64 rounded-full bg-brand-accent/10 blur-3xl" />
+        <div className="absolute -bottom-28 -right-20 h-72 w-72 rounded-full bg-brand-accent-light/10 blur-3xl" />
+      </div>
 
-      <div className="w-full max-w-md bg-brand-card border border-brand-border rounded-4xl p-10 shadow-2xl z-10">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-brand-accent/10 rounded-2xl flex items-center justify-center mb-4 border border-brand-accent/20">
-            <Leaf size={32} className="text-brand-accent" />
-          </div>
-          <h1 className="text-2xl font-bold text-brand-text font-jakarta">
-            Recuperar Cuenta
-          </h1>
-          <p className="text-brand-muted text-center mt-2 text-sm">
-            Ingresa tu correo electrónico y te enviaremos un enlace para
-            restablecer tu contraseña.
-          </p>
-        </div>
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-10">
+        <Link
+          to="/"
+          className="mb-8 flex items-center gap-2 text-brand-accent transition-opacity hover:opacity-80"
+        >
+          <Leaf size={30} />
+          <span className="text-2xl font-semibold tracking-tight text-brand-text font-jakarta">
+            FoodSaver
+          </span>
+        </Link>
 
-        {feedback.type && (
-          <div
-            className={`p-4 rounded-xl mb-6 flex items-start gap-3 text-sm ${feedback.type === "success" ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}
-          >
-            {feedback.type === "success" ? (
-              <CheckCircle size={20} className="shrink-0 mt-0.5" />
-            ) : (
-              <AlertCircle size={20} className="shrink-0 mt-0.5" />
+        <Card className="w-full max-w-md bg-brand-card/90 shadow-xl ring-1 ring-foreground/5 backdrop-blur">
+          <CardHeader className="gap-1 text-center">
+            <CardTitle className="text-2xl font-semibold">
+              Recuperar cuenta
+            </CardTitle>
+            <CardDescription>
+              Ingresa tu correo y te enviaremos un enlace para restablecer tu
+              contraseña.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            {feedback.type && (
+              <div
+                className={`mb-6 flex items-start gap-3 rounded-lg border px-3 py-2 text-sm ${
+                  feedback.type === "success"
+                    ? "border-green-500/30 bg-green-500/10 text-green-600"
+                    : "border-destructive/30 bg-destructive/10 text-destructive"
+                }`}
+              >
+                {feedback.type === "success" ? (
+                  <CheckCircle size={18} className="mt-0.5 shrink-0" />
+                ) : (
+                  <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                )}
+                <p className="font-medium">{feedback.message}</p>
+              </div>
             )}
-            <p>{feedback.message}</p>
-          </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <div className="relative">
-            <label className="text-sm font-semibold text-brand-text mb-1.5 block">
-              Correo Electrónico
-            </label>
-            <div className="relative">
-              <Mail
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted"
-                size={20}
-              />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="ejemplo@correo.com"
-                className="w-full bg-brand-background border border-brand-border rounded-xl pl-12 pr-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-              />
-            </div>
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Correo electrónico</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="correo@ejemplo.com"
+                  autoComplete="email"
+                  disabled={feedback.type === "success"}
+                />
+              </div>
 
-          <button
-            type="submit"
-            disabled={isLoading || !email}
-            className="w-full py-4 text-lg bg-brand-accent text-white rounded-xl font-medium hover:bg-brand-accent-light transition-all shadow-[0_0_20px_rgba(255,0,85,0.15)] disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-          >
-            {isLoading ? "Enviando..." : "Enviar enlace de recuperación"}
-          </button>
-        </form>
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                disabled={isLoading || !email || feedback.type === "success"}
+              >
+                {isLoading ? "Enviando..." : "Enviar enlace de recuperación"}
+              </Button>
+            </form>
+          </CardContent>
 
-        <div className="mt-8 text-center">
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 text-sm text-brand-muted hover:text-brand-text transition-colors"
-          >
-            <ArrowLeft size={16} /> Volver a Iniciar Sesión
-          </Link>
-        </div>
+          <CardFooter className="justify-center">
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft size={16} />
+              Volver a iniciar sesión
+            </Link>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

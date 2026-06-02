@@ -1,63 +1,111 @@
 import { Leaf, HeartHandshake, ShoppingBag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 export const SelectionRolePage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-brand-background flex items-center justify-center p-6 font-sans relative overflow-hidden">
-      <div className="absolute top-[-20%] right-[-10%] w-md h-md bg-brand-accent/10 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-25%] left-[-10%] w-120 h-120 bg-brand-accent/5 rounded-full blur-[140px]" />
+    <div className="relative min-h-screen overflow-hidden bg-brand-background">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-32 -right-20 h-96 w-96 rounded-full bg-brand-accent/10 blur-3xl" />
+        <div className="absolute -bottom-40 -left-20 h-96 w-96 rounded-full bg-brand-accent/5 blur-3xl" />
+      </div>
 
-      <div className="w-full max-w-4xl relative z-10">
-        <div className="rounded-4xl shadow-2xl border border-brand-border bg-brand-card p-10 text-center">
-          <div className="flex flex-col items-center gap-4 mb-8">
-            <Leaf className="w-12 h-12 text-brand-accent" />
-            <h1 className="text-4xl md:text-5xl font-bold text-brand-text font-jakarta tracking-tight">
-              Bienvenido a FoodSaver
-            </h1>
-            <p className="text-base md:text-lg text-brand-muted max-w-2xl">
-              Conectamos personas que desean donar alimentos con quienes los
-              necesitan. Juntos reducimos el desperdicio y construimos una
-              comunidad más solidaria.
-            </p>
-          </div>
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-10">
+        <div className="mb-10 flex flex-col items-center gap-3 text-center">
+          <Leaf size={36} className="text-brand-accent" />
+          <h1 className="font-jakarta text-4xl font-bold tracking-tight text-brand-text md:text-5xl">
+            Bienvenido a FoodSaver
+          </h1>
+          <p className="max-w-xl text-base text-muted-foreground md:text-lg">
+            Conectamos personas que desean donar alimentos con quienes los
+            necesitan. Juntos reducimos el desperdicio y construimos una
+            comunidad más solidaria.
+          </p>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-            <div
-              className="border border-brand-border rounded-3xl p-8 bg-brand-background/80 shadow-md hover:border-brand-accent/50 transition-all cursor-pointer group flex flex-col h-full"
-              onClick={() => navigate("/register-donor")}
-            >
-              <HeartHandshake className="w-12 h-12 text-brand-text group-hover:text-brand-accent mx-auto mb-4 transition-colors" />
-              <h2 className="text-2xl font-bold text-brand-text mb-3 font-jakarta">
+        <div className="grid w-full max-w-3xl grid-cols-1 gap-6 md:grid-cols-2">
+          {/* Donor card */}
+          <Card className="group flex flex-col bg-brand-card/90 shadow-xl ring-1 ring-foreground/5 backdrop-blur transition-shadow hover:shadow-2xl">
+            <CardHeader className="items-center gap-3 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-accent/10 ring-1 ring-brand-accent/20 transition-colors group-hover:bg-brand-accent/20">
+                <HeartHandshake
+                  size={28}
+                  className="text-brand-accent"
+                />
+              </div>
+              <CardTitle className="font-jakarta text-xl">
                 Quiero ser Donador
-              </h2>
-              <p className="text-brand-muted mb-6 flex-1">
+              </CardTitle>
+              <CardDescription>
                 Publica tus excedentes de comida y ayuda a personas en situación
                 vulnerable.
-              </p>
-              <button className="w-full py-3 text-lg rounded-xl bg-brand-accent text-white font-semibold hover:bg-brand-accent-light transition-all shadow-[0_0_20px_rgba(255,0,85,0.15)]">
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1" />
+            <CardFooter>
+              <Button
+                size="lg"
+                className="w-full cursor-pointer"
+                onClick={() => navigate("/register-donor")}
+              >
                 Continuar como Donador
-              </button>
-            </div>
+              </Button>
+            </CardFooter>
+          </Card>
 
-            <div
-              className="border border-brand-border rounded-3xl p-8 bg-brand-background/80 shadow-md hover:border-brand-accent/50 transition-all cursor-pointer group flex flex-col h-full"
-              onClick={() => navigate("/register-beneficiary")}
-            >
-              <ShoppingBag className="w-12 h-12 text-brand-text group-hover:text-brand-accent mx-auto mb-4 transition-colors" />
-              <h2 className="text-2xl font-bold text-brand-text mb-3 font-jakarta">
+          <Card className="group flex flex-col bg-brand-card/90 shadow-xl ring-1 ring-foreground/5 backdrop-blur transition-shadow hover:shadow-2xl">
+            <CardHeader className="items-center gap-3 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-accent/10 ring-1 ring-brand-accent/20 transition-colors group-hover:bg-brand-accent/20">
+                <ShoppingBag
+                  size={28}
+                  className="text-brand-accent"
+                />
+              </div>
+              <CardTitle className="font-jakarta text-xl">
                 Quiero ser Beneficiario
-              </h2>
-              <p className="text-brand-muted mb-6 flex-1">
+              </CardTitle>
+              <CardDescription>
                 Solicita alimentos disponibles cerca de ti de manera sencilla y
                 segura.
-              </p>
-              <button className="w-full py-3 text-lg rounded-xl border-2 border-brand-accent text-brand-text font-semibold group-hover:bg-brand-accent group-hover:text-white transition-all">
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1" />
+            <CardFooter>
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full cursor-pointer"
+                onClick={() => navigate("/register-beneficiary")}
+              >
                 Continuar como Beneficiario
-              </button>
-            </div>
-          </div>
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+
+        <div className="mt-8 gap-3 text-sm text-muted-foreground">
+          <Separator className="w-16" />
+          <span>
+            ¿Ya tienes una cuenta?{" "}
+            <a
+              href="/login"
+              className="font-medium text-brand-accent transition-colors hover:text-brand-accent/80"
+            >
+              Inicia sesión
+            </a>
+          </span>
+          <Separator className="w-16" />
         </div>
       </div>
     </div>

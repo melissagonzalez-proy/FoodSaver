@@ -13,8 +13,26 @@ import {
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiUrl } from "../../../lib/api";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
-// 1. AGREGAMOS EL TERCER PASO
 type Step = "FORM" | "OTP" | "DOCUMENTS";
 
 export const RegisterDonorPage = () => {
@@ -27,11 +45,10 @@ export const RegisterDonorPage = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  // Guardaremos el ID del usuario recién creado para atarle los documentos
   const [createdUserId, setCreatedUserId] = useState<string | null>(null);
 
-  // Estado para los documentos
   const [documents, setDocuments] = useState({
     rut: null as File | null,
     camaraComercio: null as File | null,
@@ -50,9 +67,13 @@ export const RegisterDonorPage = () => {
   });
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleFileChange = (
@@ -64,9 +85,6 @@ export const RegisterDonorPage = () => {
     }
   };
 
-  // =========================
-  // STEP 1 — PRE REGISTER
-  // =========================
   const handlePreRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -77,8 +95,6 @@ export const RegisterDonorPage = () => {
       setLoading(false);
       return;
     }
-
-    //setIsConfirming(true);
   };
 
   const handleFinalSubmit = async () => {
@@ -101,23 +117,16 @@ export const RegisterDonorPage = () => {
     }
   };
 
-  // =========================
-  // STEP 2 — VERIFY OTP
-  // =========================
   const handleVerifyOtp = async () => {
     setError("");
     setLoading(true);
 
     try {
-      const res = await axios.post(
-        apiUrl("/api/auth/donor/verify"),
-        {
-          otp,
-          donorData: formData,
-        },
-      );
+      const res = await axios.post(apiUrl("/api/auth/donor/verify"), {
+        otp,
+        donorData: formData,
+      });
 
-      // Asumimos que el backend devuelve el ID del usuario creado (ej. res.data.user._id o res.data.userId)
       if (res.data.user?._id) {
         setCreatedUserId(res.data.user._id);
       } else if (res.data.userId) {
@@ -125,8 +134,6 @@ export const RegisterDonorPage = () => {
       }
 
       setSuccess("Celular verificado. Por favor, sube tus documentos.");
-
-      // EN VEZ DE IR AL LOGIN, PASAMOS AL PASO DE DOCUMENTOS
       setTimeout(() => {
         setSuccess("");
         setStep("DOCUMENTS");
@@ -138,9 +145,6 @@ export const RegisterDonorPage = () => {
     }
   };
 
-  // =========================
-  // STEP 3 — UPLOAD DOCUMENTS
-  // =========================
   const handleUploadDocuments = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!documents.rut || !documents.camaraComercio) {
@@ -153,20 +157,13 @@ export const RegisterDonorPage = () => {
 
     try {
       const data = new FormData();
-      // Le enviamos el ID al backend para que sepa de quién son estos archivos
       if (createdUserId) data.append("userId", createdUserId);
       data.append("rut", documents.rut);
       data.append("camaraComercio", documents.camaraComercio);
-      // Endpoint imaginario (debes ajustarlo a la ruta real de tu backend)
-      await axios.post(
-        apiUrl("/api/auth/donor/upload-docs"),
-        data,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
-      );
+      await axios.post(apiUrl("/api/auth/donor/upload-docs"), data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      
       setSuccess("¡Registro completado! Redirigiendo al inicio de sesión...");
       setTimeout(() => navigate("/login"), 2000);
     } catch (err: any) {
@@ -176,343 +173,372 @@ export const RegisterDonorPage = () => {
     }
   };
 
+  const stepIndex = { FORM: 0, OTP: 1, DOCUMENTS: 2 };
+
   return (
-    <div className="min-h-screen bg-brand-background flex flex-col items-center justify-center p-6 font-sans">
-      <Link
-        to="/"
-        className="flex items-center gap-2 text-brand-accent mb-8 hover:opacity-80 transition-opacity"
-      >
-        <Leaf size={32} />
-        <span className="text-3xl font-bold tracking-tight text-brand-text font-jakarta">
-          FoodSaver
-        </span>
-      </Link>
+    <div className="relative min-h-screen overflow-hidden bg-brand-background">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 -left-24 h-64 w-64 rounded-full bg-brand-accent/10 blur-3xl" />
+        <div className="absolute -bottom-28 -right-20 h-72 w-72 rounded-full bg-brand-accent-light/10 blur-3xl" />
+      </div>
 
-      <div className="w-full max-w-2xl bg-brand-card border border-brand-border rounded-4xl p-10 shadow-2xl">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-semibold text-brand-text font-jakarta mb-2">
-            {step === "DOCUMENTS"
-              ? "Validación de Empresa"
-              : "Registro de Donador"}
-          </h1>
-          <p className="text-brand-muted">
-            Únete a FoodSaver para donar excedentes de alimentos.
-          </p>
-        </div>
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-10">
+        <Link
+          to="/"
+          className="mb-8 flex items-center gap-2 text-brand-accent transition-opacity hover:opacity-80"
+        >
+          <Leaf size={30} />
+          <span className="font-jakarta text-2xl font-semibold tracking-tight text-brand-text">
+            FoodSaver
+          </span>
+        </Link>
 
-        {/* Barra de progreso visual */}
-        <div className="flex justify-center gap-2 mb-8">
-          <div
-            className={`h-2 w-12 rounded-full ${step === "FORM" ? "bg-brand-accent" : "bg-green-500"}`}
-          />
-          <div
-            className={`h-2 w-12 rounded-full ${step === "OTP" ? "bg-brand-accent" : step === "DOCUMENTS" ? "bg-green-500" : "bg-brand-border"}`}
-          />
-          <div
-            className={`h-2 w-12 rounded-full ${step === "DOCUMENTS" ? "bg-brand-accent" : "bg-brand-border"}`}
-          />
-        </div>
+        <Card className="w-full max-w-2xl bg-brand-card/90 shadow-xl ring-1 ring-foreground/5 backdrop-blur">
+          <CardHeader className="gap-1 text-center">
+            <CardTitle className="font-jakarta text-2xl font-semibold">
+              {step === "DOCUMENTS" ? "Validación de empresa" : "Registro de Donador"}
+            </CardTitle>
+            <CardDescription>
+              Únete a FoodSaver para donar excedentes de alimentos.
+            </CardDescription>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center gap-3 text-red-500">
-            <AlertCircle size={20} />
-            <p className="text-sm font-medium">{error}</p>
-          </div>
-        )}
+            {/* Progress bar */}
+            <div className="mt-4 flex justify-center gap-2">
+              {["Datos", "Verificación", "Documentos"].map((label, i) => (
+                <div key={label} className="flex flex-col items-center gap-1">
+                  <div
+                    className={`h-1.5 w-16 rounded-full transition-colors ${
+                      i < stepIndex[step]
+                        ? "bg-green-500"
+                        : i === stepIndex[step]
+                        ? "bg-brand-accent"
+                        : "bg-muted"
+                    }`}
+                  />
+                  <span className="text-xs text-muted-foreground">{label}</span>
+                </div>
+              ))}
+            </div>
+          </CardHeader>
 
-        {success && (
-          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/50 rounded-xl flex items-center gap-3 text-green-500">
-            <CheckCircle size={20} />
-            <p className="text-sm font-medium">{success}</p>
-          </div>
-        )}
-
-        {/* ================= FORM (AHORA CON GRID 2 COLUMNAS) ================= */}
-        {step === "FORM" && (
-          <form
-            onSubmit={handlePreRegister}
-            className="flex flex-col gap-6 animate-in fade-in"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Empresa */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-brand-muted ml-1">
-                  Nombre de la empresa
-                </label>
-                <input
-                  name="nombreEmpresa"
-                  type="text"
-                  value={formData.nombreEmpresa}
-                  onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
-                  required
-                />
+          <CardContent>
+            {error && (
+              <div className="mb-6 flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">
+                <AlertCircle size={18} className="shrink-0" />
+                <p className="text-sm font-medium">{error}</p>
               </div>
+            )}
 
-              {/* NIT */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-brand-muted ml-1">
-                  NIT
-                </label>
-                <input
-                  name="nit"
-                  type="text"
-                  value={formData.nit}
-                  onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
-                  required
-                />
+            {success && (
+              <div className="mb-6 flex items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-green-600">
+                <CheckCircle size={18} className="shrink-0" />
+                <p className="text-sm font-medium">{success}</p>
               </div>
+            )}
 
-              {/* Encargado */}
-              <div className="flex flex-col gap-2 md:col-span-2">
-                <label className="text-sm font-medium text-brand-muted ml-1">
-                  Nombre del encargado
-                </label>
-                <input
-                  name="nombreEncargado"
-                  type="text"
-                  value={formData.nombreEncargado}
-                  onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
-                  required
-                />
-              </div>
+            {/* ===== STEP: FORM ===== */}
+            {step === "FORM" && (
+              <form onSubmit={handlePreRegister} className="space-y-5">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="nombreEmpresa">Nombre de la empresa</Label>
+                    <Input
+                      id="nombreEmpresa"
+                      name="nombreEmpresa"
+                      value={formData.nombreEmpresa}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
 
-              {/* Celular */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-brand-muted ml-1">
-                  Celular
-                </label>
-                <input
-                  name="celular"
-                  type="text"
-                  value={formData.celular}
-                  onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
-                  placeholder="+573001234567"
-                  required
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nit">NIT</Label>
+                    <Input
+                      id="nit"
+                      name="nit"
+                      value={formData.nit}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
 
-              {/* Email */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-brand-muted ml-1">
-                  Correo electrónico
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
-                  required
-                />
-              </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="nombreEncargado">Nombre del encargado</Label>
+                    <Input
+                      id="nombreEncargado"
+                      name="nombreEncargado"
+                      value={formData.nombreEncargado}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
 
-              {/* Departamento */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-brand-muted ml-1">
-                  Departamento
-                </label>
-                <select
-                  name="departamento"
-                  value={formData.departamento}
-                  onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
-                  required
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="Antioquia">Antioquia</option>
-                </select>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="celular">Celular</Label>
+                    <Input
+                      id="celular"
+                      name="celular"
+                      value={formData.celular}
+                      onChange={handleChange}
+                      placeholder="+573001234567"
+                      required
+                    />
+                  </div>
 
-              {/* Ciudad */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-brand-muted ml-1">
-                  Ciudad
-                </label>
-                <select
-                  name="ciudad"
-                  value={formData.ciudad}
-                  onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
-                  required
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="Apartadó">Apartadó</option>
-                  <option value="Giraldo">Giraldo</option>
-                  <option value="Medellín">Medellín</option>
-                  <option value="Yarumal">Yarumal</option>
-                </select>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Correo electrónico</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
 
-              {/* Dirección */}
-              <div className="flex flex-col gap-2 md:col-span-2">
-                <label className="text-sm font-medium text-brand-muted ml-1">
-                  Dirección
-                </label>
-                <input
-                  name="direccion"
-                  type="text"
-                  value={formData.direccion}
-                  onChange={handleChange}
-                  className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text"
-                  required
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="departamento">Departamento</Label>
+                    <Select
+                      value={formData.departamento}
+                      onValueChange={(v) => handleSelectChange("departamento", v)}
+                      required
+                    >
+                      <SelectTrigger id="departamento">
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Antioquia">Antioquia</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {/* Password */}
-              <div className="flex flex-col gap-2 md:col-span-2">
-                <label className="text-sm font-medium text-brand-muted ml-1">
-                  Contraseña
-                </label>
-                <div className="relative">
+                  <div className="space-y-2">
+                    <Label htmlFor="ciudad">Ciudad</Label>
+                    <Select
+                      value={formData.ciudad}
+                      onValueChange={(v) => handleSelectChange("ciudad", v)}
+                      required
+                    >
+                      <SelectTrigger id="ciudad">
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Apartadó">Apartadó</SelectItem>
+                        <SelectItem value="Giraldo">Giraldo</SelectItem>
+                        <SelectItem value="Medellín">Medellín</SelectItem>
+                        <SelectItem value="Yarumal">Yarumal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="direccion">Dirección</Label>
+                    <Input
+                      id="direccion"
+                      name="direccion"
+                      value={formData.direccion}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="password">Contraseña</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="Mínimo 6 caracteres"
+                        className="pr-11"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+    
+                <div className="flex gap-3 rounded-lg border border-border bg-muted/30 p-3">
                   <input
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text pr-12"
-                    placeholder="Mínimo 6 caracteres"
+                    id="terms-donor"
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border border-input bg-background text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                     required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2"
+                  <Label
+                    htmlFor="terms-donor"
+                    className="text-sm leading-relaxed text-muted-foreground block"
                   >
-                    {showPassword ? (
-                      <EyeOff className="text-brand-muted" />
-                    ) : (
-                      <Eye className="text-brand-muted" />
-                    )}
-                  </button>
+                    Autorizo el tratamiento de mis datos personales y los de mi
+                    empresa conforme a la{" "}
+                    <Link
+                      to="/privacy"
+                      className="text-brand-accent underline-offset-4 hover:underline"
+                    >
+                      Política de Tratamiento de Datos
+                    </Link>{" "}
+                    de FoodSaver, de acuerdo con la Ley 1581 de 2012 y el
+                    Decreto 1377 de 2013. Los datos serán usados exclusivamente
+                    para la gestión de donaciones.
+                  </Label>
                 </div>
+
+                <Button
+                  onClick={handleFinalSubmit}
+                  type="submit"
+                  size="lg"
+                  className="w-full"
+                  disabled={loading || !acceptedTerms}
+                >
+                  {loading ? "Validando..." : "Continuar"}
+                  <ArrowRight size={18} className="ml-2" />
+                </Button>
+              </form>
+            )}
+
+            {step === "OTP" && (
+              <div className="flex flex-col items-center gap-5">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Ingresa el código enviado a tu correo electrónico.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Si no lo ves, revisa la carpeta de SPAM.
+                  </p>
+                </div>
+                <Input
+                  type="text"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                  placeholder="123456"
+                  className="w-full text-center text-3xl font-bold tracking-[0.5em] h-16"
+                  autoComplete="one-time-code"
+                />
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={handleVerifyOtp}
+                  disabled={otp.length < 4 || loading}
+                >
+                  {loading ? "Verificando..." : "Verificar código"}
+                </Button>
               </div>
-            </div>
+            )}
 
-            <button
-              onClick={handleFinalSubmit}
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 mt-4 bg-brand-accent text-white rounded-xl flex items-center justify-center gap-2 font-medium hover:bg-brand-accent-light transition-colors disabled:opacity-50"
-            >
-              {loading ? "Validando..." : "Continuar"}
-              <ArrowRight size={20} />
-            </button>
-          </form>
-        )}
+            {step === "DOCUMENTS" && (
+              <form onSubmit={handleUploadDocuments} className="space-y-5">
+                <p className="text-sm text-muted-foreground text-center">
+                  Para finalizar, adjunta la documentación legal de la empresa.
+                </p>
 
-        {/* ================= OTP ================= */}
-        {step === "OTP" && (
-          <div className="flex flex-col items-center gap-6 animate-in slide-in-from-right-4">
-            <h3 className="text-xl font-medium text-brand-text">
-              Verificación OTP
-            </h3>
-            <p className="text-center text-brand-muted">
-              Ingresa el código enviado a tu correo. 
-              Si no lo ves, revisa SPAM
+                {/* RUT upload */}
+                <div className="space-y-2">
+                  <Label>RUT de la empresa</Label>
+                  <label
+                    className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+                      documents.rut
+                        ? "border-green-500 bg-green-500/5"
+                        : "border-border hover:border-brand-accent"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept=".pdf,image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileChange(e, "rut")}
+                    />
+                    {documents.rut ? (
+                      <FileText size={28} className="mb-2 text-green-500" />
+                    ) : (
+                      <UploadCloud size={28} className="mb-2 text-brand-accent" />
+                    )}
+                    <span className="text-sm font-medium text-foreground">
+                      {documents.rut ? documents.rut.name : "Subir RUT"}
+                    </span>
+                    {!documents.rut && (
+                      <span className="mt-1 text-xs text-muted-foreground">
+                        PDF o imagen — Máx. 5 MB
+                      </span>
+                    )}
+                  </label>
+                </div>
+
+                {/* Cámara de Comercio upload */}
+                <div className="space-y-2">
+                  <Label>Cámara de Comercio</Label>
+                  <label
+                    className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+                      documents.camaraComercio
+                        ? "border-green-500 bg-green-500/5"
+                        : "border-border hover:border-brand-accent"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept=".pdf,image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileChange(e, "camaraComercio")}
+                    />
+                    {documents.camaraComercio ? (
+                      <FileText size={28} className="mb-2 text-green-500" />
+                    ) : (
+                      <UploadCloud size={28} className="mb-2 text-brand-accent" />
+                    )}
+                    <span className="text-sm font-medium text-foreground">
+                      {documents.camaraComercio
+                        ? documents.camaraComercio.name
+                        : "Subir Cámara de Comercio"}
+                    </span>
+                    {!documents.camaraComercio && (
+                      <span className="mt-1 text-xs text-muted-foreground">
+                        PDF o imagen — Máx. 5 MB
+                      </span>
+                    )}
+                  </label>
+                </div>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? "Subiendo..." : "Finalizar registro"}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+
+          <CardFooter className="justify-center">
+            <p className="text-sm text-muted-foreground">
+              ¿Ya tienes una cuenta?{" "}
+              <Link
+                to="/login"
+                className="font-medium text-brand-accent transition-colors hover:text-brand-accent/80"
+              >
+                Inicia sesión
+              </Link>
             </p>
-            <input
-              type="text"
-              maxLength={6}
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-              placeholder="123456"
-              className="w-full text-center text-3xl font-bold tracking-widest py-4 border border-brand-border bg-brand-background text-brand-text rounded-xl outline-none focus:border-brand-accent transition-colors"
-            />
-            <button
-              onClick={handleVerifyOtp}
-              disabled={otp.length < 4 || loading}
-              className="w-full py-4 bg-brand-accent text-white rounded-xl font-medium disabled:opacity-50 hover:bg-brand-accent-light transition-colors"
-            >
-              {loading ? "Verificando..." : "Verificar código"}
-            </button>
-          </div>
-        )}
-
-        {/* ================= DOCUMENTS ================= */}
-        {step === "DOCUMENTS" && (
-          <form
-            onSubmit={handleUploadDocuments}
-            className="flex flex-col gap-6 animate-in slide-in-from-right-4"
-          >
-            <p className="text-center text-brand-muted mb-2">
-              Para finalizar, adjunta la documentación de la empresa.
-            </p>
-
-            {/* Input RUT */}
-            <label
-              className={`cursor-pointer border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${documents.rut ? "border-green-500 bg-green-500/5" : "border-brand-border hover:border-brand-accent"}`}
-            >
-              <input
-                type="file"
-                accept=".pdf,image/*"
-                className="hidden"
-                onChange={(e) => handleFileChange(e, "rut")}
-              />
-              {documents.rut ? (
-                <FileText size={32} className="text-green-500 mb-2" />
-              ) : (
-                <UploadCloud size={32} className="text-brand-accent mb-2" />
-              )}
-              <span className="font-medium text-brand-text">
-                {documents.rut ? documents.rut.name : "Subir RUT"}
-              </span>
-              {!documents.rut && (
-                <span className="text-xs text-brand-muted mt-1">
-                  PDF o Imagen (Máx 5MB)
-                </span>
-              )}
-            </label>
-
-            {/* Input Cámara de Comercio */}
-            <label
-              className={`cursor-pointer border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${documents.camaraComercio ? "border-green-500 bg-green-500/5" : "border-brand-border hover:border-brand-accent"}`}
-            >
-              <input
-                type="file"
-                accept=".pdf,image/*"
-                className="hidden"
-                onChange={(e) => handleFileChange(e, "camaraComercio")}
-              />
-              {documents.camaraComercio ? (
-                <FileText size={32} className="text-green-500 mb-2" />
-              ) : (
-                <UploadCloud size={32} className="text-brand-accent mb-2" />
-              )}
-              <span className="font-medium text-brand-text">
-                {documents.camaraComercio
-                  ? documents.camaraComercio.name
-                  : "Subir Cámara de Comercio"}
-              </span>
-              {!documents.camaraComercio && (
-                <span className="text-xs text-brand-muted mt-1">
-                  PDF o Imagen (Máx 5MB)
-                </span>
-              )}
-            </label>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 mt-2 bg-brand-accent text-white rounded-xl flex items-center justify-center gap-2 font-medium disabled:opacity-50 hover:bg-brand-accent-light transition-colors"
-            >
-              {loading ? "Subiendo..." : "Finalizar Registro"}
-            </button>
-          </form>
-        )}
-
-        <div className="mt-8 text-center text-sm text-brand-muted">
-          ¿Ya tienes cuenta?{" "}
-          <Link
-            to="/login"
-            className="text-brand-accent font-medium hover:underline"
-          >
-            Inicia sesión
-          </Link>
-        </div>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

@@ -1,13 +1,24 @@
 import axios from "axios";
-import { AlertCircle, ArrowRight, Eye, EyeOff, Leaf } from "lucide-react";
+import { AlertCircle, ArrowRight, Leaf } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { apiUrl } from "../../../lib/api";
 
 export const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
@@ -22,7 +33,6 @@ export const LoginPage = () => {
     }
 
     try {
-      console.log("ENV:", import.meta.env.VITE_API_URL);
       const response = await axios.post(apiUrl("/api/auth/login"), {
         email,
         password,
@@ -52,107 +62,94 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-background flex flex-col items-center justify-center p-6 font-sans">
-      <Link
-        to="/"
-        className="flex items-center gap-2 text-brand-accent mb-8 hover:opacity-80 transition-opacity"
-      >
-        <Leaf size={32} />
-        <span className="text-3xl font-bold tracking-tight text-brand-text font-jakarta">
-          FoodSaver
-        </span>
-      </Link>
+    <div className="relative min-h-screen overflow-hidden bg-brand-background">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 -left-24 h-64 w-64 rounded-full bg-brand-accent/10 blur-3xl" />
+        <div className="absolute -bottom-28 -right-20 h-72 w-72 rounded-full bg-brand-accent-light/10 blur-3xl" />
+      </div>
 
-      <div className="w-full max-w-md bg-brand-card border border-brand-border rounded-4xl p-10 relative overflow-hidden shadow-2xl">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-semibold text-brand-text font-jakarta mb-2">
-            Bienvenido
-          </h1>
-          <p className="text-brand-muted">Ingresa a tu cuenta para continuar</p>
-        </div>
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-10">
+        <Link
+          to="/"
+          className="mb-8 flex items-center gap-2 text-brand-accent transition-opacity hover:opacity-80"
+        >
+          <Leaf size={30} />
+          <span className="text-2xl font-semibold tracking-tight text-brand-text font-jakarta">
+            FoodSaver
+          </span>
+        </Link>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center gap-3 text-red-500">
-            <AlertCircle size={20} className="shrink-0" />
-            <p className="text-sm font-medium">{error}</p>
-          </div>
-        )}
+        <Card className="w-full max-w-md bg-brand-card/90 shadow-xl ring-1 ring-foreground/5 backdrop-blur">
+          <CardHeader className="gap-1 text-center">
+            <CardTitle className="text-2xl font-semibold">
+              Bienvenido de nuevo
+            </CardTitle>
+            <CardDescription>
+              Ingresa a tu cuenta para continuar
+            </CardDescription>
+          </CardHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="email"
-              className="text-sm font-medium text-brand-muted ml-1"
-            >
-              Correo electrónico
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-              placeholder="correo@proveedor.com"
-            />
-          </div>
+          <CardContent>
+            {error && (
+              <div className="mb-6 flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">
+                <AlertCircle size={18} className="shrink-0" />
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+            )}
 
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="password"
-              className="text-sm font-medium text-brand-muted ml-1"
-            >
-              Contraseña
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors pr-12"
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text transition-colors"
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Correo electrónico</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="correo@ejemplo.com"
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Contraseña</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+              </div>
+
+              <Button type="submit" size="lg" className="w-full cursor-pointer">
+                Ingresar
+                <ArrowRight size={18} className="ml-2" />
+              </Button>
+            </form>
+          </CardContent>
+
+          <CardFooter className="flex-col gap-3">
+            <div className="flex w-full items-center justify-between text-sm">
+              <Link
+                to="/forgot-password"
+                className="text-muted-foreground transition-colors hover:text-foreground"
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
+                ¿Olvidaste tu contraseña?
+              </Link>
+              <Link
+                to="/selection"
+                className="font-medium text-brand-accent transition-colors hover:text-brand-accent-light"
+              >
+                Regístrate
+              </Link>
             </div>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full mt-4 flex items-center justify-center gap-2 py-4 text-lg font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all shadow-[0_0_20px_rgba(255,0,85,0.15)] group"
-          >
-            Ingresar
-            <ArrowRight
-              size={20}
-              className="group-hover:translate-x-1 transition-transform"
-            />
-          </button>
-          <div className="text-right mt-1 mb-4">
-            <Link
-              to="/forgot-password"
-              className="text-sm font-medium text-brand-accent hover:text-brand-accent-light transition-colors"
-            >
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
-        </form>
-
-        <div className="mt-8 text-center">
-          <p className="text-sm text-brand-muted">
-            ¿No tienes una cuenta?{" "}
-            <Link
-              to="/selection"
-              className="text-brand-accent hover:text-brand-accent-light font-medium transition-colors"
-            >
-              Regístrate aquí
-            </Link>
-          </p>
-        </div>
+            <Separator />
+            <p className="text-xs text-muted-foreground text-center">
+              Protegemos tu información con cifrado y controles de acceso.
+            </p>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

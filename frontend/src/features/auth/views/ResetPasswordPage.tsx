@@ -1,8 +1,19 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { Leaf, Lock, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { Leaf, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 import { apiUrl } from "../../../lib/api";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const ResetPasswordPage = () => {
   const { token } = useParams();
@@ -15,6 +26,9 @@ export const ResetPasswordPage = () => {
     type: "success" | "error" | null;
     message: string;
   }>({ type: null, message: "" });
+
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,12 +53,9 @@ export const ResetPasswordPage = () => {
     try {
       const response = await axios.put(
         apiUrl(`/api/auth/reset-password/${token}`),
-        {
-          newPassword: password,
-        },
+        { newPassword: password },
       );
       setFeedback({ type: "success", message: response.data.message });
-
       setTimeout(() => {
         navigate("/login");
       }, 3000);
@@ -61,95 +72,125 @@ export const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-background flex flex-col justify-center items-center p-6 font-sans relative overflow-hidden">
-      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-brand-accent/20 rounded-full blur-[100px]"></div>
+    <div className="relative min-h-screen overflow-hidden bg-brand-background">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 -right-24 h-64 w-64 rounded-full bg-brand-accent/10 blur-3xl" />
+        <div className="absolute -bottom-28 -left-20 h-72 w-72 rounded-full bg-brand-accent-light/10 blur-3xl" />
+      </div>
 
-      <div className="w-full max-w-md bg-brand-card border border-brand-border rounded-4xl p-10 shadow-2xl z-10">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-brand-accent/10 rounded-2xl flex items-center justify-center mb-4 border border-brand-accent/20">
-            <Leaf size={32} className="text-brand-accent" />
-          </div>
-          <h1 className="text-2xl font-bold text-brand-text font-jakarta">
-            Nueva Contraseña
-          </h1>
-          <p className="text-brand-muted text-center mt-2 text-sm">
-            Ingresa tu nueva contraseña para acceder a FoodSaver.
-          </p>
-        </div>
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-10">
+        <Link
+          to="/"
+          className="mb-8 flex items-center gap-2 text-brand-accent transition-opacity hover:opacity-80"
+        >
+          <Leaf size={30} />
+          <span className="text-2xl font-semibold tracking-tight text-brand-text font-jakarta">
+            FoodSaver
+          </span>
+        </Link>
 
-        {feedback.type && (
-          <div
-            className={`p-4 rounded-xl mb-6 flex items-start gap-3 text-sm ${feedback.type === "success" ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}
-          >
-            {feedback.type === "success" ? (
-              <CheckCircle size={20} className="shrink-0 mt-0.5" />
-            ) : (
-              <AlertCircle size={20} className="shrink-0 mt-0.5" />
+        <Card className="w-full max-w-md bg-brand-card/90 shadow-xl ring-1 ring-foreground/5 backdrop-blur">
+          <CardHeader className="gap-1 text-center">
+            <CardTitle className="text-2xl font-semibold">
+              Nueva contraseña
+            </CardTitle>
+            <CardDescription>
+              Ingresa y confirma tu nueva contraseña para acceder a FoodSaver.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            {feedback.type && (
+              <div
+                className={`mb-6 flex items-start gap-3 rounded-lg border px-3 py-2 text-sm ${
+                  feedback.type === "success"
+                    ? "border-green-500/30 bg-green-500/10 text-green-600"
+                    : "border-destructive/30 bg-destructive/10 text-destructive"
+                }`}
+              >
+                {feedback.type === "success" ? (
+                  <CheckCircle size={18} className="mt-0.5 shrink-0" />
+                ) : (
+                  <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                )}
+                <p className="font-medium">{feedback.message}</p>
+              </div>
             )}
-            <p>{feedback.message}</p>
-          </div>
-        )}
 
-        {feedback.type !== "success" ? (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <div className="relative">
-              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
-                Nueva Contraseña
-              </label>
-              <div className="relative">
-                <Lock
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted"
-                  size={20}
-                />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
-                  className="w-full bg-brand-background border border-brand-border rounded-xl pl-12 pr-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-                />
+            {feedback.type !== "success" ? (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Nueva contraseña</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    autoComplete="new-password"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">
+                    Confirmar contraseña
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repite tu contraseña"
+                    autoComplete="new-password"
+                    className={
+                      passwordsMismatch
+                        ? "border-destructive focus-visible:ring-destructive/50"
+                        : passwordsMatch
+                        ? "border-green-500 focus-visible:ring-green-500/50"
+                        : ""
+                    }
+                  />
+                  {passwordsMismatch && (
+                    <p className="text-xs text-destructive">
+                      Las contraseñas no coinciden.
+                    </p>
+                  )}
+                  {passwordsMatch && (
+                    <p className="text-xs text-green-600">
+                      Las contraseñas coinciden.
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full"
+                  disabled={isLoading || !password || !confirmPassword || passwordsMismatch}
+                >
+                  {isLoading ? "Guardando..." : "Guardar contraseña"}
+                </Button>
+              </form>
+            ) : (
+              <div className="flex justify-center">
+                <Button asChild variant="outline" size="lg">
+                  <Link to="/login">
+                    Ir a iniciar sesión
+                    <ArrowRight size={18} className="ml-2" />
+                  </Link>
+                </Button>
               </div>
-            </div>
+            )}
+          </CardContent>
 
-            <div className="relative">
-              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
-                Confirmar Contraseña
-              </label>
-              <div className="relative">
-                <Lock
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted"
-                  size={20}
-                />
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repite tu contraseña"
-                  className="w-full bg-brand-background border border-brand-border rounded-xl pl-12 pr-4 py-3 text-brand-text focus:outline-none focus:border-brand-accent transition-colors"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading || !password || !confirmPassword}
-              className="w-full py-4 text-lg bg-brand-accent text-white rounded-xl font-medium hover:bg-brand-accent-light transition-all shadow-[0_0_20px_rgba(255,0,85,0.15)] disabled:opacity-50 mt-2"
-            >
-              {isLoading ? "Guardando..." : "Guardar contraseña"}
-            </button>
-          </form>
-        ) : (
-          <div className="text-center mt-4">
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-brand-background border border-brand-border text-brand-text rounded-xl hover:border-brand-accent transition-colors font-medium"
-            >
-              Ir a Iniciar Sesión <ArrowRight size={18} />
-            </Link>
-          </div>
-        )}
+          <CardFooter className="justify-center">
+            <p className="text-xs text-muted-foreground text-center">
+              Por seguridad, este enlace expira tras su primer uso.
+            </p>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

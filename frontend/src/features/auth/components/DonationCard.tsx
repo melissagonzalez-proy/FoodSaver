@@ -26,8 +26,8 @@ export const DonationCard = ({ donation, onCancel, onComplete, onEdit }: Props) 
   
   const isNearExpiry = () => {
   const difference = new Date(donation.fechaCaducidad).getTime() - new Date().getTime();
-  const hours = difference / (1000 * 60 * 60); // 👈 comparar en horas, no días
-  return hours > 0 && hours <= 72; // 72h = 3 días
+  const hours = difference / (1000 * 60 * 60); 
+  return hours > 0 && hours <= 72; 
 };
 
   useEffect(() => {
@@ -59,7 +59,6 @@ export const DonationCard = ({ donation, onCancel, onComplete, onEdit }: Props) 
   return (
     <div className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden hover:border-brand-accent/50 transition-colors flex flex-col relative shadow-md">
       
-      {/* SECTOR DE LA IMAGEN */}
       {donation.imagenUrl ? (
         <div className="h-40 w-full overflow-hidden bg-brand-background relative group">
           <img
@@ -67,7 +66,6 @@ export const DonationCard = ({ donation, onCancel, onComplete, onEdit }: Props) 
             alt={donation.titulo}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          {/* Etiqueta "Próximo a vencer" sobre la imagen */}
           {isNearExpiry() && (
             <div className="absolute top-2 left-2 flex items-center gap-1 bg-orange-500/90 text-white text-xs font-semibold px-2 py-1 rounded-md backdrop-blur-sm">
               <AlertTriangle size={12} />
@@ -78,7 +76,6 @@ export const DonationCard = ({ donation, onCancel, onComplete, onEdit }: Props) 
       ) : (
         <div className="h-40 w-full bg-brand-background flex items-center justify-center border-b border-brand-border/50 relative">
           <ImageIcon size={32} className="text-brand-muted opacity-50" />
-          {/* Etiqueta cuando no hay imagen */}
           {isNearExpiry() && (
             <div className="absolute top-2 left-2 flex items-center gap-1 bg-orange-500/90 text-white text-xs font-semibold px-2 py-1 rounded-md">
               <AlertTriangle size={12} />
@@ -88,7 +85,6 @@ export const DonationCard = ({ donation, onCancel, onComplete, onEdit }: Props) 
         </div>
       )}
 
-      {/* SECTOR DE CONTENIDO */}
       <div className="p-5 flex flex-col flex-1 gap-3">
         <div className="flex justify-between items-start">
           <h3 className="text-lg font-semibold text-brand-text font-jakarta truncate pr-4">
