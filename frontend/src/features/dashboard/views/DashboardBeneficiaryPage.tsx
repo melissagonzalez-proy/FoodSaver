@@ -11,6 +11,7 @@ import {
   Lock,
   LogOut,
   MapPin,
+  Menu,
   Scale,
   Search,
   ShoppingBag,
@@ -28,6 +29,25 @@ import { UserCommentsPanel } from "../components/UserCommentsPanel";
 import { UserProfileModal } from "../components/UserProfileModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FeedbackDialog } from "@/components/ui/feedback-dialog";
+
+// Shadcn UI Imports
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface DonorInfo {
   _id: string;
@@ -91,6 +111,7 @@ export const DashboardBeneficiaryPage = () => {
     isSubmitting: false,
   });
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [feedback, setFeedback] = useState({
     open: false,
     title: "",
@@ -152,6 +173,7 @@ export const DashboardBeneficiaryPage = () => {
 
   const scrollToComments = useCallback(() => {
     setActiveTab("perfil");
+    setIsMobileMenuOpen(false);
     setTimeout(() => {
       document.getElementById("comentarios")?.scrollIntoView({
         behavior: "smooth",
@@ -306,81 +328,140 @@ export const DashboardBeneficiaryPage = () => {
     if (!total || total === 0)
       return {
         label: "Sin calificación",
-        className: "bg-slate-500/10 text-slate-500 border-slate-500/30",
+        className: "bg-muted text-muted-foreground border-border",
       };
     if (avg! >= 4)
       return {
         label: "⭐ Excelente",
-        className: "bg-green-500/10 text-green-400 border-green-500/30",
+        className: "bg-green-500/10 text-green-600 border-green-500/30",
       };
     if (avg! >= 3)
       return {
         label: "👍 Regular",
-        className: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30",
+        className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30",
       };
     return {
       label: "⚠️ Bajo",
-      className: "bg-red-500/10 text-red-400 border-red-500/30",
+      className: "bg-destructive/10 text-destructive border-destructive/30",
     };
   };
 
+  const NavigationLinks = () => (
+    <>
+      <nav className="flex-1 flex flex-col gap-2 mt-6">
+        <Button
+          variant={activeTab === "galeria" ? "secondary" : "ghost"}
+          className="w-full justify-start gap-3"
+          onClick={() => {
+            setActiveTab("galeria");
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          <ShoppingBag size={18} /> Galería
+        </Button>
+        <Button
+          variant={activeTab === "reservas" ? "secondary" : "ghost"}
+          className="w-full justify-start gap-3"
+          onClick={() => {
+            setActiveTab("reservas");
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          <ListOrdered size={18} /> Mis Reservas
+        </Button>
+        <Button
+          variant={activeTab === "perfil" ? "secondary" : "ghost"}
+          className="w-full justify-start gap-3"
+          onClick={() => {
+            setActiveTab("perfil");
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          <User size={18} /> Mi Perfil
+        </Button>
+      </nav>
+
+      <div className="mt-auto flex flex-col gap-2 pt-4">
+        <Separator className="mb-2" />
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-muted-foreground"
+          onClick={() => {
+            setPasswordModal({ ...passwordModal, isOpen: true });
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          <KeyRound size={18} /> Cambiar Contraseña
+        </Button>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={handleLogout}
+        >
+          <LogOut size={18} /> Cerrar Sesión
+        </Button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="h-screen overflow-hidden bg-brand-background font-sans flex flex-col md:flex-row relative">
-      <aside className="w-full md:w-64 bg-brand-card border-r border-brand-border p-6 flex flex-col z-10">
-        <div className="flex items-center gap-2 text-brand-accent mb-10">
-          <Leaf size={28} />
-          <span className="text-2xl font-bold tracking-tight text-brand-text font-jakarta">
+    <div className="min-h-screen overflow-hidden bg-brand-background font-sans flex flex-col md:flex-row relative">
+      {/* Mobile Header */}
+      <div className="md:hidden flex items-center justify-between p-4 bg-brand-card/90 border-b border-border z-20 backdrop-blur">
+        <div className="flex items-center gap-2 text-brand-accent">
+          <Leaf size={24} />
+          <span className="text-xl font-semibold tracking-tight text-brand-text font-jakarta">
             FoodSaver
           </span>
         </div>
-        <nav className="flex-1 flex flex-col gap-2">
-          <button
-            onClick={() => setActiveTab("galeria")}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "galeria" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetTrigger>
+            <Button variant="ghost" size="icon">
+              <Menu size={24} />
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            side="left"
+            className="w-[280px] bg-brand-card p-6 flex flex-col border-r-border"
           >
-            <ShoppingBag size={20} /> Galería
-          </button>
-          <button
-            onClick={() => setActiveTab("reservas")}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "reservas" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}
-          >
-            <ListOrdered size={20} /> Mis Reservas
-          </button>
-          <button
-            onClick={() => setActiveTab("perfil")}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${activeTab === "perfil" ? "bg-brand-accent/10 text-brand-accent" : "text-brand-muted hover:bg-brand-background hover:text-brand-text"}`}
-          >
-            <User size={20} /> Mi Perfil
-          </button>
-        </nav>
+            <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+            <div className="flex items-center gap-2 text-brand-accent">
+              <Leaf size={28} />
+              <span className="text-2xl font-semibold tracking-tight text-brand-text font-jakarta">
+                FoodSaver
+              </span>
+            </div>
+            <NavigationLinks />
+          </SheetContent>
+        </Sheet>
+      </div>
 
-        <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-brand-border/50">
-          <button
-            onClick={() => setPasswordModal({ ...passwordModal, isOpen: true })}
-            className="flex items-center gap-3 px-4 py-3 text-brand-muted hover:bg-brand-background hover:text-brand-text rounded-xl font-medium w-full text-left transition-colors"
-          >
-            <KeyRound size={20} /> Cambiar Contraseña
-          </button>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-xl font-medium w-full text-left transition-colors"
-          >
-            <LogOut size={20} /> Cerrar Sesión
-          </button>
+      {/* Sidebar Desktop */}
+      <aside className="hidden md:flex w-64 bg-brand-card/90 border-r border-border p-6 flex-col z-10 shrink-0 backdrop-blur">
+        <div className="flex items-center gap-2 text-brand-accent">
+          <Leaf size={28} />
+          <span className="text-2xl font-semibold tracking-tight text-brand-text font-jakarta">
+            FoodSaver
+          </span>
         </div>
+        <NavigationLinks />
       </aside>
 
-      <main className="flex-1 p-8 overflow-y-auto z-10">
-        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto z-10 w-full relative">
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute top-0 right-1/4 h-96 w-96 rounded-full bg-brand-accent/5 blur-3xl" />
+        </div>
+
+        <header className="mb-6 md:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-brand-text font-jakarta mb-2">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-brand-text mb-2">
               {activeTab === "galeria"
                 ? "Alimentos Disponibles"
                 : activeTab === "reservas"
                   ? "Mis Reservas"
                   : "Mi Perfil"}
             </h1>
-            <p className="text-brand-muted">
+            <p className="text-sm md:text-base text-muted-foreground">
               {activeTab === "galeria"
                 ? "Explora los excedentes disponibles para recolección inmediata."
                 : activeTab === "reservas"
@@ -391,22 +472,22 @@ export const DashboardBeneficiaryPage = () => {
           {activeTab === "galeria" && (
             <div className="relative w-full md:w-72">
               <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 size={18}
               />
-              <input
+              <Input
                 type="text"
                 placeholder="Buscar alimento o ciudad..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-brand-card border border-brand-border rounded-xl pl-10 pr-4 py-3 text-sm text-brand-text focus:outline-none focus:border-brand-accent transition-colors shadow-sm"
+                className="pl-10 w-full bg-brand-card/50 backdrop-blur"
               />
             </div>
           )}
         </header>
 
         {activeTab === "perfil" ? (
-          <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-6 md:gap-8">
             <ProfileOverview onEdit={() => setIsEditProfileOpen(true)} />
             <div id="comentarios">
               <UserCommentsPanel
@@ -418,27 +499,27 @@ export const DashboardBeneficiaryPage = () => {
         ) : isLoading ? (
           <div className="text-center py-20 flex flex-col items-center">
             <div className="w-10 h-10 border-4 border-brand-accent border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-brand-muted">Cargando...</p>
+            <p className="text-muted-foreground">Cargando...</p>
           </div>
         ) : activeTab === "galeria" ? (
           filteredDonations.length === 0 ? (
-            <div className="bg-brand-card border border-brand-border rounded-4xl p-10 text-center flex flex-col items-center justify-center h-64">
+            <Card className="p-10 text-center flex flex-col items-center justify-center h-64 border-dashed bg-transparent shadow-none">
               <ShoppingBag
                 size={48}
-                className="text-brand-muted mb-4 opacity-50"
+                className="text-muted-foreground mb-4 opacity-50"
               />
-              <p className="text-brand-muted">
+              <p className="text-muted-foreground">
                 No hay alimentos activos en este momento.
               </p>
-            </div>
+            </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredDonations.map((donation) => (
-                <div
+                <Card
                   key={donation._id}
-                  className="bg-brand-card border border-brand-border rounded-4xl overflow-hidden hover:border-brand-accent/30 transition-all duration-300 flex flex-col group shadow-lg"
+                  className="overflow-hidden hover:border-brand-accent/40 transition-all duration-300 flex flex-col group shadow-sm bg-brand-card/90 backdrop-blur"
                 >
-                  <div className="h-44 w-full overflow-hidden bg-brand-background relative">
+                  <div className="h-44 w-full overflow-hidden bg-muted relative">
                     {donation.imagenUrl ? (
                       <img
                         src={assetUrl(donation.imagenUrl.replace(/\\/g, "/"))}
@@ -449,11 +530,11 @@ export const DashboardBeneficiaryPage = () => {
                       <div className="w-full h-full flex items-center justify-center">
                         <ShoppingBag
                           size={32}
-                          className="text-brand-muted opacity-30"
+                          className="text-muted-foreground opacity-30"
                         />
                       </div>
                     )}
-                    <div className="absolute top-3 right-3 bg-brand-background/90 backdrop-blur-sm px-3 py-1 rounded-full border border-brand-border text-xs font-medium text-brand-text flex items-center gap-1">
+                    <div className="absolute top-3 right-3 bg-background/90 backdrop-blur px-3 py-1 rounded-full border border-border text-xs font-medium text-foreground flex items-center gap-1 shadow-sm">
                       <Scale size={12} className="text-brand-accent" />{" "}
                       {donation.cantidad} {donation.unidad || "uds"}
                     </div>
@@ -464,32 +545,35 @@ export const DashboardBeneficiaryPage = () => {
                       );
                       return (
                         <div
-                          className={`absolute top-3 left-3 px-2.5 py-1 rounded-full border text-xs font-semibold backdrop-blur-sm ${badge.className}`}
+                          className={`absolute top-3 left-3 px-2.5 py-1 rounded-full border text-xs font-semibold backdrop-blur shadow-sm ${badge.className}`}
                         >
                           {badge.label}
                         </div>
                       );
                     })()}
                   </div>
-                  <div className="p-6 flex flex-col flex-1">
-                    <h3 className="font-bold text-brand-text text-lg mb-1 line-clamp-1">
+                  <CardContent className="p-5 flex flex-col flex-1 pb-4">
+                    <h3 className="font-semibold text-foreground text-lg mb-2 line-clamp-1">
                       {donation.titulo}
                     </h3>
-                    <div className="bg-brand-background rounded-xl p-3 mb-4 border border-brand-border/50 text-xs">
-                      <div className="flex items-start gap-2 text-brand-text mb-1.5">
-                        <Store size={14} className="text-brand-accent mt-0.5" />
-                        <span className="font-semibold">
+                    <div className="bg-muted/50 rounded-xl p-3 mb-4 border border-border text-xs">
+                      <div className="flex items-start gap-2 text-foreground mb-1.5">
+                        <Store
+                          size={14}
+                          className="text-brand-accent mt-0.5 shrink-0"
+                        />
+                        <span className="font-medium">
                           {donation.donor.nombreEmpresa ||
                             `${donation.donor.nombres}`}
                         </span>
                       </div>
-                      <div className="flex items-start gap-2 text-brand-muted">
-                        <MapPin size={14} className="mt-0.5" />
+                      <div className="flex items-start gap-2 text-muted-foreground">
+                        <MapPin size={14} className="mt-0.5 shrink-0" />
                         <span>
                           {donation.donor.direccion}, {donation.donor.ciudad}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-brand-muted mt-2">
+                      <div className="flex items-center gap-2 text-muted-foreground mt-2">
                         <button
                           type="button"
                           onClick={() =>
@@ -512,20 +596,21 @@ export const DashboardBeneficiaryPage = () => {
                             );
                             const totalEvaluations =
                               donation.donor.totalEvaluaciones || 0;
-                            const avgScore = donation.donor.promedioCalificacion ?? 0;
+                            const avgScore =
+                              donation.donor.promedioCalificacion ?? 0;
                             const starClass =
                               badge?.className
                                 .split(" ")
                                 .find((c) => c.startsWith("text-")) ||
-                              "text-brand-muted";
+                              "text-muted-foreground";
                             const textClass =
                               totalEvaluations > 0
                                 ? avgScore >= 4
-                                  ? "text-green-400"
+                                  ? "text-green-600"
                                   : avgScore >= 3
-                                    ? "text-yellow-400"
-                                    : "text-red-400"
-                                : "text-slate-500";
+                                    ? "text-yellow-600"
+                                    : "text-red-600"
+                                : "text-muted-foreground";
 
                             return (
                               <>
@@ -541,41 +626,43 @@ export const DashboardBeneficiaryPage = () => {
                         </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-red-400 mb-5">
+                    <div className="flex items-center gap-2 text-xs text-destructive mb-4">
                       <Calendar size={14} />
                       <span>
                         Expira:{" "}
                         {new Date(donation.fechaCaducidad).toLocaleDateString()}
                       </span>
                     </div>
-                    <button
+                  </CardContent>
+                  <CardFooter className="p-5 pt-0 mt-auto">
+                    <Button
+                      className="w-full"
                       onClick={() => openRequestModal(donation)}
-                      className="w-full py-3 bg-brand-accent text-white rounded-xl font-medium hover:bg-brand-accent-light transition-all shadow-[0_0_15px_rgba(255,0,85,0.15)] mt-auto"
                     >
                       Solicitar Recolección
-                    </button>
-                  </div>
-                </div>
+                    </Button>
+                  </CardFooter>
+                </Card>
               ))}
             </div>
           )
         ) : (
-          <div className="bg-brand-card border border-brand-border rounded-4xl p-6 shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+          <Card className="shadow-sm ring-1 ring-foreground/5 bg-brand-card/90 backdrop-blur w-full">
+            <div className="overflow-x-auto w-full p-2">
+              <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
-                  <tr className="border-b border-brand-border text-brand-muted text-sm">
-                    <th className="pb-3 font-medium min-w-40">Alimento</th>
-                    <th className="pb-3 font-medium min-w-50">
+                  <tr className="border-b border-border text-muted-foreground text-sm">
+                    <th className="p-4 font-medium min-w-40">Alimento</th>
+                    <th className="p-4 font-medium min-w-50">
                       Donante & Ubicación
                     </th>
-                    <th className="pb-3 font-medium text-center min-w-32">
+                    <th className="p-4 font-medium text-center min-w-32">
                       Estado
                     </th>
-                    <th className="pb-3 font-medium text-center min-w-32">
+                    <th className="p-4 font-medium text-center min-w-32">
                       PIN Secreto
                     </th>
-                    <th className="pb-3 font-medium text-center min-w-32">
+                    <th className="p-4 font-medium text-center min-w-32">
                       Acción
                     </th>
                   </tr>
@@ -585,7 +672,7 @@ export const DashboardBeneficiaryPage = () => {
                     <tr>
                       <td
                         colSpan={5}
-                        className="text-center py-10 text-brand-muted"
+                        className="text-center py-10 text-muted-foreground"
                       >
                         No has reservado ningún alimento aún.
                       </td>
@@ -594,24 +681,24 @@ export const DashboardBeneficiaryPage = () => {
                     myReservations.map((reservation) => (
                       <tr
                         key={reservation._id}
-                        className="border-b border-brand-border/50 hover:bg-brand-background/50 transition-colors"
+                        className="border-b border-border/50 hover:bg-muted/50 transition-colors last:border-0"
                       >
-                        <td className="py-4">
-                          <p className="font-semibold text-brand-text">
+                        <td className="p-4">
+                          <p className="font-semibold text-foreground">
                             {reservation.titulo}
                           </p>
-                          <p className="text-xs text-brand-muted flex items-center gap-1 mt-1">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                             <Scale size={12} /> {reservation.cantidad}{" "}
                             {reservation.unidad || "uds"}
                           </p>
                         </td>
-                        <td className="py-4 text-sm">
-                          <p className="font-medium text-brand-text flex items-center gap-1">
+                        <td className="p-4 text-sm">
+                          <p className="font-medium text-foreground flex items-center gap-1">
                             <Store size={14} className="text-brand-accent" />{" "}
                             {reservation.donor.nombreEmpresa ||
                               reservation.donor.nombres}
                           </p>
-                          <p className="text-xs text-brand-muted flex items-center gap-1 mt-1">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                             <MapPin size={12} /> {reservation.donor.direccion},{" "}
                             {reservation.donor.ciudad}
                           </p>
@@ -625,7 +712,7 @@ export const DashboardBeneficiaryPage = () => {
                                 badge.className
                                   .split(" ")
                                   .find((c) => c.startsWith("text-")) ||
-                                "text-brand-muted";
+                                "text-muted-foreground";
                               const textClass = starClass;
                               return (
                                 <span
@@ -646,9 +733,9 @@ export const DashboardBeneficiaryPage = () => {
                             })()}
                           </p>
                         </td>
-                        <td className="py-4 text-center">
+                        <td className="p-4 text-center">
                           <span
-                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${reservation.estado === "asignado" ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" : "bg-gray-500/10 text-gray-400 border border-gray-500/20"}`}
+                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${reservation.estado === "asignado" ? "bg-yellow-500/10 text-yellow-600 border border-yellow-500/20" : "bg-slate-500/10 text-slate-600 border border-slate-500/20"}`}
                           >
                             {reservation.estado === "asignado" ? (
                               <Clock size={12} />
@@ -660,29 +747,34 @@ export const DashboardBeneficiaryPage = () => {
                               : "Recolectado"}
                           </span>
                         </td>
-                        <td className="py-4 text-center">
+                        <td className="p-4 text-center">
                           {reservation.estado === "asignado" ? (
-                            <div className="inline-flex items-center gap-2 bg-brand-background border border-brand-accent/30 px-4 py-2 rounded-lg text-brand-accent font-bold tracking-[0.2em] shadow-[0_0_10px_rgba(255,0,85,0.1)]">
-                              <KeyRound size={16} /> {reservation.pickupPin}
-                            </div>
+                            <span className="inline-flex items-center gap-2 bg-background border border-brand-accent/30 px-3 py-1.5 rounded-lg text-brand-accent font-mono font-bold tracking-widest shadow-sm">
+                              <KeyRound size={14} /> {reservation.pickupPin}
+                            </span>
                           ) : (
-                            <span className="text-brand-muted text-sm">—</span>
+                            <span className="text-muted-foreground text-sm">
+                              —
+                            </span>
                           )}
                         </td>
 
-                        {/* BOTÓN NUEVO AQUÍ: Evaluar al donador si ya se entregó el alimento */}
-                        <td className="py-4 flex justify-center">
+                        <td className="p-4 flex justify-center h-full items-center">
                           {reservation.estado === "asignado" ? (
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() =>
                                 handleCancelReservation(reservation._id)
                               }
-                              className="flex items-center gap-1 text-xs px-3 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors font-medium"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
-                              <XCircle size={14} /> Cancelar
-                            </button>
+                              <XCircle size={16} className="mr-2" /> Cancelar
+                            </Button>
                           ) : (
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() =>
                                 setProfileModal({
                                   isOpen: true,
@@ -695,13 +787,13 @@ export const DashboardBeneficiaryPage = () => {
                                   canRate: reservation.canRate !== false,
                                 })
                               }
-                              className="flex items-center gap-1 text-xs px-3 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors font-medium"
+                              className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
                             >
-                              <Star size={14} />
+                              <Star size={16} className="mr-2" />
                               {reservation.canRate !== false
                                 ? "Ver / Calificar"
                                 : "Ver"}
-                            </button>
+                            </Button>
                           )}
                         </td>
                       </tr>
@@ -710,149 +802,170 @@ export const DashboardBeneficiaryPage = () => {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         )}
       </main>
 
       {/* MODALES */}
 
       {passwordModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 shadow-2xl">
-            <div className="flex flex-col items-center mb-6">
-              <div className="w-16 h-16 bg-brand-accent/10 rounded-2xl flex items-center justify-center mb-4 border border-brand-accent/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <Card className="w-full max-w-md shadow-xl ring-1 ring-foreground/5">
+            <CardHeader className="text-center pb-4">
+              <div className="w-16 h-16 bg-brand-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-brand-accent/20">
                 <KeyRound size={32} className="text-brand-accent" />
               </div>
-              <h3 className="text-2xl font-bold text-brand-text">
+              <CardTitle className="text-2xl font-semibold">
                 Cambiar Clave
-              </h3>
-            </div>
+              </CardTitle>
+            </CardHeader>
 
-            <form
-              onSubmit={handlePasswordChange}
-              className="flex flex-col gap-4"
-            >
-              <div className="relative">
-                <Lock
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted"
-                  size={18}
-                />
-                <input
-                  required
-                  type="password"
-                  placeholder="Contraseña Actual"
-                  value={passwordModal.actual}
-                  onChange={(e) =>
-                    setPasswordModal({
-                      ...passwordModal,
-                      actual: e.target.value,
-                    })
-                  }
-                  className="w-full bg-brand-background border border-brand-border rounded-xl pl-12 pr-4 py-3 text-sm text-brand-text focus:border-brand-accent outline-none transition-colors"
-                />
-              </div>
-              <div className="relative">
-                <Lock
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted"
-                  size={18}
-                />
-                <input
-                  required
-                  type="password"
-                  placeholder="Nueva Contraseña"
-                  value={passwordModal.nueva}
-                  onChange={(e) =>
-                    setPasswordModal({
-                      ...passwordModal,
-                      nueva: e.target.value,
-                    })
-                  }
-                  className="w-full bg-brand-background border border-brand-border rounded-xl pl-12 pr-4 py-3 text-sm text-brand-text focus:border-brand-accent outline-none transition-colors"
-                />
-              </div>
-              <div className="relative">
-                <Lock
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted"
-                  size={18}
-                />
-                <input
-                  required
-                  type="password"
-                  placeholder="Confirmar Nueva"
-                  value={passwordModal.confirmar}
-                  onChange={(e) =>
-                    setPasswordModal({
-                      ...passwordModal,
-                      confirmar: e.target.value,
-                    })
-                  }
-                  className="w-full bg-brand-background border border-brand-border rounded-xl pl-12 pr-4 py-3 text-sm text-brand-text focus:border-brand-accent outline-none transition-colors"
-                />
-              </div>
+            <CardContent>
+              <form
+                onSubmit={handlePasswordChange}
+                className="flex flex-col gap-4"
+              >
+                <div className="space-y-2 relative">
+                  <Lock
+                    className="absolute left-3 top-[34px] -translate-y-1/2 text-muted-foreground"
+                    size={18}
+                  />
+                  <Label htmlFor="actual" className="sr-only">
+                    Contraseña Actual
+                  </Label>
+                  <Input
+                    id="actual"
+                    required
+                    type="password"
+                    placeholder="Contraseña Actual"
+                    value={passwordModal.actual}
+                    onChange={(e) =>
+                      setPasswordModal({
+                        ...passwordModal,
+                        actual: e.target.value,
+                      })
+                    }
+                    className="pl-10"
+                  />
+                </div>
+                <div className="space-y-2 relative">
+                  <Lock
+                    className="absolute left-3 top-[34px] -translate-y-1/2 text-muted-foreground"
+                    size={18}
+                  />
+                  <Label htmlFor="nueva" className="sr-only">
+                    Nueva Contraseña
+                  </Label>
+                  <Input
+                    id="nueva"
+                    required
+                    type="password"
+                    placeholder="Nueva Contraseña"
+                    value={passwordModal.nueva}
+                    onChange={(e) =>
+                      setPasswordModal({
+                        ...passwordModal,
+                        nueva: e.target.value,
+                      })
+                    }
+                    className="pl-10"
+                  />
+                </div>
+                <div className="space-y-2 relative">
+                  <Lock
+                    className="absolute left-3 top-[34px] -translate-y-1/2 text-muted-foreground"
+                    size={18}
+                  />
+                  <Label htmlFor="confirmar" className="sr-only">
+                    Confirmar Nueva
+                  </Label>
+                  <Input
+                    id="confirmar"
+                    required
+                    type="password"
+                    placeholder="Confirmar Nueva"
+                    value={passwordModal.confirmar}
+                    onChange={(e) =>
+                      setPasswordModal({
+                        ...passwordModal,
+                        confirmar: e.target.value,
+                      })
+                    }
+                    className="pl-10"
+                  />
+                </div>
 
-              <div className="flex gap-3 mt-4">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setPasswordModal({
-                      isOpen: false,
-                      actual: "",
-                      nueva: "",
-                      confirmar: "",
-                      isSubmitting: false,
-                    })
-                  }
-                  className="flex-1 py-3 font-medium border border-brand-border text-brand-text rounded-xl hover:bg-brand-background transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={passwordModal.isSubmitting}
-                  className="flex-1 py-3 font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all disabled:opacity-50"
-                >
-                  {passwordModal.isSubmitting ? "..." : "Guardar"}
-                </button>
-              </div>
-            </form>
-          </div>
+                <div className="flex gap-3 mt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() =>
+                      setPasswordModal({
+                        isOpen: false,
+                        actual: "",
+                        nueva: "",
+                        confirmar: "",
+                        isSubmitting: false,
+                      })
+                    }
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={passwordModal.isSubmitting}
+                  >
+                    {passwordModal.isSubmitting ? "..." : "Guardar"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {requestModal.isOpen && requestModal.donation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 text-center shadow-2xl">
-            <h3 className="text-2xl font-bold text-brand-text mb-2">
-              ¿Cuánto necesitas?
-            </h3>
-            <p className="text-brand-muted mb-6">
-              Disponible:{" "}
-              <span className="font-bold text-brand-accent">
-                {requestModal.donation.cantidad}{" "}
-                {requestModal.donation.unidad || "uds"}
-              </span>{" "}
-              de {requestModal.donation.titulo}
-            </p>
-            <div className="flex items-center justify-center gap-4 mb-8">
-              <input
-                type="number"
-                min="1"
-                max={requestModal.donation.cantidad}
-                value={requestModal.cantidadSolicitada}
-                onChange={(e) =>
-                  setRequestModal({
-                    ...requestModal,
-                    cantidadSolicitada: Number(e.target.value),
-                  })
-                }
-                className="w-24 bg-brand-background border border-brand-border rounded-xl px-4 py-3 text-center text-xl font-bold text-brand-text focus:border-brand-accent outline-none"
-              />
-              <span className="text-brand-muted font-medium">
-                {requestModal.donation.unidad || "uds"}
-              </span>
-            </div>
-            <div className="flex gap-4">
-              <button
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <Card className="w-full max-w-sm shadow-xl text-center">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold">
+                ¿Cuánto necesitas?
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-6">
+                Disponible:{" "}
+                <span className="font-bold text-brand-accent">
+                  {requestModal.donation.cantidad}{" "}
+                  {requestModal.donation.unidad || "uds"}
+                </span>{" "}
+                de {requestModal.donation.titulo}
+              </p>
+              <div className="flex items-center justify-center gap-4 mb-2">
+                <Input
+                  type="number"
+                  min="1"
+                  max={requestModal.donation.cantidad}
+                  value={requestModal.cantidadSolicitada}
+                  onChange={(e) =>
+                    setRequestModal({
+                      ...requestModal,
+                      cantidadSolicitada: Number(e.target.value),
+                    })
+                  }
+                  className="w-24 text-center text-xl font-bold"
+                />
+                <span className="text-muted-foreground font-medium">
+                  {requestModal.donation.unidad || "uds"}
+                </span>
+              </div>
+            </CardContent>
+            <CardFooter className="flex gap-4">
+              <Button
+                variant="outline"
+                className="flex-1"
                 onClick={() =>
                   setRequestModal({
                     isOpen: false,
@@ -860,63 +973,68 @@ export const DashboardBeneficiaryPage = () => {
                     cantidadSolicitada: 1,
                   })
                 }
-                className="flex-1 py-3 font-medium border border-brand-border text-brand-text rounded-xl hover:bg-brand-background transition-colors"
               >
                 Cancelar
-              </button>
-              <button
-                onClick={confirmRequest}
-                className="flex-1 py-3 font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all shadow-[0_0_15px_rgba(255,0,85,0.2)]"
-              >
+              </Button>
+              <Button className="flex-1" onClick={confirmRequest}>
                 Confirmar
-              </button>
-            </div>
-          </div>
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
       )}
 
       {feedbackModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-brand-card border border-brand-border rounded-3xl w-full max-w-sm p-8 text-center shadow-2xl">
-            <div
-              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 ${feedbackModal.type === "success" ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}`}
-            >
-              {feedbackModal.type === "success" ? (
-                <CheckCircle size={32} />
-              ) : (
-                <AlertCircle size={32} />
-              )}
-            </div>
-            <h3 className="text-2xl font-bold text-brand-text mb-2">
-              {feedbackModal.type === "success"
-                ? "¡Reserva Exitosa!"
-                : "Atención"}
-            </h3>
-            <p className="text-brand-muted mb-6">{feedbackModal.message}</p>
-            {feedbackModal.type === "success" && feedbackModal.pin && (
-              <div className="bg-brand-background border border-brand-border rounded-2xl p-4 mb-8">
-                <p className="text-xs text-brand-muted uppercase tracking-wider mb-2 font-semibold">
-                  Tu PIN de entrega
-                </p>
-                <div className="flex items-center justify-center gap-2 text-3xl font-bold text-brand-accent tracking-[0.3em]">
-                  <KeyRound size={28} /> {feedbackModal.pin}
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <Card className="w-full max-w-sm shadow-xl text-center">
+            <CardHeader>
+              <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${feedbackModal.type === "success" ? "bg-green-500/10 text-green-600" : "bg-destructive/10 text-destructive"}`}
+              >
+                {feedbackModal.type === "success" ? (
+                  <CheckCircle size={32} />
+                ) : (
+                  <AlertCircle size={32} />
+                )}
               </div>
-            )}
-            <button
-              onClick={() => {
-                setFeedbackModal({
-                  ...feedbackModal,
-                  isOpen: false,
-                  pin: undefined,
-                });
-                if (feedbackModal.type === "success") setActiveTab("reservas");
-              }}
-              className="w-full py-3 font-medium bg-brand-accent text-white rounded-xl hover:bg-brand-accent-light transition-all"
-            >
-              Entendido
-            </button>
-          </div>
+              <CardTitle className="text-2xl font-bold">
+                {feedbackModal.type === "success"
+                  ? "¡Reserva Exitosa!"
+                  : "Atención"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                {feedbackModal.message}
+              </p>
+              {feedbackModal.type === "success" && feedbackModal.pin && (
+                <div className="bg-muted border border-border rounded-2xl p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 font-semibold">
+                    Tu PIN de entrega
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-3xl font-bold text-brand-accent tracking-[0.3em]">
+                    <KeyRound size={28} /> {feedbackModal.pin}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full"
+                onClick={() => {
+                  setFeedbackModal({
+                    ...feedbackModal,
+                    isOpen: false,
+                    pin: undefined,
+                  });
+                  if (feedbackModal.type === "success")
+                    setActiveTab("reservas");
+                }}
+              >
+                Entendido
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
       )}
 
@@ -943,16 +1061,14 @@ export const DashboardBeneficiaryPage = () => {
         }}
         title="Cancelar reserva"
         description="¿Estás seguro de que deseas cancelar esta reserva? El alimento volverá a estar disponible y el PIN se anulará."
-        confirmLabel="Si, cancelar"
-        confirmClassName="bg-red-500 text-white hover:bg-red-500/90"
+        confirmLabel="Sí, cancelar"
+        confirmClassName="bg-destructive text-destructive-foreground hover:bg-destructive/90"
         onConfirm={confirmCancelReservation}
       />
 
       <FeedbackDialog
         open={feedback.open}
-        onOpenChange={(open) =>
-          setFeedback((prev) => ({ ...prev, open }))
-        }
+        onOpenChange={(open) => setFeedback((prev) => ({ ...prev, open }))}
         title={feedback.title}
         message={feedback.message}
         tone={feedback.tone}

@@ -27,8 +27,10 @@ export const ResetPasswordPage = () => {
     message: string;
   }>({ type: null, message: "" });
 
-  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
-  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const passwordsMatch =
+    confirmPassword.length > 0 && password === confirmPassword;
+  const passwordsMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,9 +135,7 @@ export const ResetPasswordPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">
-                    Confirmar contraseña
-                  </Label>
+                  <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
@@ -148,8 +148,8 @@ export const ResetPasswordPage = () => {
                       passwordsMismatch
                         ? "border-destructive focus-visible:ring-destructive/50"
                         : passwordsMatch
-                        ? "border-green-500 focus-visible:ring-green-500/50"
-                        : ""
+                          ? "border-green-500 focus-visible:ring-green-500/50"
+                          : ""
                     }
                   />
                   {passwordsMismatch && (
@@ -168,14 +168,19 @@ export const ResetPasswordPage = () => {
                   type="submit"
                   size="lg"
                   className="w-full"
-                  disabled={isLoading || !password || !confirmPassword || passwordsMismatch}
+                  disabled={
+                    isLoading ||
+                    !password ||
+                    !confirmPassword ||
+                    passwordsMismatch
+                  }
                 >
                   {isLoading ? "Guardando..." : "Guardar contraseña"}
                 </Button>
               </form>
             ) : (
               <div className="flex justify-center">
-                <Button asChild variant="outline" size="lg">
+                <Button variant="outline" size="lg">
                   <Link to="/login">
                     Ir a iniciar sesión
                     <ArrowRight size={18} className="ml-2" />

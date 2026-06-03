@@ -66,9 +66,7 @@ export const RegisterDonorPage = () => {
     password: "",
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -196,7 +194,9 @@ export const RegisterDonorPage = () => {
         <Card className="w-full max-w-2xl bg-brand-card/90 shadow-xl ring-1 ring-foreground/5 backdrop-blur">
           <CardHeader className="gap-1 text-center">
             <CardTitle className="font-jakarta text-2xl font-semibold">
-              {step === "DOCUMENTS" ? "Validación de empresa" : "Registro de Donador"}
+              {step === "DOCUMENTS"
+                ? "Validación de empresa"
+                : "Registro de Donador"}
             </CardTitle>
             <CardDescription>
               Únete a FoodSaver para donar excedentes de alimentos.
@@ -211,8 +211,8 @@ export const RegisterDonorPage = () => {
                       i < stepIndex[step]
                         ? "bg-green-500"
                         : i === stepIndex[step]
-                        ? "bg-brand-accent"
-                        : "bg-muted"
+                          ? "bg-brand-accent"
+                          : "bg-muted"
                     }`}
                   />
                   <span className="text-xs text-muted-foreground">{label}</span>
@@ -236,7 +236,6 @@ export const RegisterDonorPage = () => {
               </div>
             )}
 
-            {/* ===== STEP: FORM ===== */}
             {step === "FORM" && (
               <form onSubmit={handlePreRegister} className="space-y-5">
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -263,7 +262,9 @@ export const RegisterDonorPage = () => {
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="nombreEncargado">Nombre del encargado</Label>
+                    <Label htmlFor="nombreEncargado">
+                      Nombre del encargado
+                    </Label>
                     <Input
                       id="nombreEncargado"
                       name="nombreEncargado"
@@ -301,7 +302,9 @@ export const RegisterDonorPage = () => {
                     <Label htmlFor="departamento">Departamento</Label>
                     <Select
                       value={formData.departamento}
-                      onValueChange={(v) => handleSelectChange("departamento", v)}
+                      onValueChange={(v) =>
+                        handleSelectChange("departamento", v || "")
+                      }
                       required
                     >
                       <SelectTrigger id="departamento">
@@ -317,7 +320,9 @@ export const RegisterDonorPage = () => {
                     <Label htmlFor="ciudad">Ciudad</Label>
                     <Select
                       value={formData.ciudad}
-                      onValueChange={(v) => handleSelectChange("ciudad", v)}
+                      onValueChange={(v) =>
+                        handleSelectChange("ciudad", v || "")
+                      }
                       required
                     >
                       <SelectTrigger id="ciudad">
@@ -362,9 +367,17 @@ export const RegisterDonorPage = () => {
                         size="icon"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                        aria-label={
+                          showPassword
+                            ? "Ocultar contraseña"
+                            : "Mostrar contraseña"
+                        }
                       >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        {showPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -372,7 +385,6 @@ export const RegisterDonorPage = () => {
 
                 <Separator />
 
-    
                 <div className="flex gap-3 rounded-lg border border-border bg-muted/30 p-3">
                   <input
                     id="terms-donor"
@@ -449,7 +461,6 @@ export const RegisterDonorPage = () => {
                   Para finalizar, adjunta la documentación legal de la empresa.
                 </p>
 
-                {/* RUT upload */}
                 <div className="space-y-2">
                   <Label>RUT de la empresa</Label>
                   <label
@@ -468,7 +479,10 @@ export const RegisterDonorPage = () => {
                     {documents.rut ? (
                       <FileText size={28} className="mb-2 text-green-500" />
                     ) : (
-                      <UploadCloud size={28} className="mb-2 text-brand-accent" />
+                      <UploadCloud
+                        size={28}
+                        className="mb-2 text-brand-accent"
+                      />
                     )}
                     <span className="text-sm font-medium text-foreground">
                       {documents.rut ? documents.rut.name : "Subir RUT"}
@@ -481,7 +495,6 @@ export const RegisterDonorPage = () => {
                   </label>
                 </div>
 
-                {/* Cámara de Comercio upload */}
                 <div className="space-y-2">
                   <Label>Cámara de Comercio</Label>
                   <label
@@ -500,7 +513,10 @@ export const RegisterDonorPage = () => {
                     {documents.camaraComercio ? (
                       <FileText size={28} className="mb-2 text-green-500" />
                     ) : (
-                      <UploadCloud size={28} className="mb-2 text-brand-accent" />
+                      <UploadCloud
+                        size={28}
+                        className="mb-2 text-brand-accent"
+                      />
                     )}
                     <span className="text-sm font-medium text-foreground">
                       {documents.camaraComercio

@@ -44,7 +44,9 @@ export const RegisterBeneficiaryPage = () => {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"form" | "confirm" | "otp" | "success">("form");
+  const [step, setStep] = useState<"form" | "confirm" | "otp" | "success">(
+    "form",
+  );
   const [otp, setOtp] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
@@ -67,9 +69,13 @@ export const RegisterBeneficiaryPage = () => {
       case "Tarjeta de Identidad":
         return onlyNumbers.test(numero) && numero.length >= 10;
       case "Cédula de Ciudadanía":
-        return onlyNumbers.test(numero) && numero.length >= 6 && numero.length <= 10;
+        return (
+          onlyNumbers.test(numero) && numero.length >= 6 && numero.length <= 10
+        );
       case "Cédula de extranjería":
-        return onlyNumbers.test(numero) && numero.length >= 6 && numero.length <= 12;
+        return (
+          onlyNumbers.test(numero) && numero.length >= 6 && numero.length <= 12
+        );
       case "DNI (País de origen)":
         return numero.length >= 5;
       case "DNI (Pasaporte)":
@@ -114,7 +120,9 @@ export const RegisterBeneficiaryPage = () => {
     }
 
     if (!validateDocument(formData.tipoDocumento, formData.numeroDocumento)) {
-      setError("El número de documento no es válido para el tipo seleccionado.");
+      setError(
+        "El número de documento no es válido para el tipo seleccionado.",
+      );
       return;
     }
 
@@ -124,7 +132,9 @@ export const RegisterBeneficiaryPage = () => {
     }
 
     if (!formData.documentoIdentidad || !formData.sisben) {
-      setError("Debes adjuntar el documento de identidad y el soporte de SISBÉN.");
+      setError(
+        "Debes adjuntar el documento de identidad y el soporte de SISBÉN.",
+      );
       return;
     }
 
@@ -180,23 +190,26 @@ export const RegisterBeneficiaryPage = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(apiUrl("/api/auth/beneficiary/verify"), {
-        otp,
-        beneficiaryData: {
-          nombres: formData.nombres,
-          apellidos: formData.apellidos,
-          tipoDocumento: formData.tipoDocumento,
-          numeroDocumento: formData.numeroDocumento,
-          sisbenGrupo: formData.grupoSisben,
-          celular: formData.celular,
-          email: formData.email,
-          password: formData.password,
-          departamento: formData.departamento,
-          ciudad: formData.ciudad,
-          direccion: formData.direccion,
-          role: "beneficiary",
+      const response = await axios.post(
+        apiUrl("/api/auth/beneficiary/verify"),
+        {
+          otp,
+          beneficiaryData: {
+            nombres: formData.nombres,
+            apellidos: formData.apellidos,
+            tipoDocumento: formData.tipoDocumento,
+            numeroDocumento: formData.numeroDocumento,
+            sisbenGrupo: formData.grupoSisben,
+            celular: formData.celular,
+            email: formData.email,
+            password: formData.password,
+            departamento: formData.departamento,
+            ciudad: formData.ciudad,
+            direccion: formData.direccion,
+            role: "beneficiary",
+          },
         },
-      });
+      );
 
       const userId = response.data.userId;
 
@@ -266,11 +279,13 @@ export const RegisterBeneficiaryPage = () => {
                         i < stepIndex[step]
                           ? "bg-green-500"
                           : i === stepIndex[step]
-                          ? "bg-brand-accent"
-                          : "bg-muted"
+                            ? "bg-brand-accent"
+                            : "bg-muted"
                       }`}
                     />
-                    <span className="text-xs text-muted-foreground">{label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {label}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -285,7 +300,6 @@ export const RegisterBeneficiaryPage = () => {
               </div>
             )}
 
-            {/* ===== STEP: FORM ===== */}
             {step === "form" && (
               <form onSubmit={handleInitialSubmit} className="space-y-5">
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -316,8 +330,9 @@ export const RegisterBeneficiaryPage = () => {
                     <div className="flex flex-col gap-3 sm:flex-row">
                       <Select
                         value={formData.tipoDocumento}
-                        onValueChange={(v) => handleSelectChange("tipoDocumento", v)}
-                        required
+                        onValueChange={(v) =>
+                          handleSelectChange("tipoDocumento", v || "")
+                        }
                       >
                         <SelectTrigger className="sm:w-2/5">
                           <SelectValue placeholder="Tipo" />
@@ -369,8 +384,9 @@ export const RegisterBeneficiaryPage = () => {
                     <Label htmlFor="departamento">Departamento</Label>
                     <Select
                       value={formData.departamento}
-                      onValueChange={(v) => handleSelectChange("departamento", v)}
-                      required
+                      onValueChange={(v) =>
+                        handleSelectChange("departamento", v || "")
+                      }
                     >
                       <SelectTrigger id="departamento">
                         <SelectValue placeholder="Seleccionar" />
@@ -385,8 +401,9 @@ export const RegisterBeneficiaryPage = () => {
                     <Label htmlFor="ciudad">Ciudad</Label>
                     <Select
                       value={formData.ciudad}
-                      onValueChange={(v) => handleSelectChange("ciudad", v)}
-                      required
+                      onValueChange={(v) =>
+                        handleSelectChange("ciudad", v || "")
+                      }
                     >
                       <SelectTrigger id="ciudad">
                         <SelectValue placeholder="Seleccionar" />
@@ -437,7 +454,6 @@ export const RegisterBeneficiaryPage = () => {
                     />
                   </div>
 
-                  {/* File uploads */}
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="documentoIdentidad">
                       Soporte de Documento de Identidad
@@ -451,7 +467,9 @@ export const RegisterBeneficiaryPage = () => {
                       className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-brand-accent/10 file:px-3 file:py-1 file:text-sm file:font-medium file:text-brand-accent hover:file:bg-brand-accent/20"
                       required
                     />
-                    <p className="text-xs text-muted-foreground">PDF o imagen — Máx. 5 MB</p>
+                    <p className="text-xs text-muted-foreground">
+                      PDF o imagen — Máx. 5 MB
+                    </p>
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
@@ -465,13 +483,14 @@ export const RegisterBeneficiaryPage = () => {
                       className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-brand-accent/10 file:px-3 file:py-1 file:text-sm file:font-medium file:text-brand-accent hover:file:bg-brand-accent/20"
                       required
                     />
-                    <p className="text-xs text-muted-foreground">PDF o imagen — Máx. 5 MB</p>
+                    <p className="text-xs text-muted-foreground">
+                      PDF o imagen — Máx. 5 MB
+                    </p>
                   </div>
                 </div>
 
                 <Separator />
 
-                {/* Data authorization — datos sensibles (Ley 1581 + datos sensibles) */}
                 <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
                   <input
                     id="terms-beneficiary"
@@ -485,9 +504,9 @@ export const RegisterBeneficiaryPage = () => {
                     htmlFor="terms-beneficiary"
                     className="text-sm leading-relaxed text-muted-foreground block"
                   >
-                    Autorizo el tratamiento de mis datos personales,
-                    incluyendo datos sensibles como mi grupo SISBÉN y documentos
-                    de identidad, conforme a la{" "}
+                    Autorizo el tratamiento de mis datos personales, incluyendo
+                    datos sensibles como mi grupo SISBÉN y documentos de
+                    identidad, conforme a la{" "}
                     <Link
                       to="/privacy"
                       className="text-brand-accent underline-offset-4 hover:underline"
@@ -511,13 +530,13 @@ export const RegisterBeneficiaryPage = () => {
               </form>
             )}
 
- 
             {step === "confirm" && (
               <div className="space-y-5">
                 <div className="rounded-lg border border-border bg-muted/30 p-4 text-center">
                   <p className="text-sm text-muted-foreground">
-                    Verifica que todos tus datos sean correctos antes de continuar.
-                    Se validará tu SISBÉN y se enviará un código OTP a tu celular.
+                    Verifica que todos tus datos sean correctos antes de
+                    continuar. Se validará tu SISBÉN y se enviará un código OTP
+                    a tu celular.
                   </p>
                 </div>
 
@@ -542,7 +561,6 @@ export const RegisterBeneficiaryPage = () => {
               </div>
             )}
 
- 
             {step === "otp" && (
               <div className="flex flex-col items-center gap-5">
                 <div className="text-center">
@@ -578,7 +596,8 @@ export const RegisterBeneficiaryPage = () => {
                   ¡Registro exitoso!
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Tu cuenta ha sido creada. Serás redirigido al inicio de sesión...
+                  Tu cuenta ha sido creada. Serás redirigido al inicio de
+                  sesión...
                 </p>
               </div>
             )}
