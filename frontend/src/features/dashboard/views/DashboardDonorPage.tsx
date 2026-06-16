@@ -62,46 +62,48 @@ interface BeneficiaryInfo {
 interface NotificationLog {
   canal: "email";
   destinatario: string;
-  estadoEntrega: "enviado" | "fallido";
-  fechaHora: string;
-  error?: string | null;
-}
-interface DonationData {
-  _id: string;
-  titulo: string;
-  descripcion: string;
-  categoria?: string;
-  cantidad: number;
-  unidad: string;
-  nombres: string;
-  fechaCaducidad: string;
-  fechaRecogida: string;
-  estado: "activo" | "asignado" | "recolectado";
-  imagenUrl: string;
-  pickupPin?: string;
-  beneficiary?: BeneficiaryInfo;
-  canRate?: boolean;
-  notificaciones?: NotificationLog[];
-  createdAt: string;
-}
-
-const FOOD_CATEGORIES = [
-  { value: "frutas", label: "Frutas" },
-  { value: "verduras", label: "Verduras" },
-  { value: "lacteos", label: "Lacteos" },
-  { value: "panaderia", label: "Panaderia" },
-  { value: "carnes", label: "Carnes" },
-  { value: "granos", label: "Granos" },
-  { value: "bebidas", label: "Bebidas" },
-  { value: "otros", label: "Otros" },
-];
-
-const CountdownTimer = ({ expiresAt }: { expiresAt: string }) => {
-  const calculateTime = (expiration: string) => {
-    const difference = new Date(expiration).getTime() - new Date().getTime();
-    if (difference <= 0) return { text: "Vencido", expired: true };
-    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+        {donation.estado === "recolectado" &&
+          donation.beneficiary &&
+          donation.beneficiary._id !== userId ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-auto flex-col py-2 px-3 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+            onClick={() =>
+              setRatingModal({
+                isOpen: true,
+                donationId: donation._id,
+                toUserId: donation.beneficiary!._id,
+                toUserName:
+                  `${donation.beneficiary!.nombres} ${donation.beneficiary!.apellidos || ""}`.trim(),
+                canRate: donation.canRate !== false,
+              })
+            }
+          >
+            <span className="flex items-center gap-1 text-xs mb-1">
+              <Star size={14} />
+              {donation.canRate !== false ? "Ver / Evaluar" : "Ver"}
+            </span>
+            {(() => {
+              if (donation.canRate === false) {
+                return (
+                  <span className="text-[10px] opacity-70">
+                    Calificado
+                  </span>
+                );
+              }
+              const badge = getReputation(
+                donation.beneficiary!.promedioCalificacion,
+                donation.beneficiary!.totalEvaluaciones,
+              );
+              return (
+                <span className={`text-[10px] ${badge.className}`}>
+                  {badge.label}
+                </span>
+              );
+            })()}
+          </Button>
+        ) : null}
     const minutes = Math.floor((difference / 1000 / 60) % 60);
     if (days > 0)
       return { text: `${days}d ${hours}h restantes`, expired: false };
@@ -947,7 +949,8 @@ export const DashboardDonorPage = () => {
                           )}
 
                           {donation.estado === "recolectado" &&
-                            donation.beneficiary && (
+                            donation.beneficiary &&
+                            donation.beneficiary._id !== userId && (
                               <Button
                                 variant="outline"
                                 size="sm"

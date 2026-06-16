@@ -574,7 +574,8 @@ export const DashboardBeneficiaryPage = () => {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground mt-2">
-                        <button
+                          {donation.donor._id !== currentUserId && (
+                          <button
                           type="button"
                           onClick={() =>
                             setProfileModal({
@@ -623,7 +624,8 @@ export const DashboardBeneficiaryPage = () => {
                               </>
                             );
                           })()}
-                        </button>
+                          </button>
+                          )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-destructive mb-4">
@@ -772,6 +774,7 @@ export const DashboardBeneficiaryPage = () => {
                               <XCircle size={16} className="mr-2" /> Cancelar
                             </Button>
                           ) : (
+                            reservation.donor?._id !== currentUserId && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -794,6 +797,7 @@ export const DashboardBeneficiaryPage = () => {
                                 ? "Ver / Calificar"
                                 : "Ver"}
                             </Button>
+                            )}
                           )}
                         </td>
                       </tr>
