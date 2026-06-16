@@ -48,10 +48,15 @@ export const rateUser = async (req, res) => {
 
     const donorId = donation.donor.toString();
     const beneficiaryId = donation.beneficiary.toString();
-    const validPair =
-      (fromUserId === donorId && toUserId === beneficiaryId) ||
-      (fromUserId === beneficiaryId && toUserId === donorId);
+    const fromId = fromUserId.toString();
+    const toId = toUserId.toString();
 
+    if (fromId === toId) {
+      return res.status(400).json({ message: "No puedes calificarte a ti mismo." });
+    }
+    const validPair =
+      (fromId === donorId && toId === beneficiaryId) ||
+      (fromId === beneficiaryId && toId === donorId);
     if (!validPair) {
       return res
         .status(403)
@@ -203,29 +208,29 @@ export const deleteBadUser = async (req, res) => {
 };
 
 /* OBTENER PERFIL PÚBLICO DE USUARIO */
-  export const getUserPublicProfile = async (req, res) => {
+export const getUserPublicProfile = async (req, res) => {
   try {
     const { userId } = req.params;
- 
+
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: "ID de usuario inválido." });
     }
- 
+
     // Perfil sin datos sensibles
     const user = await User.findById(userId).select(
       "nombres apellidos nombreEmpresa ciudad direccion role promedioCalificacion totalEvaluaciones createdAt"
     );
- 
+
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado." });
     }
- 
+
     // Calificaciones recibidas, con datos básicos del emisor
     const ratings = await Rating.find({ toUser: userId })
       .populate("fromUser", "nombres apellidos nombreEmpresa role")
       .sort({ createdAt: -1 })
       .lean();
- 
+
     res.status(200).json({ user, ratings });
   } catch (error) {
     console.error("Error al obtener perfil público:", error);

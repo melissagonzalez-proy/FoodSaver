@@ -2,7 +2,7 @@ import { CheckCircle2, Info, TriangleAlert } from "lucide-react";
 
 import {
   AlertDialog,
-  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -70,9 +70,9 @@ export const FeedbackDialog = ({
           )}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogAction className="w-full rounded-xl bg-brand-accent text-white hover:bg-brand-accent-light">
+          <AlertDialogCancel className="w-full rounded-xl bg-brand-accent text-white hover:bg-brand-accent-light">
             {actionLabel}
-          </AlertDialogAction>
+          </AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

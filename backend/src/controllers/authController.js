@@ -457,7 +457,7 @@ export const login = async (req, res) => {
       message: "Inicio de sesión exitoso",
       token,
       user: {
-        id: user._id,
+        id: user._id.toString(),
         nombres: user.nombres,
         apellidos: user.apellidos,
         email: user.email,
@@ -654,7 +654,7 @@ export const updateProfile = async (req, res) => {
     res.status(200).json({ 
       message: "Perfil actualizado con éxito.",
       user: {
-        id: user._id,
+        id: user._id.toString(),
         nombres: user.nombres,
         apellidos: user.apellidos,
         departamento: user.departamento,

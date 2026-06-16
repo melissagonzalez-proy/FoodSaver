@@ -190,9 +190,9 @@ export const getDonorDonations = async (req, res) => {
       .map((donation) => donation._id);
     const ratedDocs = eligibleIds.length
       ? await Rating.find({
-          donationId: { $in: eligibleIds },
-          fromUser: donorId,
-        }).select("donationId")
+        donationId: { $in: eligibleIds },
+        fromUser: donorId,
+      }).select("donationId")
       : [];
     const ratedSet = new Set(
       ratedDocs.map((rating) => rating.donationId.toString()),
@@ -204,7 +204,13 @@ export const getDonorDonations = async (req, res) => {
         donation.estado === "recolectado" &&
         donation.beneficiary &&
         !ratedSet.has(donationId);
-      return { ...donation.toObject(), canRate };
+
+      const obj = donation.toObject();
+
+      if (obj.beneficiary?._id) {
+        obj.beneficiary._id = obj.beneficiary._id.toString();
+      }
+      return { ...obj, canRate };
     });
 
     res.status(200).json(payload);
@@ -471,9 +477,9 @@ export const getBeneficiaryDonations = async (req, res) => {
       .map((donation) => donation._id);
     const ratedDocs = eligibleIds.length
       ? await Rating.find({
-          donationId: { $in: eligibleIds },
-          fromUser: beneficiaryId,
-        }).select("donationId")
+        donationId: { $in: eligibleIds },
+        fromUser: beneficiaryId,
+      }).select("donationId")
       : [];
     const ratedSet = new Set(
       ratedDocs.map((rating) => rating.donationId.toString()),
@@ -483,7 +489,13 @@ export const getBeneficiaryDonations = async (req, res) => {
       const donationId = donation._id.toString();
       const canRate =
         donation.estado === "recolectado" && !ratedSet.has(donationId);
-      return { ...donation.toObject(), canRate };
+
+      const obj = donation.toObject();
+      // Fuerza _id a string en el objeto del donor
+      if (obj.donor?._id) {
+        obj.donor._id = obj.donor._id.toString();
+      }
+      return { ...obj, canRate };
     });
 
     res.status(200).json(payload);
