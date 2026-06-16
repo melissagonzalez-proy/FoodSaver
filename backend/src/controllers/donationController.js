@@ -178,13 +178,24 @@ export const createDonation = async (req, res) => {
 export const getDonorDonations = async (req, res) => {
   try {
     const { donorId } = req.params;
-    const donations = await Donation.find({ donor: donorId }).sort({
-      createdAt: -1,
-    });
+    const donations = await Donation.find({ donor: donorId }).sort({ createdAt: -1 });
     await Donation.populate(donations, {
       path: "beneficiary",
       select: "nombres apellidos promedioCalificacion totalEvaluaciones",
     });
+
+    // LOG TEMPORAL
+    donations.forEach(d => {
+      if (d.estado === "recolectado") {
+        console.log("=== DONACION RECOLECTADA ===");
+        console.log("donationId:", d._id.toString());
+        console.log("donor:", d.donor.toString());
+        console.log("beneficiary raw:", d.beneficiary);
+        console.log("beneficiary._id:", d.beneficiary?._id?.toString());
+        console.log("============================");
+      }
+    });
+    // FIN LOG
     const eligibleIds = donations
       .filter((donation) => donation.estado === "recolectado" && donation.beneficiary)
       .map((donation) => donation._id);
