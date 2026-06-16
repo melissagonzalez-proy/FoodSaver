@@ -31,7 +31,6 @@ import { UserProfileModal } from "../components/UserProfileModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FeedbackDialog } from "@/components/ui/feedback-dialog";
 
-// Shadcn UI Imports
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -59,60 +58,59 @@ interface BeneficiaryInfo {
   promedioCalificacion?: number;
   totalEvaluaciones?: number;
 }
+
 interface NotificationLog {
   canal: "email";
   destinatario: string;
-        {donation.estado === "recolectado" &&
-          donation.beneficiary &&
-          donation.beneficiary._id !== userId ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto flex-col py-2 px-3 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
-            onClick={() =>
-              setRatingModal({
-                isOpen: true,
-                donationId: donation._id,
-                toUserId: donation.beneficiary!._id,
-                toUserName:
-                  `${donation.beneficiary!.nombres} ${donation.beneficiary!.apellidos || ""}`.trim(),
-                canRate: donation.canRate !== false,
-              })
-            }
-          >
-            <span className="flex items-center gap-1 text-xs mb-1">
-              <Star size={14} />
-              {donation.canRate !== false ? "Ver / Evaluar" : "Ver"}
-            </span>
-            {(() => {
-              if (donation.canRate === false) {
-                return (
-                  <span className="text-[10px] opacity-70">
-                    Calificado
-                  </span>
-                );
-              }
-              const badge = getReputation(
-                donation.beneficiary!.promedioCalificacion,
-                donation.beneficiary!.totalEvaluaciones,
-              );
-              return (
-                <span className={`text-[10px] ${badge.className}`}>
-                  {badge.label}
-                </span>
-              );
-            })()}
-          </Button>
-        ) : null}
+  estadoEntrega: "enviado" | "fallido";
+  fechaHora: string;
+  error?: string | null;
+}
+
+interface DonationData {
+  _id: string;
+  titulo: string;
+  descripcion: string;
+  categoria?: string;
+  cantidad: number;
+  unidad: string;
+  nombres: string;
+  fechaCaducidad: string;
+  fechaRecogida: string;
+  estado: "activo" | "asignado" | "recolectado";
+  imagenUrl: string;
+  pickupPin?: string;
+  beneficiary?: BeneficiaryInfo;
+  canRate?: boolean;
+  notificaciones?: NotificationLog[];
+  createdAt: string;
+}
+
+const FOOD_CATEGORIES = [
+  { value: "frutas", label: "Frutas" },
+  { value: "verduras", label: "Verduras" },
+  { value: "lacteos", label: "Lacteos" },
+  { value: "panaderia", label: "Panaderia" },
+  { value: "carnes", label: "Carnes" },
+  { value: "granos", label: "Granos" },
+  { value: "bebidas", label: "Bebidas" },
+  { value: "otros", label: "Otros" },
+];
+
+const CountdownTimer = ({ expiresAt }: { expiresAt: string }) => {
+  const calculateTime = (expiration: string) => {
+    const difference = new Date(expiration).getTime() - new Date().getTime();
+    if (difference <= 0) return { text: "Vencido", expired: true };
+    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
     const minutes = Math.floor((difference / 1000 / 60) % 60);
-    if (days > 0)
-      return { text: `${days}d ${hours}h restantes`, expired: false };
+    if (days > 0) return { text: `${days}d ${hours}h restantes`, expired: false };
     return { text: `${hours}h ${minutes}m restantes`, expired: false };
   };
+
   const [timeLeft, setTimeLeft] = useState(() => calculateTime(expiresAt).text);
-  const [isExpired, setIsExpired] = useState(
-    () => calculateTime(expiresAt).expired,
-  );
+  const [isExpired, setIsExpired] = useState(() => calculateTime(expiresAt).expired);
+
   useEffect(() => {
     const timer = setInterval(() => {
       const result = calculateTime(expiresAt);
@@ -121,10 +119,9 @@ interface NotificationLog {
     }, 60000);
     return () => clearInterval(timer);
   }, [expiresAt]);
+
   return (
-    <div
-      className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border ${isExpired ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-orange-500/10 text-orange-600 border-orange-500/20"}`}
-    >
+    <div className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border ${isExpired ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-orange-500/10 text-orange-600 border-orange-500/20"}`}>
       <Clock size={12} />
       <span>{timeLeft}</span>
     </div>
@@ -133,20 +130,14 @@ interface NotificationLog {
 
 export const DashboardDonorPage = () => {
   const navigate = useNavigate();
-  const [mainView, setMainView] = useState<
-    "inventario" | "historial" | "perfil"
-  >("inventario");
-  const [activeTab, setActiveTab] = useState<
-    "activo" | "asignado" | "recolectado"
-  >("activo");
+  const [mainView, setMainView] = useState<"inventario" | "historial" | "perfil">("inventario");
+  const [activeTab, setActiveTab] = useState<"activo" | "asignado" | "recolectado">("activo");
   const [donations, setDonations] = useState<DonationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [pinInputs, setPinInputs] = useState<{ [key: string]: string }>({});
-  const [editingDonation, setEditingDonation] = useState<DonationData | null>(
-    null,
-  );
+  const [editingDonation, setEditingDonation] = useState<DonationData | null>(null);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -159,7 +150,8 @@ export const DashboardDonorPage = () => {
   });
 
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-  const userId = storedUser.id || storedUser._id || "";
+  // FIX: asegurar que userId siempre sea string
+  const userId = String(storedUser.id || storedUser._id || "");
   const token = localStorage.getItem("token");
 
   const [formData, setFormData] = useState({
@@ -188,11 +180,7 @@ export const DashboardDonorPage = () => {
   });
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
 
-  const showFeedback = (
-    tone: "info" | "success" | "error",
-    title: string,
-    message = "",
-  ) => {
+  const showFeedback = (tone: "info" | "success" | "error", title: string, message = "") => {
     setFeedback({ open: true, title, message, tone });
   };
 
@@ -207,20 +195,15 @@ export const DashboardDonorPage = () => {
   };
 
   const getLatestNotification = (donation: DonationData) => {
-    if (!donation.notificaciones || donation.notificaciones.length === 0) {
-      return null;
-    }
+    if (!donation.notificaciones || donation.notificaciones.length === 0) return null;
     return donation.notificaciones[donation.notificaciones.length - 1];
   };
 
-  const formatNotificationDate = (value: string) =>
-    new Date(value).toLocaleString();
+  const formatNotificationDate = (value: string) => new Date(value).toLocaleString();
 
   const fetchDonations = useCallback(async () => {
     try {
-      const response = await axios.get(
-        apiUrl(`/api/donations/donor/${userId}`),
-      );
+      const response = await axios.get(apiUrl(`/api/donations/donor/${userId}`));
       setDonations(response.data);
     } catch (error) {
       console.error(error);
@@ -237,30 +220,20 @@ export const DashboardDonorPage = () => {
     setMainView("perfil");
     setIsMobileMenuOpen(false);
     setTimeout(() => {
-      document.getElementById("comentarios")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      document.getElementById("comentarios")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
   }, []);
 
   useEffect(() => {
     const handleHash = () => {
-      if (window.location.hash === "#comentarios") {
-        scrollToComments();
-      }
+      if (window.location.hash === "#comentarios") scrollToComments();
     };
-
     handleHash();
     window.addEventListener("hashchange", handleHash);
     return () => window.removeEventListener("hashchange", handleHash);
   }, [scrollToComments]);
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -276,11 +249,7 @@ export const DashboardDonorPage = () => {
     e.preventDefault();
     setIsSubmitting(true);
     if (!userId) {
-      showFeedback(
-        "error",
-        "Sesion invalida",
-        "Tu sesion no es valida. Por favor inicia sesion de nuevo.",
-      );
+      showFeedback("error", "Sesion invalida", "Tu sesion no es valida. Por favor inicia sesion de nuevo.");
       setIsSubmitting(false);
       return;
     }
@@ -299,16 +268,7 @@ export const DashboardDonorPage = () => {
       await axios.post(apiUrl("/api/donations"), data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setFormData({
-        titulo: "",
-        descripcion: "",
-        categoria: "otros",
-        cantidad: "",
-        unidad: "kg",
-        fechaCaducidad: "",
-        fechaRecogida: "",
-        imagen: null,
-      });
+      setFormData({ titulo: "", descripcion: "", categoria: "otros", cantidad: "", unidad: "kg", fechaCaducidad: "", fechaRecogida: "", imagen: null });
       setImageName("");
       fetchDonations();
       setActiveTab("activo");
@@ -322,26 +282,16 @@ export const DashboardDonorPage = () => {
     }
   };
 
-  const handleCancel = (id: string) => {
-    setCancelTargetId(id);
-  };
+  const handleCancel = (id: string) => setCancelTargetId(id);
 
   const confirmCancel = async () => {
     if (!cancelTargetId) return;
     try {
       await axios.put(apiUrl(`/api/donations/cancel/${cancelTargetId}`));
       fetchDonations();
-      showFeedback(
-        "success",
-        "Reserva cancelada",
-        "El alimento fue liberado correctamente.",
-      );
+      showFeedback("success", "Reserva cancelada", "El alimento fue liberado correctamente.");
     } catch {
-      showFeedback(
-        "error",
-        "No se pudo cancelar",
-        "Intenta nuevamente en unos momentos.",
-      );
+      showFeedback("error", "No se pudo cancelar", "Intenta nuevamente en unos momentos.");
     } finally {
       setCancelTargetId(null);
     }
@@ -354,18 +304,11 @@ export const DashboardDonorPage = () => {
       return;
     }
     try {
-      const response = await axios.put(
-        apiUrl(`/api/donations/complete/${id}`),
-        { pin },
-      );
+      const response = await axios.put(apiUrl(`/api/donations/complete/${id}`), { pin });
       showFeedback("success", "Entrega completada", response.data.message);
       fetchDonations();
     } catch (error: any) {
-      showFeedback(
-        "error",
-        "No se pudo completar",
-        error.response?.data?.message || "Error al completar la entrega.",
-      );
+      showFeedback("error", "No se pudo completar", error.response?.data?.message || "Error al completar la entrega.");
     }
   };
 
@@ -378,49 +321,24 @@ export const DashboardDonorPage = () => {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordModal.nueva !== passwordModal.confirmar) {
-      showFeedback(
-        "error",
-        "Contraseñas no coinciden",
-        "Las contraseñas nuevas no coinciden.",
-      );
+      showFeedback("error", "Contraseñas no coinciden", "Las contraseñas nuevas no coinciden.");
       return;
     }
     if (passwordModal.nueva.length < 6) {
-      showFeedback(
-        "error",
-        "Contraseña muy corta",
-        "La nueva contraseña debe tener al menos 6 caracteres.",
-      );
+      showFeedback("error", "Contraseña muy corta", "La nueva contraseña debe tener al menos 6 caracteres.");
       return;
     }
-
     setPasswordModal((prev) => ({ ...prev, isSubmitting: true }));
     try {
       const response = await axios.put(
         apiUrl("/api/auth/change-password"),
-        {
-          userId: userId,
-          passwordActual: passwordModal.actual,
-          passwordNueva: passwordModal.nueva,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+        { userId, passwordActual: passwordModal.actual, passwordNueva: passwordModal.nueva },
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       showFeedback("success", "Contraseña actualizada", response.data.message);
-      setPasswordModal({
-        isOpen: false,
-        actual: "",
-        nueva: "",
-        confirmar: "",
-        isSubmitting: false,
-      });
+      setPasswordModal({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false });
     } catch (error: any) {
-      showFeedback(
-        "error",
-        "No se pudo actualizar",
-        error.response?.data?.message || "Error al cambiar la contraseña.",
-      );
+      showFeedback("error", "No se pudo actualizar", error.response?.data?.message || "Error al cambiar la contraseña.");
       setPasswordModal((prev) => ({ ...prev, isSubmitting: false }));
     }
   };
@@ -429,89 +347,36 @@ export const DashboardDonorPage = () => {
   const today = new Date().toISOString().split("T")[0];
 
   const getReputation = (avg?: number, total?: number) => {
-    if (!total || total === 0)
-      return {
-        label: "Sin calificación",
-        className: "bg-muted text-muted-foreground border-border",
-      };
-    if (avg! >= 4)
-      return {
-        label: "⭐ Excelente",
-        className: "bg-green-500/10 text-green-600 border-green-500/30",
-      };
-    if (avg! >= 3)
-      return {
-        label: "👍 Regular",
-        className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30",
-      };
-    return {
-      label: "⚠️ Bajo",
-      className: "bg-destructive/10 text-destructive border-destructive/30",
-    };
+    if (!total || total === 0) return { label: "Sin calificación", className: "bg-muted text-muted-foreground border-border" };
+    if (avg! >= 4) return { label: "⭐ Excelente", className: "bg-green-500/10 text-green-600 border-green-500/30" };
+    if (avg! >= 3) return { label: "👍 Regular", className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30" };
+    return { label: "⚠️ Bajo", className: "bg-destructive/10 text-destructive border-destructive/30" };
   };
 
-  const inputClassNames =
-    "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+  const inputClassNames = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
   const NavigationLinks = () => (
     <>
       <nav className="flex-1 flex flex-col gap-2 mt-6">
-        <Button
-          variant={mainView === "inventario" ? "secondary" : "ghost"}
-          className="w-full justify-start gap-3"
-          onClick={() => {
-            setMainView("inventario");
-            setIsMobileMenuOpen(false);
-          }}
-        >
+        <Button variant={mainView === "inventario" ? "secondary" : "ghost"} className="w-full justify-start gap-3" onClick={() => { setMainView("inventario"); setIsMobileMenuOpen(false); }}>
           <PackageOpen size={18} /> Inventario
         </Button>
-        <Button
-          variant={mainView === "historial" ? "secondary" : "ghost"}
-          className="w-full justify-start gap-3"
-          onClick={() => {
-            setMainView("historial");
-            setIsMobileMenuOpen(false);
-          }}
-        >
+        <Button variant={mainView === "historial" ? "secondary" : "ghost"} className="w-full justify-start gap-3" onClick={() => { setMainView("historial"); setIsMobileMenuOpen(false); }}>
           <ListOrdered size={18} /> Historial
         </Button>
-        <Button
-          variant={mainView === "perfil" ? "secondary" : "ghost"}
-          className="w-full justify-start gap-3"
-          onClick={() => {
-            setMainView("perfil");
-            setIsMobileMenuOpen(false);
-          }}
-        >
+        <Button variant={mainView === "perfil" ? "secondary" : "ghost"} className="w-full justify-start gap-3" onClick={() => { setMainView("perfil"); setIsMobileMenuOpen(false); }}>
           <User size={18} /> Mi Perfil
         </Button>
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 text-muted-foreground"
-          onClick={scrollToComments}
-        >
+        <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground" onClick={scrollToComments}>
           <MessageSquare size={18} /> Comentarios
         </Button>
       </nav>
-
       <div className="mt-auto flex flex-col gap-2 pt-4">
         <Separator className="mb-2" />
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 text-muted-foreground"
-          onClick={() => {
-            setPasswordModal({ ...passwordModal, isOpen: true });
-            setIsMobileMenuOpen(false);
-          }}
-        >
+        <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground" onClick={() => { setPasswordModal({ ...passwordModal, isOpen: true }); setIsMobileMenuOpen(false); }}>
           <KeyRound size={18} /> Cambiar Contraseña
         </Button>
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={handleLogout}
-        >
+        <Button variant="ghost" className="w-full justify-start gap-3 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleLogout}>
           <LogOut size={18} /> Cerrar Sesión
         </Button>
       </div>
@@ -520,41 +385,32 @@ export const DashboardDonorPage = () => {
 
   return (
     <div className="min-h-screen overflow-hidden bg-brand-background font-sans flex flex-col md:flex-row relative">
+      {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-brand-card/90 border-b border-border z-20 backdrop-blur">
         <div className="flex items-center gap-2 text-brand-accent">
           <Leaf size={24} />
-          <span className="text-xl font-semibold tracking-tight text-brand-text font-jakarta">
-            FoodSaver
-          </span>
+          <span className="text-xl font-semibold tracking-tight text-brand-text font-jakarta">FoodSaver</span>
         </div>
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger>
-            <Button variant="ghost" size="icon">
-              <Menu size={24} />
-            </Button>
+            <Button variant="ghost" size="icon"><Menu size={24} /></Button>
           </SheetTrigger>
-          <SheetContent
-            side="left"
-            className="w-70 bg-brand-card p-6 flex flex-col border-r-border"
-          >
+          <SheetContent side="left" className="w-70 bg-brand-card p-6 flex flex-col border-r-border">
             <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
             <div className="flex items-center gap-2 text-brand-accent">
               <Leaf size={28} />
-              <span className="text-2xl font-semibold tracking-tight text-brand-text font-jakarta">
-                FoodSaver
-              </span>
+              <span className="text-2xl font-semibold tracking-tight text-brand-text font-jakarta">FoodSaver</span>
             </div>
             <NavigationLinks />
           </SheetContent>
         </Sheet>
       </div>
 
+      {/* Sidebar Desktop */}
       <aside className="hidden md:flex w-64 bg-brand-card/90 border-r border-border p-6 flex-col z-10 shrink-0 backdrop-blur">
         <div className="flex items-center gap-2 text-brand-accent">
           <Leaf size={28} />
-          <span className="text-2xl font-semibold tracking-tight text-brand-text font-jakarta">
-            FoodSaver
-          </span>
+          <span className="text-2xl font-semibold tracking-tight text-brand-text font-jakarta">FoodSaver</span>
         </div>
         <NavigationLinks />
       </aside>
@@ -566,102 +422,50 @@ export const DashboardDonorPage = () => {
 
         <header className="mb-6 md:mb-8">
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-brand-text mb-2">
-            {mainView === "inventario"
-              ? "Panel de Control de Inventario"
-              : mainView === "historial"
-                ? "Historial de Donaciones"
-                : "Mi Perfil"}
+            {mainView === "inventario" ? "Panel de Control de Inventario" : mainView === "historial" ? "Historial de Donaciones" : "Mi Perfil"}
           </h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            {mainView === "inventario"
-              ? "Publica y gestiona el estado de tus excedentes alimentarios."
-              : mainView === "historial"
-                ? "Supervisa todas las donaciones que has realizado y su estado actual."
-                : "Consulta tu informacion personal y comentarios recibidos."}
+            {mainView === "inventario" ? "Publica y gestiona el estado de tus excedentes alimentarios." : mainView === "historial" ? "Supervisa todas las donaciones que has realizado y su estado actual." : "Consulta tu informacion personal y comentarios recibidos."}
           </p>
         </header>
 
+        {/* ── INVENTARIO ── */}
         {mainView === "inventario" && (
-          <div
-            id="mis-publicaciones"
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8"
-          >
+          <div id="mis-publicaciones" className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            {/* Formulario nueva publicación */}
             <div className="lg:col-span-1 h-fit">
               <Card className="shadow-sm ring-1 ring-foreground/5 bg-brand-card/90 backdrop-blur">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <PlusCircle className="text-brand-accent" size={20} />
-                    Nueva Publicación
+                    <PlusCircle className="text-brand-accent" size={20} /> Nueva Publicación
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="titulo">Título</Label>
-                      <Input
-                        required
-                        id="titulo"
-                        name="titulo"
-                        value={formData.titulo}
-                        onChange={handleChange}
-                        placeholder="Ej: Caja de manzanas"
-                      />
+                      <Input required id="titulo" name="titulo" value={formData.titulo} onChange={handleChange} placeholder="Ej: Caja de manzanas" />
                     </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="descripcion">Descripción</Label>
-                      <Textarea
-                        required
-                        id="descripcion"
-                        name="descripcion"
-                        value={formData.descripcion}
-                        onChange={handleChange}
-                        placeholder="Detalles sobre el alimento..."
-                        rows={2}
-                        className="resize-none"
-                      />
+                      <Textarea required id="descripcion" name="descripcion" value={formData.descripcion} onChange={handleChange} placeholder="Detalles sobre el alimento..." rows={2} className="resize-none" />
                     </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="categoria">Categoría</Label>
-                      <select
-                        id="categoria"
-                        name="categoria"
-                        value={formData.categoria}
-                        onChange={handleChange}
-                        className={inputClassNames}
-                      >
+                      <select id="categoria" name="categoria" value={formData.categoria} onChange={handleChange} className={inputClassNames}>
                         {FOOD_CATEGORIES.map((category) => (
-                          <option key={category.value} value={category.value}>
-                            {category.label}
-                          </option>
+                          <option key={category.value} value={category.value}>{category.label}</option>
                         ))}
                       </select>
                     </div>
-
                     <div className="flex flex-col sm:flex-row gap-4">
                       <div className="w-full sm:w-1/2 space-y-2">
                         <Label htmlFor="cantidad">Cantidad</Label>
-                        <Input
-                          required
-                          id="cantidad"
-                          name="cantidad"
-                          value={formData.cantidad}
-                          onChange={handleChange}
-                          placeholder="Ej: 5"
-                          type="number"
-                          min="1"
-                        />
+                        <Input required id="cantidad" name="cantidad" value={formData.cantidad} onChange={handleChange} placeholder="Ej: 5" type="number" min="1" />
                       </div>
                       <div className="w-full sm:w-1/2 space-y-2">
                         <Label htmlFor="unidad">Unidad</Label>
-                        <select
-                          id="unidad"
-                          name="unidad"
-                          value={formData.unidad}
-                          onChange={handleChange}
-                          className={inputClassNames}
-                        >
+                        <select id="unidad" name="unidad" value={formData.unidad} onChange={handleChange} className={inputClassNames}>
                           <option value="kg">kg</option>
                           <option value="lb">lb</option>
                           <option value="litros">litros</option>
@@ -671,67 +475,27 @@ export const DashboardDonorPage = () => {
                         </select>
                       </div>
                     </div>
-
                     <div className="flex gap-4">
                       <div className="w-1/2 space-y-2">
                         <Label htmlFor="fechaCaducidad">Vencimiento</Label>
-                        <Input
-                          required
-                          id="fechaCaducidad"
-                          type="date"
-                          name="fechaCaducidad"
-                          value={formData.fechaCaducidad}
-                          onChange={handleChange}
-                          min={today}
-                        />
+                        <Input required id="fechaCaducidad" type="date" name="fechaCaducidad" value={formData.fechaCaducidad} onChange={handleChange} min={today} />
                       </div>
                       <div className="w-1/2 space-y-2">
-                        <Label
-                          htmlFor="fechaRecogida"
-                          className="text-brand-accent"
-                        >
-                          Recogida
-                        </Label>
-                        <Input
-                          required
-                          id="fechaRecogida"
-                          type="date"
-                          name="fechaRecogida"
-                          value={formData.fechaRecogida}
-                          onChange={handleChange}
-                          min={today}
-                          className="border-brand-accent/30 focus-visible:ring-brand-accent"
-                        />
+                        <Label htmlFor="fechaRecogida" className="text-brand-accent">Recogida</Label>
+                        <Input required id="fechaRecogida" type="date" name="fechaRecogida" value={formData.fechaRecogida} onChange={handleChange} min={today} className="border-brand-accent/30 focus-visible:ring-brand-accent" />
                       </div>
                     </div>
-
                     <div className="space-y-2">
                       <Label>Imagen</Label>
-                      <label
-                        className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-md transition-colors cursor-pointer ${imageName ? "border-brand-accent bg-brand-accent/5" : "border-muted-foreground/25 hover:bg-muted/50"}`}
-                      >
-                        <input
-                          type="file"
-                          name="imagen"
-                          accept="image/*"
-                          onChange={handleFileChange}
-                          className="hidden"
-                        />
-                        <ImageIcon
-                          size={24}
-                          className="text-muted-foreground mb-2"
-                        />
+                      <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-md transition-colors cursor-pointer ${imageName ? "border-brand-accent bg-brand-accent/5" : "border-muted-foreground/25 hover:bg-muted/50"}`}>
+                        <input type="file" name="imagen" accept="image/*" onChange={handleFileChange} className="hidden" />
+                        <ImageIcon size={24} className="text-muted-foreground mb-2" />
                         <span className="text-sm font-medium text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap max-w-full px-2">
                           {imageName || "Haz clic para subir una foto"}
                         </span>
                       </label>
                     </div>
-
-                    <Button
-                      disabled={isSubmitting}
-                      type="submit"
-                      className="w-full mt-2"
-                    >
+                    <Button disabled={isSubmitting} type="submit" className="w-full mt-2">
                       {isSubmitting ? "Publicando..." : "Publicar Alimento"}
                     </Button>
                   </form>
@@ -739,165 +503,79 @@ export const DashboardDonorPage = () => {
               </Card>
             </div>
 
+            {/* Tarjetas de donaciones */}
             <div className="lg:col-span-2 flex flex-col w-full">
               <div className="w-full overflow-x-auto hide-scrollbar mb-6 pb-1">
                 <div className="flex gap-2 p-1 bg-muted/30 border border-border rounded-lg w-fit min-w-max backdrop-blur">
-                  <Button
-                    variant={activeTab === "activo" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setActiveTab("activo")}
-                    className={
-                      activeTab === "activo"
-                        ? "bg-green-600 hover:bg-green-700 text-white"
-                        : "text-muted-foreground"
-                    }
-                  >
+                  <Button variant={activeTab === "activo" ? "default" : "ghost"} size="sm" onClick={() => setActiveTab("activo")} className={activeTab === "activo" ? "bg-green-600 hover:bg-green-700 text-white" : "text-muted-foreground"}>
                     <CheckCircle size={16} className="mr-2" /> Activos
                   </Button>
-                  <Button
-                    variant={activeTab === "asignado" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setActiveTab("asignado")}
-                    className={
-                      activeTab === "asignado"
-                        ? "bg-yellow-600 hover:bg-yellow-700 text-white"
-                        : "text-muted-foreground"
-                    }
-                  >
+                  <Button variant={activeTab === "asignado" ? "default" : "ghost"} size="sm" onClick={() => setActiveTab("asignado")} className={activeTab === "asignado" ? "bg-yellow-600 hover:bg-yellow-700 text-white" : "text-muted-foreground"}>
                     <PackageOpen size={16} className="mr-2" /> Asignados
                   </Button>
-                  <Button
-                    variant={activeTab === "recolectado" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setActiveTab("recolectado")}
-                    className={
-                      activeTab === "recolectado"
-                        ? "bg-slate-600 hover:bg-slate-700 text-white"
-                        : "text-muted-foreground"
-                    }
-                  >
+                  <Button variant={activeTab === "recolectado" ? "default" : "ghost"} size="sm" onClick={() => setActiveTab("recolectado")} className={activeTab === "recolectado" ? "bg-slate-600 hover:bg-slate-700 text-white" : "text-muted-foreground"}>
                     <Box size={16} className="mr-2" /> Recolectados
                   </Button>
                 </div>
               </div>
 
               {isLoading ? (
-                <div className="text-muted-foreground text-center py-10">
-                  Cargando inventario...
-                </div>
+                <div className="text-muted-foreground text-center py-10">Cargando inventario...</div>
               ) : filteredDonations.length === 0 ? (
                 <Card className="p-10 text-center flex flex-col items-center justify-center h-64 border-dashed bg-transparent shadow-none">
-                  <PackageOpen
-                    size={48}
-                    className="text-muted-foreground mb-4 opacity-50"
-                  />
-                  <p className="text-muted-foreground">
-                    No tienes alimentos en estado "{activeTab}".
-                  </p>
+                  <PackageOpen size={48} className="text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-muted-foreground">No tienes alimentos en estado "{activeTab}".</p>
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-max">
                   {filteredDonations.map((donation) => {
                     const latestNotification = getLatestNotification(donation);
                     return (
-                      <Card
-                        key={donation._id}
-                        className={`overflow-hidden flex flex-col shadow-sm transition-all ${donation.estado === "recolectado" ? "opacity-60 grayscale" : "hover:border-brand-accent/40"}`}
-                      >
+                      <Card key={donation._id} className={`overflow-hidden flex flex-col shadow-sm transition-all ${donation.estado === "recolectado" ? "opacity-60 grayscale" : "hover:border-brand-accent/40"}`}>
                         <div className="h-40 w-full overflow-hidden bg-muted relative group">
                           {donation.imagenUrl ? (
-                            <img
-                              src={assetUrl(
-                                donation.imagenUrl.replace(/\\/g, "/"),
-                              )}
-                              alt={donation.titulo}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
+                            <img src={assetUrl(donation.imagenUrl.replace(/\\/g, "/"))} alt={donation.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <ImageIcon
-                                size={32}
-                                className="text-muted-foreground opacity-30"
-                              />
+                              <ImageIcon size={32} className="text-muted-foreground opacity-30" />
                             </div>
                           )}
                         </div>
                         <CardContent className="p-4 flex flex-col flex-1 pb-2">
                           <div className="flex justify-between items-start mb-2 gap-2">
-                            <h3 className="font-semibold text-foreground text-lg line-clamp-1">
-                              {donation.titulo}
-                            </h3>
-                            <CountdownTimer
-                              expiresAt={donation.fechaCaducidad}
-                            />
+                            <h3 className="font-semibold text-foreground text-lg line-clamp-1">{donation.titulo}</h3>
+                            <CountdownTimer expiresAt={donation.fechaCaducidad} />
                           </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">
-                            {donation.descripcion}
-                          </p>
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">{donation.descripcion}</p>
                           <div className="flex justify-between items-center text-xs text-muted-foreground mb-4 pt-4 border-t border-border">
-                            <span className="flex items-center gap-1">
-                              <Scale size={14} /> {donation.cantidad}{" "}
-                              {donation.unidad || "uds"}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar size={14} />{" "}
-                              {new Date(
-                                donation.fechaCaducidad,
-                              ).toLocaleDateString()}
-                            </span>
+                            <span className="flex items-center gap-1"><Scale size={14} /> {donation.cantidad} {donation.unidad || "uds"}</span>
+                            <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(donation.fechaCaducidad).toLocaleDateString()}</span>
                           </div>
 
                           {donation.beneficiary && (
                             <div className="flex flex-wrap items-center gap-2 text-xs mb-3">
-                              <User
-                                size={12}
-                                className="text-brand-accent shrink-0"
-                              />
-                              <span className="text-muted-foreground">
-                                {donation.beneficiary.nombres}
-                              </span>
+                              <User size={12} className="text-brand-accent shrink-0" />
+                              <span className="text-muted-foreground">{donation.beneficiary.nombres}</span>
                               {(() => {
-                                const badge = getReputation(
-                                  donation.beneficiary.promedioCalificacion,
-                                  donation.beneficiary.totalEvaluaciones,
-                                );
-                                return (
-                                  <span
-                                    className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badge.className}`}
-                                  >
-                                    {badge.label}
-                                  </span>
-                                );
+                                const badge = getReputation(donation.beneficiary.promedioCalificacion, donation.beneficiary.totalEvaluaciones);
+                                return <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badge.className}`}>{badge.label}</span>;
                               })()}
                             </div>
                           )}
 
                           {latestNotification && (
                             <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground mb-2">
-                              <span
-                                className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${latestNotification.estadoEntrega === "enviado" ? "bg-green-500/10 text-green-600 border-green-500/20" : "bg-destructive/10 text-destructive border-destructive/20"}`}
-                              >
-                                {latestNotification.estadoEntrega === "enviado"
-                                  ? "Email enviado"
-                                  : "Email fallido"}
+                              <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${latestNotification.estadoEntrega === "enviado" ? "bg-green-500/10 text-green-600 border-green-500/20" : "bg-destructive/10 text-destructive border-destructive/20"}`}>
+                                {latestNotification.estadoEntrega === "enviado" ? "Email enviado" : "Email fallido"}
                               </span>
-                              <span>
-                                {formatNotificationDate(
-                                  latestNotification.fechaHora,
-                                )}
-                              </span>
+                              <span>{formatNotificationDate(latestNotification.fechaHora)}</span>
                             </div>
                           )}
                         </CardContent>
 
                         <CardFooter className="p-4 pt-0 gap-2">
                           {donation.estado === "activo" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full text-brand-accent border-brand-accent/30 hover:bg-brand-accent/5 hover:text-brand-accent"
-                              onClick={() => setEditingDonation(donation)}
-                            >
+                            <Button variant="outline" size="sm" className="w-full text-brand-accent border-brand-accent/30 hover:bg-brand-accent/5 hover:text-brand-accent" onClick={() => setEditingDonation(donation)}>
                               <Pencil size={16} className="mr-2" /> Editar
                             </Button>
                           )}
@@ -905,52 +583,31 @@ export const DashboardDonorPage = () => {
                           {donation.estado === "asignado" && (
                             <div className="flex flex-col gap-3 w-full">
                               <div className="flex flex-col gap-1">
-                                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                                  PIN de Seguridad
-                                </Label>
+                                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">PIN de Seguridad</Label>
                                 <Input
                                   type="text"
                                   maxLength={4}
                                   placeholder="0000"
                                   value={pinInputs[donation._id] || ""}
-                                  onChange={(e) =>
-                                    setPinInputs({
-                                      ...pinInputs,
-                                      [donation._id]: e.target.value.replace(
-                                        /\D/g,
-                                        "",
-                                      ),
-                                    })
-                                  }
+                                  onChange={(e) => setPinInputs({ ...pinInputs, [donation._id]: e.target.value.replace(/\D/g, "") })}
                                   className="text-center font-bold tracking-[0.5em] text-brand-accent"
                                 />
                               </div>
                               <div className="flex gap-2">
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  className="flex-1"
-                                  onClick={() => handleCancel(donation._id)}
-                                >
-                                  <XCircle size={16} className="mr-1" />{" "}
-                                  Cancelar
+                                <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleCancel(donation._id)}>
+                                  <XCircle size={16} className="mr-1" /> Cancelar
                                 </Button>
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  className="flex-1 bg-green-600 hover:bg-green-700"
-                                  onClick={() => handleComplete(donation._id)}
-                                >
-                                  <CheckCircle size={16} className="mr-1" />{" "}
-                                  Validar
+                                <Button variant="default" size="sm" className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleComplete(donation._id)}>
+                                  <CheckCircle size={16} className="mr-1" /> Validar
                                 </Button>
                               </div>
                             </div>
                           )}
 
+                          {/* FIX: guardia _id !== userId para no mostrarse a sí mismo */}
                           {donation.estado === "recolectado" &&
                             donation.beneficiary &&
-                            donation.beneficiary._id !== userId && (
+                            String(donation.beneficiary._id) !== userId && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -959,16 +616,14 @@ export const DashboardDonorPage = () => {
                                   setRatingModal({
                                     isOpen: true,
                                     donationId: donation._id,
-                                    toUserId: donation.beneficiary!._id,
-                                    toUserName:
-                                      donation.beneficiary!.nombres ||
-                                      "Usuario",
-                                    canRate: true,
+                                    toUserId: String(donation.beneficiary!._id),
+                                    toUserName: donation.beneficiary!.nombres || "Usuario",
+                                    canRate: donation.canRate !== false,
                                   })
                                 }
                               >
-                                <Star size={16} className="mr-2" /> Ver /
-                                Evaluar
+                                <Star size={16} className="mr-2" />
+                                {donation.canRate !== false ? "Ver / Evaluar" : "Ver"}
                               </Button>
                             )}
                         </CardFooter>
@@ -981,6 +636,7 @@ export const DashboardDonorPage = () => {
           </div>
         )}
 
+        {/* ── HISTORIAL ── */}
         {mainView === "historial" && (
           <Card className="shadow-sm ring-1 ring-foreground/5 bg-brand-card/90 backdrop-blur w-full">
             <div className="overflow-x-auto w-full p-2">
@@ -991,61 +647,49 @@ export const DashboardDonorPage = () => {
                     <th className="p-4 font-medium text-center">Cantidad</th>
                     <th className="p-4 font-medium text-center">Estado</th>
                     <th className="p-4 font-medium text-center">PIN</th>
-                    <th className="p-4 font-medium text-center">
-                      Notificación
-                        canal: "email";
-                        destinatario: string;
-                        estadoEntrega: "enviado" | "fallido";
-                        fechaHora: string;
-                      }
-
-                      const calculateTime = (expiresAt: string) => {
-                        const difference = new Date(expiresAt).getTime() - new Date().getTime();
-                        if (difference <= 0) return { text: "Vencido", expired: true };
-
-                        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-                        const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
-                        const minutes = Math.floor((difference / 1000 / 60) % 60);
-
-                        if (days > 0) return { text: `${days}d ${hours}h restantes`, expired: false };
-                        return { text: `${hours}h ${minutes}m restantes`, expired: false };
-                      };
-
-                      const ExpiryBadge = ({ expiresAt }: { expiresAt: string }) => {
-                        const [timeLeft, setTimeLeft] = useState(() => calculateTime(expiresAt).text);
-                        const [isExpired, setIsExpired] = useState(() => calculateTime(expiresAt).expired);
-
-                        useEffect(() => {
-                          const timer = setInterval(() => {
-                            const result = calculateTime(expiresAt);
-                            setTimeLeft(result.text);
-                            setIsExpired(result.expired);
-                          }, 60000);
-                          return () => clearInterval(timer);
-                        }, [expiresAt]);
-
-                        return (
-                          <div
-                            className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border ${isExpired ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-orange-500/10 text-orange-600 border-orange-500/20"}`}
-                          >
-                            <Clock size={12} />
-                            <span>{timeLeft}</span>
-                          </div>
-                        );
-                                  : "Email fallido"}
+                    <th className="p-4 font-medium text-center">Notificación</th>
+                    <th className="p-4 font-medium text-center">Accion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {donations.map((d) => {
+                    const latestNotification = getLatestNotification(d);
+                    return (
+                      <tr key={d._id} className="border-b border-border/50 hover:bg-muted/50 transition-colors last:border-0">
+                        <td className="p-4">
+                          <p className="font-semibold text-foreground">{d.titulo}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(d.createdAt || Date.now()).toLocaleDateString()}</p>
+                        </td>
+                        <td className="p-4 text-center text-foreground font-medium">{d.cantidad} {d.unidad || "uds"}</td>
+                        <td className="p-4 text-center">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${d.estado === "activo" ? "bg-green-500/10 text-green-600" : d.estado === "asignado" ? "bg-yellow-500/10 text-yellow-600" : "bg-slate-500/10 text-slate-600"}`}>
+                            {d.estado.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          {d.estado === "asignado" ? (
+                            <span className="bg-background border border-brand-accent/30 px-2 py-1 rounded text-brand-accent font-mono font-bold tracking-wider">
+                              {d.pickupPin || "----"}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="p-4 text-center">
+                          {latestNotification ? (
+                            <div className="flex flex-col items-center gap-1 text-xs">
+                              <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${latestNotification.estadoEntrega === "enviado" ? "bg-green-500/10 text-green-600 border-green-500/20" : "bg-destructive/10 text-destructive border-destructive/20"}`}>
+                                {latestNotification.estadoEntrega === "enviado" ? "Email enviado" : "Email fallido"}
                               </span>
-                              <span className="text-muted-foreground">
-                                {formatNotificationDate(
-                                  latestNotification.fechaHora,
-                                )}
-                              </span>
+                              <span className="text-muted-foreground">{formatNotificationDate(latestNotification.fechaHora)}</span>
                             </div>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                         </td>
                         <td className="p-4 text-center">
-                          {d.estado === "recolectado" && d.beneficiary ? (
+                          {/* FIX: guardia _id !== userId en historial también */}
+                          {d.estado === "recolectado" && d.beneficiary && String(d.beneficiary._id) !== userId ? (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1054,9 +698,8 @@ export const DashboardDonorPage = () => {
                                 setRatingModal({
                                   isOpen: true,
                                   donationId: d._id,
-                                  toUserId: d.beneficiary!._id,
-                                  toUserName:
-                                    `${d.beneficiary!.nombres} ${d.beneficiary!.apellidos || ""}`.trim(),
+                                  toUserId: String(d.beneficiary!._id),
+                                  toUserName: `${d.beneficiary!.nombres} ${d.beneficiary!.apellidos || ""}`.trim(),
                                   canRate: d.canRate !== false,
                                 })
                               }
@@ -1065,26 +708,14 @@ export const DashboardDonorPage = () => {
                                 <Star size={14} />
                                 {d.canRate !== false ? "Ver / Evaluar" : "Ver"}
                               </span>
-                              {(() => {
-                                if (d.canRate === false) {
-                                  return (
-                                    <span className="text-[10px] opacity-70">
-                                      Calificado
-                                    </span>
-                                  );
-                                }
-                                const badge = getReputation(
-                                  d.beneficiary!.promedioCalificacion,
-                                  d.beneficiary!.totalEvaluaciones,
-                                );
-                                return (
-                                  <span
-                                    className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badge.className}`}
-                                  >
-                                    {badge.label}
-                                  </span>
-                                );
-                              })()}
+                              {d.canRate === false ? (
+                                <span className="text-[10px] opacity-70">Calificado</span>
+                              ) : (
+                                (() => {
+                                  const badge = getReputation(d.beneficiary!.promedioCalificacion, d.beneficiary!.totalEvaluaciones);
+                                  return <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badge.className}`}>{badge.label}</span>;
+                                })()
+                              )}
                             </Button>
                           ) : (
                             <span className="text-muted-foreground">—</span>
@@ -1099,6 +730,7 @@ export const DashboardDonorPage = () => {
           </Card>
         )}
 
+        {/* ── PERFIL ── */}
         {mainView === "perfil" && (
           <div className="flex flex-col gap-6 md:gap-8">
             <ProfileOverview onEdit={() => setIsEditProfileOpen(true)} />
@@ -1109,7 +741,7 @@ export const DashboardDonorPage = () => {
         )}
       </main>
 
-      {/* MODALES */}
+      {/* ── MODALES ── */}
       {passwordModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
           <Card className="w-full max-w-md shadow-xl ring-1 ring-foreground/5">
@@ -1117,113 +749,29 @@ export const DashboardDonorPage = () => {
               <div className="w-16 h-16 bg-brand-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-brand-accent/20">
                 <KeyRound size={32} className="text-brand-accent" />
               </div>
-              <CardTitle className="text-2xl font-semibold">
-                Cambiar Clave
-              </CardTitle>
-              <CardDescription>
-                Ingresa tu contraseña actual y la nueva
-              </CardDescription>
+              <CardTitle className="text-2xl font-semibold">Cambiar Clave</CardTitle>
+              <CardDescription>Ingresa tu contraseña actual y la nueva</CardDescription>
             </CardHeader>
-
             <CardContent>
-              <form
-                onSubmit={handlePasswordChange}
-                className="flex flex-col gap-4"
-              >
+              <form onSubmit={handlePasswordChange} className="flex flex-col gap-4">
                 <div className="space-y-2 relative">
-                  <Lock
-                    className="absolute left-3 top-[34px] -translate-y-1/2 text-muted-foreground"
-                    size={18}
-                  />
-                  <Label htmlFor="actual" className="sr-only">
-                    Contraseña Actual
-                  </Label>
-                  <Input
-                    id="actual"
-                    required
-                    type="password"
-                    placeholder="Contraseña Actual"
-                    value={passwordModal.actual}
-                    onChange={(e) =>
-                      setPasswordModal({
-                        ...passwordModal,
-                        actual: e.target.value,
-                      })
-                    }
-                    className="pl-10"
-                  />
+                  <Lock className="absolute left-3 top-[34px] -translate-y-1/2 text-muted-foreground" size={18} />
+                  <Label htmlFor="actual" className="sr-only">Contraseña Actual</Label>
+                  <Input id="actual" required type="password" placeholder="Contraseña Actual" value={passwordModal.actual} onChange={(e) => setPasswordModal({ ...passwordModal, actual: e.target.value })} className="pl-10" />
                 </div>
                 <div className="space-y-2 relative">
-                  <Lock
-                    className="absolute left-3 top-8.5 -translate-y-1/2 text-muted-foreground"
-                    size={18}
-                  />
-                  <Label htmlFor="nueva" className="sr-only">
-                    Nueva Contraseña
-                  </Label>
-                  <Input
-                    id="nueva"
-                    required
-                    type="password"
-                    placeholder="Nueva Contraseña"
-                    value={passwordModal.nueva}
-                    onChange={(e) =>
-                      setPasswordModal({
-                        ...passwordModal,
-                        nueva: e.target.value,
-                      })
-                    }
-                    className="pl-10"
-                  />
+                  <Lock className="absolute left-3 top-[34px] -translate-y-1/2 text-muted-foreground" size={18} />
+                  <Label htmlFor="nueva" className="sr-only">Nueva Contraseña</Label>
+                  <Input id="nueva" required type="password" placeholder="Nueva Contraseña" value={passwordModal.nueva} onChange={(e) => setPasswordModal({ ...passwordModal, nueva: e.target.value })} className="pl-10" />
                 </div>
                 <div className="space-y-2 relative">
-                  <Lock
-                    className="absolute left-3 top-8.5 -translate-y-1/2 text-muted-foreground"
-                    size={18}
-                  />
-                  <Label htmlFor="confirmar" className="sr-only">
-                    Confirmar Nueva
-                  </Label>
-                  <Input
-                    id="confirmar"
-                    required
-                    type="password"
-                    placeholder="Confirmar Nueva"
-                    value={passwordModal.confirmar}
-                    onChange={(e) =>
-                      setPasswordModal({
-                        ...passwordModal,
-                        confirmar: e.target.value,
-                      })
-                    }
-                    className="pl-10"
-                  />
+                  <Lock className="absolute left-3 top-[34px] -translate-y-1/2 text-muted-foreground" size={18} />
+                  <Label htmlFor="confirmar" className="sr-only">Confirmar Nueva</Label>
+                  <Input id="confirmar" required type="password" placeholder="Confirmar Nueva" value={passwordModal.confirmar} onChange={(e) => setPasswordModal({ ...passwordModal, confirmar: e.target.value })} className="pl-10" />
                 </div>
-
                 <div className="flex gap-3 mt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() =>
-                      setPasswordModal({
-                        isOpen: false,
-                        actual: "",
-                        nueva: "",
-                        confirmar: "",
-                        isSubmitting: false,
-                      })
-                    }
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1"
-                    disabled={passwordModal.isSubmitting}
-                  >
-                    {passwordModal.isSubmitting ? "..." : "Guardar"}
-                  </Button>
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => setPasswordModal({ isOpen: false, actual: "", nueva: "", confirmar: "", isSubmitting: false })}>Cancelar</Button>
+                  <Button type="submit" className="flex-1" disabled={passwordModal.isSubmitting}>{passwordModal.isSubmitting ? "..." : "Guardar"}</Button>
                 </div>
               </form>
             </CardContent>
@@ -1238,38 +786,20 @@ export const DashboardDonorPage = () => {
               <div className="w-16 h-16 rounded-full bg-green-500/10 text-green-600 flex items-center justify-center mx-auto mb-4">
                 <CheckCircle size={32} />
               </div>
-              <CardTitle className="text-2xl font-jakarta">
-                ¡Publicado!
-              </CardTitle>
+              <CardTitle className="text-2xl font-jakarta">¡Publicado!</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                El alimento está activo y visible para los beneficiarios.
-              </p>
+              <p className="text-muted-foreground">El alimento está activo y visible para los beneficiarios.</p>
             </CardContent>
             <CardFooter>
-              <Button
-                onClick={() => setShowSuccessModal(false)}
-                className="w-full"
-              >
-                Continuar
-              </Button>
+              <Button onClick={() => setShowSuccessModal(false)} className="w-full">Continuar</Button>
             </CardFooter>
           </Card>
         </div>
       )}
 
-      <EditDonationModal
-        isOpen={!!editingDonation}
-        onClose={() => setEditingDonation(null)}
-        donation={editingDonation}
-        onSuccess={fetchDonations}
-      />
-
-      <EditProfile
-        open={isEditProfileOpen}
-        onClose={() => setIsEditProfileOpen(false)}
-      />
+      <EditDonationModal isOpen={!!editingDonation} onClose={() => setEditingDonation(null)} donation={editingDonation} onSuccess={fetchDonations} />
+      <EditProfile open={isEditProfileOpen} onClose={() => setIsEditProfileOpen(false)} />
 
       <UserProfileModal
         isOpen={ratingModal.isOpen}
@@ -1283,9 +813,7 @@ export const DashboardDonorPage = () => {
 
       <ConfirmDialog
         open={!!cancelTargetId}
-        onOpenChange={(open) => {
-          if (!open) setCancelTargetId(null);
-        }}
+        onOpenChange={(open) => { if (!open) setCancelTargetId(null); }}
         title="Cancelar reserva"
         description="¿Seguro que deseas cancelar esta reserva y liberar el producto?"
         confirmLabel="Sí, cancelar"
