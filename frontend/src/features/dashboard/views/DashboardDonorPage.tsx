@@ -204,6 +204,17 @@ export const DashboardDonorPage = () => {
   const fetchDonations = useCallback(async () => {
     try {
       const response = await axios.get(apiUrl(`/api/donations/donor/${userId}`));
+
+      // LOG TEMPORAL
+      response.data.forEach((d: any) => {
+        if (d.beneficiary) {
+          console.log("donationId:", d._id);
+          console.log("beneficiary._id:", d.beneficiary._id, typeof d.beneficiary._id);
+          console.log("userId:", userId, typeof userId);
+          console.log("son iguales?", String(d.beneficiary._id) === String(userId));
+        }
+      });
+
       setDonations(response.data);
     } catch (error) {
       console.error(error);
