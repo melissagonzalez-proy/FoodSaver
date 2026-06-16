@@ -993,55 +993,45 @@ export const DashboardDonorPage = () => {
                     <th className="p-4 font-medium text-center">PIN</th>
                     <th className="p-4 font-medium text-center">
                       Notificación
-                    </th>
-                    <th className="p-4 font-medium text-center">Accion</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {donations.map((d) => {
-                    const latestNotification = getLatestNotification(d);
-                    return (
-                      <tr
-                        key={d._id}
-                        className="border-b border-border/50 hover:bg-muted/50 transition-colors last:border-0"
-                      >
-                        <td className="p-4">
-                          <p className="font-semibold text-foreground">
-                            {d.titulo}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(
-                              d.createdAt || Date.now(),
-                            ).toLocaleDateString()}
-                          </p>
-                        </td>
-                        <td className="p-4 text-center text-foreground font-medium">
-                          {d.cantidad} {d.unidad || "uds"}
-                        </td>
-                        <td className="p-4 text-center">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${d.estado === "activo" ? "bg-green-500/10 text-green-600" : d.estado === "asignado" ? "bg-yellow-500/10 text-yellow-600" : "bg-slate-500/10 text-slate-600"}`}
+                        canal: "email";
+                        destinatario: string;
+                        estadoEntrega: "enviado" | "fallido";
+                        fechaHora: string;
+                      }
+
+                      const calculateTime = (expiresAt: string) => {
+                        const difference = new Date(expiresAt).getTime() - new Date().getTime();
+                        if (difference <= 0) return { text: "Vencido", expired: true };
+
+                        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+                        const minutes = Math.floor((difference / 1000 / 60) % 60);
+
+                        if (days > 0) return { text: `${days}d ${hours}h restantes`, expired: false };
+                        return { text: `${hours}h ${minutes}m restantes`, expired: false };
+                      };
+
+                      const ExpiryBadge = ({ expiresAt }: { expiresAt: string }) => {
+                        const [timeLeft, setTimeLeft] = useState(() => calculateTime(expiresAt).text);
+                        const [isExpired, setIsExpired] = useState(() => calculateTime(expiresAt).expired);
+
+                        useEffect(() => {
+                          const timer = setInterval(() => {
+                            const result = calculateTime(expiresAt);
+                            setTimeLeft(result.text);
+                            setIsExpired(result.expired);
+                          }, 60000);
+                          return () => clearInterval(timer);
+                        }, [expiresAt]);
+
+                        return (
+                          <div
+                            className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border ${isExpired ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-orange-500/10 text-orange-600 border-orange-500/20"}`}
                           >
-                            {d.estado.toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center">
-                          {d.estado === "asignado" ? (
-                            <span className="bg-background border border-brand-accent/30 px-2 py-1 rounded text-brand-accent font-mono font-bold tracking-wider">
-                              {d.pickupPin || "----"}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </td>
-                        <td className="p-4 text-center">
-                          {latestNotification ? (
-                            <div className="flex flex-col items-center gap-1 text-xs">
-                              <span
-                                className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${latestNotification.estadoEntrega === "enviado" ? "bg-green-500/10 text-green-600 border-green-500/20" : "bg-destructive/10 text-destructive border-destructive/20"}`}
-                              >
-                                {latestNotification.estadoEntrega === "enviado"
-                                  ? "Email enviado"
+                            <Clock size={12} />
+                            <span>{timeLeft}</span>
+                          </div>
+                        );
                                   : "Email fallido"}
                               </span>
                               <span className="text-muted-foreground">

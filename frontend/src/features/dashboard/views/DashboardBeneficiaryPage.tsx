@@ -773,8 +773,7 @@ export const DashboardBeneficiaryPage = () => {
                             >
                               <XCircle size={16} className="mr-2" /> Cancelar
                             </Button>
-                          ) : (
-                            reservation.donor?._id !== currentUserId && (
+                          ) : reservation.donor?._id !== currentUserId ? (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -797,8 +796,7 @@ export const DashboardBeneficiaryPage = () => {
                                 ? "Ver / Calificar"
                                 : "Ver"}
                             </Button>
-                            )}
-                          )}
+                          ) : null}
                         </td>
                       </tr>
                     ))
